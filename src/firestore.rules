@@ -1,0 +1,44 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: Check if the user is logged in
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Helper: Check if the user is the owner of the data
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // --- RULES FOR THE "craft-my-prompt-app" DATA ---
+    match /artifacts/craft-my-prompt-app {
+
+      // 1. PUBLIC FEED (Posts)
+      // Path: /artifacts/craft-my-prompt-app/public/data/posts/{postId}
+      match /public/data/posts/{postId} {
+        // Anyone can read the feed
+        allow read: if true;
+        
+        // Only logged-in users can create posts
+        // AND the 'authorId' field must match their real User ID
+        allow create: if isSignedIn() 
+                      && request.resource.data.authorId == request.auth.uid;
+                      
+        // Only logged-in users can update (e.g., clicking 'Like')
+        allow update: if isSignedIn();
+        
+        // No one can delete posts (for now, to be safe)
+        allow delete: if false; 
+      }
+
+      // 2. USER LIBRARY (Saved Prompts)
+      // Path: /artifacts/craft-my-prompt-app/users/{userId}/saved_prompts/{promptId}
+      match /users/{userId}/saved_prompts/{document=**} {
+        // You can only Read, Write, Update, or Delete if you own this folder
+        allow read, write: if isOwner(userId);
+      }
+    }
+  }
+}
