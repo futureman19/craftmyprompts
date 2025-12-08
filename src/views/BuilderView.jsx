@@ -5,12 +5,13 @@ import {
   Sparkles, MessageSquare, Palette, Command, Search, Dices, 
   Brain, XCircle, ImagePlus, Ban, Cpu, Wand2, Code, 
   ChevronDown, FileText, Zap, RefreshCw, Check, Copy as CopyIcon, 
-  Lock, Globe, Save, UserCircle, Braces 
+  Lock, Globe, Save, UserCircle, Braces, Play 
 } from 'lucide-react';
 
 import { db, auth, APP_ID } from '../lib/firebase.js';
 import { PRESETS } from '../data/constants.jsx';
 import { usePromptBuilder } from '../hooks/usePromptBuilder.js';
+import TestRunnerModal from '../components/TestRunnerModal.jsx';
 
 const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHistory, onLoginRequest }) => {
   // --- CUSTOM HOOK ---
@@ -25,6 +26,7 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
   const [saveVisibility, setSaveVisibility] = useState('private');
   const [activeCategory, setActiveCategory] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showTestModal, setShowTestModal] = useState(false);
 
   // --- EFFECT: LOAD INITIAL DATA (REMIX) ---
   useEffect(() => {
@@ -383,8 +385,24 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                     </div>
                     <button onClick={handleUnifiedSave} disabled={!generatedPrompt || isSaving} className="w-full py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-medium text-slate-300 flex items-center justify-center gap-2 transition-colors disabled:opacity-50"><Save size={14} /> {isSaving ? 'Saving...' : (saveVisibility === 'public' ? 'Save & Publish' : 'Save to Library')}</button>
                 </div>
+                
+                {/* NEW: Test Button Area */}
+                <button 
+                    onClick={() => setShowTestModal(true)} 
+                    disabled={!generatedPrompt}
+                    className="w-full py-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white rounded-lg text-xs font-bold shadow-lg shadow-indigo-900/50 flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    <Play size={14} fill="currentColor" /> Test with Gemini
+                </button>
             </div>
         </div>
+
+        {/* Modal */}
+        <TestRunnerModal 
+            isOpen={showTestModal} 
+            onClose={() => setShowTestModal(false)} 
+            prompt={generatedPrompt} 
+        />
       </div>
   );
 };
