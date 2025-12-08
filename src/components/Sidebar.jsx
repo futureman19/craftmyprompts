@@ -6,7 +6,6 @@ const Sidebar = ({ handleLogin, handleLogout, user }) => {
     const navigate = useNavigate();
     const location = useLocation();
     
-    // Helper to determine if a button is active based on the current URL
     const isActive = (path) => location.pathname === path 
         ? 'bg-slate-800 text-indigo-400' 
         : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50';
@@ -32,7 +31,6 @@ const Sidebar = ({ handleLogin, handleLogout, user }) => {
                </button>
            </div>
     
-           {/* Auth Button */}
            <div className="mt-auto pb-4">
                {user && user.uid !== 'demo' ? (
                    <button onClick={handleLogout} className="flex flex-col items-center gap-1 p-2 text-slate-500 hover:text-red-400 transition-all" title="Sign Out">

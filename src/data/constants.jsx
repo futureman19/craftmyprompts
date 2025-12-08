@@ -14,7 +14,10 @@ import {
   Palette, 
   Camera, 
   MonitorPlay, 
-  Aperture 
+  Aperture,
+  BookOpen,
+  Ruler,
+  Languages
 } from 'lucide-react';
 
 export const GENERAL_DATA = [
@@ -47,6 +50,37 @@ export const GENERAL_DATA = [
     subcategories: [
       { name: 'Structured', options: ['Bullet Points', 'Table', 'Step-by-Step', 'Pros & Cons'] },
       { name: 'Long Form', options: ['Essay', 'Article', 'Report', 'Memo'] }
+    ]
+  },
+  {
+    id: 'context',
+    title: 'Context',
+    icon: <BookOpen size={20} />,
+    description: 'Background & Setting',
+    subcategories: [
+      { name: 'Audience', options: ['Beginner', 'Expert', 'Child', 'Colleague', 'Public'] },
+      { name: 'Situation', options: ['Corporate Meeting', 'Viral Social Post', 'Academic Paper', 'Casual Conversation'] }
+    ]
+  },
+  {
+    id: 'length',
+    title: 'Length',
+    icon: <Ruler size={20} />,
+    description: 'Word Count & Depth',
+    subcategories: [
+      { name: 'Brief', options: ['< 100 words', 'One Sentence', 'Elevator Pitch'] },
+      { name: 'Medium', options: ['300 words', 'One Paragraph', 'Standard Email'] },
+      { name: 'Extensive', options: ['Deep Dive', '1000+ words', 'Comprehensive Guide'] }
+    ]
+  },
+  {
+    id: 'language_style',
+    title: 'Language Style',
+    icon: <Languages size={20} />,
+    description: 'Vocabulary & Complexity',
+    subcategories: [
+      { name: 'Complexity', options: ['Simple English', 'Technical Jargon', 'Academic', 'Explain Like I\'m 5'] },
+      { name: 'Creative', options: ['Metaphorical', 'Storytelling', 'Persuasive', 'Descriptive'] }
     ]
   }
 ];

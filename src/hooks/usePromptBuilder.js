@@ -66,9 +66,7 @@ function builderReducer(state, action) {
     }
     case 'LOAD_PRESET':
         // Logic to parse a preset object into state
-        // This mirrors the logic currently in BuilderView applyPreset
         const newSels = {};
-        // Helper to mimic the old addSel behavior
         const addSel = (cat, val) => { newSels[cat] = [{ value: val, weight: 1 }]; };
         
         const p = action.payload;
@@ -89,8 +87,7 @@ function builderReducer(state, action) {
             variables: {} 
         };
     case 'RANDOMIZE': {
-        // Logic to random select from current data source
-        const dataSrc = action.payload; // Pass currentData from component
+        const dataSrc = action.payload; 
         const rand = (arr) => arr[Math.floor(Math.random() * arr.length)];
         const randomSels = {};
         
@@ -111,7 +108,6 @@ function builderReducer(state, action) {
         const currentTech = state.selections['tech'] || [];
         const newItems = selected.map(w => ({ value: w, weight: 1 }));
         
-        // Merge unique
         const unique = [...currentTech];
         newItems.forEach(ni => {
             if(!unique.find(u => u.value === ni.value)) unique.push(ni);
@@ -125,7 +121,6 @@ function builderReducer(state, action) {
     case 'RESET':
       return initialState;
     case 'LOAD_INITIAL_DATA':
-        // Handle remixing/loading from saved prompt
         const data = action.payload;
         return {
             ...state,
@@ -159,7 +154,7 @@ const formatOption = (item, isArtMode, model) => {
 };
 
 const applyVariables = (text, variables) => {
-    if (!text) return '';
+    if (!text) return { result: '', detectedVars: [] };
     const regex = /\{([^}]+)\}/g;
     const matches = [...text.matchAll(regex)].map(m => m[1]);
     const uniqueVars = [...new Set(matches)];
@@ -177,7 +172,6 @@ const applyVariables = (text, variables) => {
 export const usePromptBuilder = (initialData) => {
   const [state, dispatch] = useReducer(builderReducer, initialState);
 
-  // --- DERIVED DATA ---
   const currentData = useMemo(() => {
       if (state.mode === 'art') return ART_DATA;
       if (state.textSubMode === 'coding') return CODING_DATA;
@@ -232,7 +226,6 @@ export const usePromptBuilder = (initialData) => {
 
       return parts.join('\n');
     } else {
-      // ART MODE Logic
       if (state.targetModel === 'dalle') {
           parts.push("Create an image of");
           if (processedTopic) parts.push(`${processedTopic}.`);

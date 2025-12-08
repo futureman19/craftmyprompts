@@ -16,7 +16,7 @@ import { formatTimestamp } from '../utils/index.js';
 
 const POSTS_PER_PAGE = 20;
 
-const FeedView = ({ user, loadPrompt }) => {
+const FeedView = ({ user, loadPrompt, onLoginRequest }) => {
   const [posts, setPosts] = useState([]);
   const [lastDoc, setLastDoc] = useState(null); // Keeps track of where we left off
   const [loading, setLoading] = useState(true);
@@ -81,8 +81,9 @@ const FeedView = ({ user, loadPrompt }) => {
   }, []); // Run once on mount
 
   const handleLike = async (postId) => {
+      // GUEST LOGIC: Prompt login on like
       if(!user || user.uid === 'demo') {
-          alert("Please login to like posts");
+          onLoginRequest();
           return;
       }
       
