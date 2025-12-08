@@ -19,8 +19,27 @@ const App = () => {
   const [promptToLoad, setPromptToLoad] = useState(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
   
+  // Initialize Dark Mode from local storage or system preference
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem('craft-my-prompt-theme');
+    return saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  });
+  
   // Navigation Hook
   const navigate = useNavigate();
+
+  // --- EFFECTS ---
+
+  // Handle Dark Mode Class on HTML element
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('craft-my-prompt-theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('craft-my-prompt-theme', 'light');
+    }
+  }, [darkMode]);
 
   // Check auth state on mount
   useEffect(() => {
@@ -67,15 +86,25 @@ const App = () => {
       setShowLoginModal(true);
   };
 
+  const toggleDarkMode = () => setDarkMode(prev => !prev);
+
   return (
-    <div className="flex w-full h-screen bg-slate-100 font-sans text-slate-900 overflow-hidden">
+    // Standard flex-col for mobile, flex-row for desktop
+    <div className="flex flex-col md:flex-row w-full h-screen md:h-dvh bg-slate-100 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 overflow-hidden transition-colors duration-200">
+        
+        {/* Sidebar Component */}
+        {/* Placed first for Desktop left-alignment. Mobile 'fixed' styling handles bottom position. */}
         <Sidebar 
             handleLogin={handleLoginRequest} 
             handleLogout={handleLogout} 
             user={user} 
+            darkMode={darkMode}
+            toggleDarkMode={toggleDarkMode}
         />
         
-        <div className="flex-1 flex flex-col h-screen overflow-hidden relative w-full">
+        {/* Main Content Area */}
+        {/* pb-20 adds padding at the bottom on mobile so content isn't hidden behind the fixed nav bar */}
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative pb-20 md:pb-0">
             <Routes>
                 {/* Public Route: Builder is now accessible to everyone */}
                 <Route path="/" element={
@@ -107,8 +136,8 @@ const App = () => {
                 ) : (
                     // Redirect guests trying to access private routes to Builder or show a restricted view
                     <>
-                        <Route path="/library" element={<div className="flex items-center justify-center h-full"><div className="text-center p-8"><h2 className="text-xl font-bold text-slate-700 mb-2">Library is locked</h2><p className="text-slate-500 mb-4">Please sign in to save your prompts.</p><button onClick={handleLoginRequest} className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">Sign In</button></div></div>} />
-                        <Route path="/history" element={<div className="flex items-center justify-center h-full"><div className="text-center p-8"><h2 className="text-xl font-bold text-slate-700 mb-2">History is locked</h2><p className="text-slate-500 mb-4">Sign in to track your session history.</p><button onClick={handleLoginRequest} className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">Sign In</button></div></div>} />
+                        <Route path="/library" element={<div className="flex items-center justify-center h-full"><div className="text-center p-8"><h2 className="text-xl font-bold text-slate-700 dark:text-slate-200 mb-2">Library is locked</h2><p className="text-slate-500 dark:text-slate-400 mb-4">Please sign in to save your prompts.</p><button onClick={handleLoginRequest} className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">Sign In</button></div></div>} />
+                        <Route path="/history" element={<div className="flex items-center justify-center h-full"><div className="text-center p-8"><h2 className="text-xl font-bold text-slate-700 dark:text-slate-200 mb-2">History is locked</h2><p className="text-slate-500 dark:text-slate-400 mb-4">Sign in to track your session history.</p><button onClick={handleLoginRequest} className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">Sign In</button></div></div>} />
                     </>
                 )}
             </Routes>

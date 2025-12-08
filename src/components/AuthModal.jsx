@@ -35,28 +35,28 @@ const AuthModal = ({ isOpen, onClose, showToast }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-2xl p-6 w-96 animate-in fade-in zoom-in duration-200">
-        <h3 className="text-xl font-bold text-slate-800 mb-4">{isSignup ? 'Create Account' : 'Sign In'}</h3>
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-6 w-96 animate-in fade-in zoom-in duration-200">
+        <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-4">{isSignup ? 'Create Account' : 'Sign In'}</h3>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-600 mb-1">Email</label>
+            <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1">Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+              className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-600 mb-1">Password</label>
+            <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1">Password</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+              className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white"
               required
             />
           </div>
@@ -73,14 +73,14 @@ const AuthModal = ({ isOpen, onClose, showToast }) => {
         <div className="mt-4 text-center text-sm space-y-3">
           <button
             onClick={() => setIsSignup(!isSignup)}
-            className="text-indigo-600 hover:text-indigo-700 font-medium hover:underline"
+            className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 font-medium hover:underline"
           >
             {isSignup ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
           </button>
           
           <button
             onClick={onClose}
-            className="block w-full py-2 border border-slate-200 text-slate-500 rounded-lg hover:bg-slate-50 hover:text-slate-700 transition-colors text-xs"
+            className="block w-full py-2 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-200 transition-colors text-xs"
           >
             Close
           </button>

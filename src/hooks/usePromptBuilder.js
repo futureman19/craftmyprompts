@@ -147,9 +147,15 @@ const formatOption = (item, isArtMode, model) => {
     const val = item.value;
     const weight = item.weight;
     if (!isArtMode || weight === 1) return val;
+    
+    // UPDATED: Handle model-specific weighting
     if (model === 'midjourney') return `${val}::${weight}`; 
     if (model === 'stable-diffusion') return `(${val}:${weight})`; 
     if (model === 'dalle') return `${val} (priority level ${weight})`; 
+    
+    // Gemini and Flux typically prefer natural language without specific weight syntax
+    if (model === 'gemini' || model === 'flux') return val;
+
     return val;
 };
 
@@ -226,7 +232,10 @@ export const usePromptBuilder = (initialData) => {
 
       return parts.join('\n');
     } else {
-      if (state.targetModel === 'dalle') {
+      // --- ART MODE LOGIC UPDATED FOR GEMINI / FLUX ---
+      
+      // DALL-E and Gemini are conversational
+      if (state.targetModel === 'dalle' || state.targetModel === 'gemini') {
           parts.push("Create an image of");
           if (processedTopic) parts.push(`${processedTopic}.`);
           const genres = state.selections.genre?.map(i => i.value).join(' and ');
@@ -239,6 +248,7 @@ export const usePromptBuilder = (initialData) => {
           return parts.join(' ');
       }
 
+      // Midjourney, Stable Diffusion, Flux (Tag based)
       if (state.referenceImage?.trim()) parts.push(state.referenceImage.trim());
 
       const coreParts = [];
@@ -279,6 +289,7 @@ export const usePromptBuilder = (initialData) => {
       if (state.negativePrompt?.trim()) {
           if (state.targetModel === 'midjourney') suffix += ` --no ${state.negativePrompt.trim()}`;
           else if (state.targetModel === 'stable-diffusion') mainPrompt += ` [${state.negativePrompt.trim()}]`;
+          // Flux generally handles negative prompts via API params, but textual exclusion works too
       }
 
       if (state.seed && state.targetModel === 'midjourney') suffix += ` --seed ${state.seed}`;

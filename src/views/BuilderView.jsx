@@ -1,25 +1,26 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { addDoc, collection, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { updateProfile } from 'firebase/auth';
 import { 
   Sparkles, MessageSquare, Palette, Command, Search, Dices, 
   Brain, XCircle, ImagePlus, Ban, Cpu, Wand2, Code, 
   ChevronDown, FileText, Zap, RefreshCw, Check, Copy as CopyIcon, 
-  Lock, Globe, Save, UserCircle 
+  Lock, Globe, Save, UserCircle, Braces 
 } from 'lucide-react';
 
 import { db, auth, APP_ID } from '../lib/firebase.js';
 import { PRESETS } from '../data/constants.jsx';
 import { usePromptBuilder } from '../hooks/usePromptBuilder.js';
 
-const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHistory }) => {
+const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHistory, onLoginRequest }) => {
   // --- CUSTOM HOOK ---
   const { state, dispatch, generatedPrompt, currentData, detectedVars } = usePromptBuilder();
 
-  // --- LOCAL UI STATE (Presentation only) ---
+  // --- LOCAL UI STATE ---
   const [displayName, setDisplayName] = useState('');
   const [expandedSubcats, setExpandedSubcats] = useState({});
   const [copied, setCopied] = useState(false);
+  const [copiedJson, setCopiedJson] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveVisibility, setSaveVisibility] = useState('private');
   const [activeCategory, setActiveCategory] = useState(null);
@@ -57,9 +58,33 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
     showToast("Copied to clipboard!");
   };
 
+  // --- NEW: Handle Copy JSON ---
+  const handleCopyJSON = () => {
+    const dataToCopy = {
+        meta: {
+            app: "CraftMyPrompt",
+            version: "1.0",
+            mode: state.mode,
+            targetModel: state.targetModel
+        },
+        prompt: generatedPrompt,
+        parameters: {
+            negative: state.negativePrompt,
+            seed: state.seed,
+            lora: state.loraName ? { name: state.loraName, weight: state.loraWeight } : null
+        },
+        structure: state.selections
+    };
+    
+    navigator.clipboard.writeText(JSON.stringify(dataToCopy, null, 2));
+    setCopiedJson(true);
+    setTimeout(() => setCopiedJson(false), 2000);
+    showToast("JSON Data copied!");
+  };
+
   const handleUnifiedSave = async () => {
     if (!user) {
-        showToast("Please wait for login...", "error");
+        onLoginRequest();
         return;
     }
     
@@ -134,107 +159,110 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
   return (
       <div className="flex h-full w-full">
         {/* Main Builder Panel */}
-        <div className="flex-1 min-w-0 flex flex-col h-full overflow-hidden bg-slate-50">
-            <header className="bg-white border-b border-slate-200 p-4 shadow-sm z-10 sticky top-0">
+        <div className="flex-1 min-w-0 flex flex-col h-full overflow-hidden bg-slate-50 dark:bg-slate-900 transition-colors">
+            <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 p-4 shadow-sm z-10 sticky top-0 transition-colors">
                 <div className="flex flex-col gap-4 mb-4">
                     <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2"><div className={`p-2 rounded-lg text-white ${state.mode === 'text' ? 'bg-indigo-600' : 'bg-pink-600'}`}><Sparkles size={20} /></div><h1 className="text-xl font-bold text-slate-800 hidden md:block">CraftMyPrompt</h1></div>
-                        <div className="flex bg-slate-100 p-1 rounded-xl">
-                            <button onClick={() => dispatch({ type: 'SET_MODE', payload: 'text' })} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${state.mode === 'text' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}><MessageSquare size={14} /> Text</button>
-                            <button onClick={() => dispatch({ type: 'SET_MODE', payload: 'art' })} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${state.mode === 'art' ? 'bg-white text-pink-600 shadow-sm' : 'text-slate-500'}`}><Palette size={14} /> Art</button>
+                        <div className="flex items-center gap-2">
+                            <div className={`p-2 rounded-lg text-white ${state.mode === 'text' ? 'bg-indigo-600' : 'bg-pink-600'}`}><Sparkles size={20} /></div>
+                            <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100 hidden md:block">CraftMyPrompt</h1>
+                        </div>
+                        <div className="flex bg-slate-100 dark:bg-slate-700 p-1 rounded-xl">
+                            <button onClick={() => dispatch({ type: 'SET_MODE', payload: 'text' })} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${state.mode === 'text' ? 'bg-white dark:bg-slate-600 text-indigo-600 dark:text-indigo-300 shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}><MessageSquare size={14} /> Text</button>
+                            <button onClick={() => dispatch({ type: 'SET_MODE', payload: 'art' })} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${state.mode === 'art' ? 'bg-white dark:bg-slate-600 text-pink-600 dark:text-pink-300 shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}><Palette size={14} /> Art</button>
                         </div>
                     </div>
                     {state.mode === 'text' && (
                          <div className="flex items-center gap-2 overflow-x-auto pb-1">
                             {['general', 'coding', 'writing'].map(m => (
-                                <button key={m} onClick={() => dispatch({ type: 'SET_SUBMODE', payload: m })} className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs border whitespace-nowrap transition-colors capitalize ${state.textSubMode === m ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'}`}>{m}</button>
+                                <button key={m} onClick={() => dispatch({ type: 'SET_SUBMODE', payload: m })} className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs border whitespace-nowrap transition-colors capitalize ${state.textSubMode === m ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:border-slate-300'}`}>{m}</button>
                             ))}
                          </div>
                     )}
                     {state.mode === 'art' && (
                          <div className="flex items-center gap-2 overflow-x-auto pb-1">
                             <span className="text-xs font-bold text-slate-400 uppercase whitespace-nowrap">Target:</span>
-                            {['midjourney', 'stable-diffusion', 'dalle'].map(m => (
-                                <button key={m} onClick={() => dispatch({ type: 'SET_TARGET_MODEL', payload: m })} className={`px-3 py-1 rounded-full text-xs border whitespace-nowrap capitalize transition-colors ${state.targetModel === m ? 'bg-slate-800 text-white border-slate-800' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'}`}>{m.replace('-', ' ')}</button>
+                            {['midjourney', 'stable-diffusion', 'dalle', 'gemini', 'flux'].map(m => (
+                                <button key={m} onClick={() => dispatch({ type: 'SET_TARGET_MODEL', payload: m })} className={`px-3 py-1 rounded-full text-xs border whitespace-nowrap capitalize transition-colors ${state.targetModel === m ? 'bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 border-slate-800 dark:border-slate-200' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:border-slate-300'}`}>{m.replace('-', ' ')}</button>
                             ))}
                          </div>
                     )}
                 </div>
                 <div className="flex gap-2">
                       <div className="relative group">
-                         <button className="px-3 py-2 bg-slate-800 text-white rounded-lg flex items-center gap-2 text-sm font-medium"><Command size={16} /> <span className="hidden md:inline">Presets</span></button>
-                         <div className="absolute top-full left-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-200 hidden group-hover:block z-50 p-2">
+                          <button className="px-3 py-2 bg-slate-800 dark:bg-slate-700 text-white rounded-lg flex items-center gap-2 text-sm font-medium"><Command size={16} /> <span className="hidden md:inline">Presets</span></button>
+                          <div className="absolute top-full left-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-600 hidden group-hover:block z-50 p-2">
                              <div className="text-[10px] font-bold text-slate-400 uppercase px-2 py-1">Quick Start</div>
                              {(state.mode === 'text' ? PRESETS[state.textSubMode] || PRESETS.general : PRESETS.art).map((p, i) => (
-                                 <button key={i} onClick={() => applyPreset(p)} className="w-full text-left px-2 py-2 text-xs hover:bg-indigo-50 text-slate-700 rounded-lg">{p.label}</button>
+                                 <button key={i} onClick={() => applyPreset(p)} className="w-full text-left px-2 py-2 text-xs hover:bg-indigo-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg">{p.label}</button>
                              ))}
-                         </div>
+                          </div>
                       </div>
 
                       <div className="relative flex-1">
-                         <Search className="absolute left-3 top-2.5 text-slate-400" size={16} />
-                         <input type="text" placeholder="Search..." className="w-full pl-9 pr-4 py-2 bg-slate-100 border-none rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                          <Search className="absolute left-3 top-2.5 text-slate-400" size={16} />
+                          <input type="text" placeholder="Search..." className="w-full pl-9 pr-4 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none dark:text-slate-200 dark:placeholder-slate-400" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                     </div>
-                    <button onClick={() => { dispatch({ type: 'RANDOMIZE', payload: currentData }); showToast("Randomized selections!"); }} className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors shadow-sm flex items-center gap-2" title="Randomize"><Dices size={18} /></button>
+                    <button onClick={() => { dispatch({ type: 'RANDOMIZE', payload: currentData }); showToast("Randomized selections!"); }} className="px-3 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-lg transition-colors shadow-sm flex items-center gap-2" title="Randomize"><Dices size={18} /></button>
                 </div>
             </header>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
                  {!displayName && user && !user.displayName && (
-                    <div className="bg-indigo-50 border border-indigo-100 p-3 rounded-lg flex gap-2 items-center text-sm">
-                        <UserCircle className="text-indigo-500" /><input className="bg-transparent border-b border-indigo-300 outline-none flex-1 text-indigo-900 placeholder-indigo-300" placeholder="Set display name..." onBlur={(e) => { if(e.target.value) { setDisplayName(e.target.value); updateProfile(user, { displayName: e.target.value }); } }} />
+                    <div className="bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800 p-3 rounded-lg flex gap-2 items-center text-sm">
+                        <UserCircle className="text-indigo-500 dark:text-indigo-400" /><input className="bg-transparent border-b border-indigo-300 dark:border-indigo-600 outline-none flex-1 text-indigo-900 dark:text-indigo-100 placeholder-indigo-300 dark:placeholder-indigo-500" placeholder="Set display name..." onBlur={(e) => { if(e.target.value) { setDisplayName(e.target.value); updateProfile(user, { displayName: e.target.value }); } }} />
                     </div>
                 )}
                 {state.mode === 'text' && (
                     <div className="flex gap-2 overflow-x-auto pb-2">
-                        <button onClick={() => dispatch({ type: 'UPDATE_FIELD', field: 'chainOfThought', value: !state.chainOfThought })} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold border transition-all ${state.chainOfThought ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-white text-slate-500 border-slate-200'}`}><Brain size={14} /> Chain of Thought</button>
-                        {state.textSubMode === 'coding' && <button onClick={() => dispatch({ type: 'UPDATE_FIELD', field: 'codeOnly', value: !state.codeOnly })} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold border transition-all ${state.codeOnly ? 'bg-red-100 text-red-700 border-red-200' : 'bg-white text-slate-500 border-slate-200'}`}><XCircle size={14} /> Code Only</button>}
+                        <button onClick={() => dispatch({ type: 'UPDATE_FIELD', field: 'chainOfThought', value: !state.chainOfThought })} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold border transition-all ${state.chainOfThought ? 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 dark:border-emerald-800' : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700'}`}><Brain size={14} /> Chain of Thought</button>
+                        {state.textSubMode === 'coding' && <button onClick={() => dispatch({ type: 'UPDATE_FIELD', field: 'codeOnly', value: !state.codeOnly })} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold border transition-all ${state.codeOnly ? 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/40 dark:text-red-300 dark:border-red-800' : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700'}`}><XCircle size={14} /> Code Only</button>}
                     </div>
                 )}
                 {state.mode === 'art' && (
                     <>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+                            <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700">
                                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2"><ImagePlus size={14} /> Ref Image URL</h3>
-                                <input className="w-full p-2 bg-slate-50 rounded-lg border border-slate-100 focus:ring-2 focus:ring-pink-500 outline-none text-sm placeholder-slate-300" placeholder="https://..." value={state.referenceImage} onChange={(e) => dispatch({ type: 'UPDATE_FIELD', field: 'referenceImage', value: e.target.value })} />
+                                <input className="w-full p-2 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-700 focus:ring-2 focus:ring-pink-500 outline-none text-sm placeholder-slate-300 dark:text-slate-200" placeholder="https://..." value={state.referenceImage} onChange={(e) => dispatch({ type: 'UPDATE_FIELD', field: 'referenceImage', value: e.target.value })} />
                             </div>
-                            <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+                            <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700">
                                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2"><Ban size={14} /> Negative Prompt</h3>
-                                <input className="w-full p-2 bg-slate-50 rounded-lg border border-slate-100 focus:ring-2 focus:ring-red-500 outline-none text-sm placeholder-slate-300" placeholder="e.g. blur, text" value={state.negativePrompt} onChange={(e) => dispatch({ type: 'UPDATE_FIELD', field: 'negativePrompt', value: e.target.value })} />
+                                <input className="w-full p-2 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-700 focus:ring-2 focus:ring-red-500 outline-none text-sm placeholder-slate-300 dark:text-slate-200" placeholder="e.g. blur, text" value={state.negativePrompt} onChange={(e) => dispatch({ type: 'UPDATE_FIELD', field: 'negativePrompt', value: e.target.value })} />
                             </div>
                         </div>
                         {state.targetModel === 'stable-diffusion' && (
-                            <div className="bg-indigo-50 rounded-xl p-4 shadow-sm border border-indigo-100 flex gap-4 items-end">
-                                <div className="flex-1"><h3 className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-2 flex items-center gap-2"><Cpu size={14} /> LoRA Model Name</h3><input className="w-full p-2 bg-white rounded-lg border border-indigo-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm placeholder-indigo-300" placeholder="e.g. arcane_style_v1" value={state.loraName} onChange={(e) => dispatch({ type: 'UPDATE_FIELD', field: 'loraName', value: e.target.value })} /></div>
-                                <div className="w-24"><label className="text-[10px] font-bold text-indigo-400 block mb-1">Weight</label><input type="number" step="0.1" className="w-full p-2 bg-white rounded-lg border border-indigo-200 text-sm" value={state.loraWeight} onChange={(e) => dispatch({ type: 'UPDATE_FIELD', field: 'loraWeight', value: e.target.value })} /></div>
+                            <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-xl p-4 shadow-sm border border-indigo-100 dark:border-indigo-800 flex gap-4 items-end">
+                                <div className="flex-1"><h3 className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-2 flex items-center gap-2"><Cpu size={14} /> LoRA Model Name</h3><input className="w-full p-2 bg-white dark:bg-slate-800 rounded-lg border border-indigo-200 dark:border-indigo-700 focus:ring-2 focus:ring-indigo-500 outline-none text-sm placeholder-indigo-300 dark:text-slate-200" placeholder="e.g. arcane_style_v1" value={state.loraName} onChange={(e) => dispatch({ type: 'UPDATE_FIELD', field: 'loraName', value: e.target.value })} /></div>
+                                <div className="w-24"><label className="text-[10px] font-bold text-indigo-400 block mb-1">Weight</label><input type="number" step="0.1" className="w-full p-2 bg-white dark:bg-slate-800 rounded-lg border border-indigo-200 dark:border-indigo-700 text-sm dark:text-slate-200" value={state.loraWeight} onChange={(e) => dispatch({ type: 'UPDATE_FIELD', field: 'loraWeight', value: e.target.value })} /></div>
                             </div>
                         )}
-                         <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+                         <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700">
                             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2">Seed</h3>
-                            <input className="w-full p-2 bg-slate-50 rounded-lg border border-slate-100 focus:ring-2 focus:ring-pink-500 outline-none text-sm placeholder-slate-300" placeholder="Random if empty" value={state.seed} onChange={(e) => dispatch({ type: 'UPDATE_FIELD', field: 'seed', value: e.target.value })} type="number" />
+                            <input className="w-full p-2 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-700 focus:ring-2 focus:ring-pink-500 outline-none text-sm placeholder-slate-300 dark:text-slate-200" placeholder="Random if empty" value={state.seed} onChange={(e) => dispatch({ type: 'UPDATE_FIELD', field: 'seed', value: e.target.value })} type="number" />
                         </div>
                     </>
                 )}
-                <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200">
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-5 shadow-sm border border-slate-200 dark:border-slate-700">
                     <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2">
                         <Wand2 size={14} /> {state.mode === 'text' ? (state.textSubMode === 'coding' ? 'Code / Context' : 'Topic / Content') : 'Main Subject'}
                     </h3>
                     <textarea 
-                        className="w-full p-3 bg-slate-50 rounded-lg border border-slate-100 focus:ring-2 focus:ring-indigo-500 outline-none resize-none text-sm leading-relaxed" 
+                        className="w-full p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none resize-none text-sm leading-relaxed dark:text-slate-200" 
                         rows={5}
                         placeholder={state.mode === 'text' ? "Enter content here. Use {brackets} for variables..." : "e.g. 'A cyberpunk city'"} 
                         value={state.customTopic} 
                         onChange={(e) => dispatch({ type: 'UPDATE_FIELD', field: 'customTopic', value: e.target.value })} 
                     />
                     {detectedVars.length > 0 && (
-                        <div className="mt-2 p-2 bg-indigo-50 rounded-lg border border-indigo-100 animate-in fade-in slide-in-from-top-2">
+                        <div className="mt-2 p-2 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg border border-indigo-100 dark:border-indigo-800 animate-in fade-in slide-in-from-top-2">
                             <h4 className="text-[10px] font-bold text-indigo-400 uppercase mb-2 flex items-center gap-1"><Code size={10} /> Variables Detected</h4>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                 {detectedVars.map(v => (
                                     <div key={v}>
-                                        <label className="text-[10px] font-medium text-slate-500">{v}</label>
+                                        <label className="text-[10px] font-medium text-slate-500 dark:text-slate-400">{v}</label>
                                         <input 
-                                            className="w-full p-1.5 rounded border border-indigo-200 text-sm focus:ring-1 focus:ring-indigo-500 outline-none" 
+                                            className="w-full p-1.5 rounded border border-indigo-200 dark:border-indigo-700 bg-white dark:bg-slate-800 text-sm focus:ring-1 focus:ring-indigo-500 outline-none dark:text-slate-200" 
                                             placeholder={`Value for ${v}...`}
                                             value={state.variables[v] || ''}
                                             onChange={(e) => dispatch({ type: 'UPDATE_VARIABLE', key: v, value: e.target.value })}
@@ -246,16 +274,16 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                     )}
                 </div>
                 {filteredData.map((category) => (
-                    <div key={category.id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                        <div className="p-3 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors" onClick={() => setActiveCategory(activeCategory === category.id ? null : category.id)}>
+                    <div key={category.id} className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+                        <div className="p-3 flex items-center justify-between cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors" onClick={() => setActiveCategory(activeCategory === category.id ? null : category.id)}>
                             <div className="flex items-center gap-3">
-                                <div className={`p-1.5 rounded-md ${state.selections[category.id]?.length ? (state.mode === 'text' ? 'bg-indigo-100 text-indigo-600' : 'bg-pink-100 text-pink-600') : 'bg-slate-100 text-slate-400'}`}>{category.icon}</div>
-                                <div><h2 className="font-semibold text-slate-700 text-sm">{category.title}</h2></div>
+                                <div className={`p-1.5 rounded-md ${state.selections[category.id]?.length ? (state.mode === 'text' ? 'bg-indigo-100 text-indigo-600' : 'bg-pink-100 text-pink-600') : 'bg-slate-100 dark:bg-slate-700 text-slate-400'}`}>{category.icon}</div>
+                                <div><h2 className="font-semibold text-slate-700 dark:text-slate-200 text-sm">{category.title}</h2></div>
                             </div>
                             <ChevronDown size={16} className={`text-slate-400 transition-transform ${activeCategory === category.id ? 'rotate-180' : ''}`}/>
                         </div>
                         {activeCategory === category.id && (
-                            <div className="px-3 pb-4 pt-1 bg-slate-50/50 border-t border-slate-100">
+                            <div className="px-3 pb-4 pt-1 bg-slate-50/50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-700">
                                 {category.subcategories.map((sub) => {
                                     const visibleLimit = 8;
                                     const isExpanded = expandedSubcats[sub.name];
@@ -269,7 +297,7 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                                                     {optionsToShow.map((option) => {
                                                         const isSelected = state.selections[category.id]?.find(i => i.value === option);
                                                         return (
-                                                            <button key={option} onClick={() => toggleSelection(category.id, option)} className={`relative h-16 rounded-lg text-xs font-medium border overflow-hidden text-left p-2 flex flex-col justify-end transition-all ${isSelected ? 'border-pink-500 ring-2 ring-pink-200 bg-pink-50' : 'bg-white border-slate-200 hover:border-slate-300'}`}>
+                                                            <button key={option} onClick={() => toggleSelection(category.id, option)} className={`relative h-16 rounded-lg text-xs font-medium border overflow-hidden text-left p-2 flex flex-col justify-end transition-all ${isSelected ? 'border-pink-500 ring-2 ring-pink-200 bg-pink-50' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500 text-slate-700 dark:text-slate-300'}`}>
                                                                 <div className="absolute inset-0 opacity-20" style={{ background: `url('https://placehold.co/100x100/${isSelected ? 'pink' : 'e2e8f0'}/white?text=${option.charAt(0)}') center/cover` }} /><span className="relative z-10 truncate w-full">{option}</span>
                                                             </button>
                                                         );
@@ -288,9 +316,9 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                                                     const isSelected = !!selectionItem;
                                                     return (
                                                         <div key={option} className="flex items-center">
-                                                            <button onClick={() => toggleSelection(category.id, option)} className={`px-2.5 py-1 rounded-md text-xs border transition-all ${isSelected ? (state.mode === 'text' ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-pink-600 border-pink-600 text-white') : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'}`}>{option}</button>
-                                                            {isSelected && state.mode === 'art' && category.id !== 'params' && state.targetModel !== 'dalle' && (
-                                                                <div className="ml-2 flex items-center gap-1 bg-white border border-slate-200 rounded-md px-2 py-0.5 animate-in slide-in-from-left-2 fade-in duration-200">
+                                                            <button onClick={() => toggleSelection(category.id, option)} className={`px-2.5 py-1 rounded-md text-xs border transition-all ${isSelected ? (state.mode === 'text' ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-pink-600 border-pink-600 text-white') : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:border-slate-300'}`}>{option}</button>
+                                                            {isSelected && state.mode === 'art' && category.id !== 'params' && state.targetModel !== 'dalle' && state.targetModel !== 'gemini' && (
+                                                                <div className="ml-2 flex items-center gap-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-md px-2 py-0.5 animate-in slide-in-from-left-2 fade-in duration-200">
                                                                     <span className="text-[9px] text-slate-400 font-bold">W:</span>
                                                                     <input 
                                                                         type="range" min="0.1" max="2.0" step="0.1" value={selectionItem.weight} 
@@ -312,7 +340,7 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                         {activeCategory !== category.id && state.selections[category.id]?.length > 0 && (
                             <div className="px-3 pb-3 flex flex-wrap gap-1">
                                 {state.selections[category.id].map(sel => (
-                                    <span key={sel.value} className="text-[10px] px-1.5 py-0.5 rounded border bg-slate-50 text-slate-600 border-slate-200">{sel.value}</span>
+                                    <span key={sel.value} className="text-[10px] px-1.5 py-0.5 rounded border bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700">{sel.value}</span>
                                 ))}
                             </div>
                         )}
@@ -340,7 +368,11 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                 />
             </div>
             <div className="p-4 border-t border-slate-800 bg-slate-950 space-y-4">
-                <button onClick={handleCopy} disabled={!generatedPrompt} className={`w-full flex items-center justify-center gap-2 py-3 rounded-lg font-bold text-sm transition-all ${copied ? 'bg-emerald-500 text-white' : (state.mode === 'text' ? 'bg-indigo-600 hover:bg-indigo-500' : 'bg-pink-600 hover:bg-pink-500')} text-white disabled:opacity-50 disabled:cursor-not-allowed`}>{copied ? <Check size={16} /> : <CopyIcon size={16} />} {copied ? 'Copied' : 'Copy'}</button>
+                <div className="grid grid-cols-2 gap-2">
+                    <button onClick={handleCopy} disabled={!generatedPrompt} className={`w-full flex items-center justify-center gap-2 py-3 rounded-lg font-bold text-sm transition-all ${copied ? 'bg-emerald-500 text-white' : (state.mode === 'text' ? 'bg-indigo-600 hover:bg-indigo-500' : 'bg-pink-600 hover:bg-pink-500')} text-white disabled:opacity-50 disabled:cursor-not-allowed`}>{copied ? <Check size={16} /> : <CopyIcon size={16} />} {copied ? 'Copied' : 'Copy'}</button>
+                    <button onClick={handleCopyJSON} disabled={!generatedPrompt} className={`w-full flex items-center justify-center gap-2 py-3 rounded-lg font-bold text-sm transition-all border border-slate-700 hover:bg-slate-800 text-slate-300 disabled:opacity-50 disabled:cursor-not-allowed`}>{copiedJson ? <Check size={16} /> : <Braces size={16} />} {copiedJson ? 'JSON' : 'JSON'}</button>
+                </div>
+
                 <div className="bg-slate-900 rounded-lg p-3 border border-slate-800">
                     <div className="flex items-center justify-between mb-3 text-xs text-slate-400">
                         <span className="font-bold uppercase tracking-wider">Save Options</span>
