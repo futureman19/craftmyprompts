@@ -1,10 +1,10 @@
 import { useReducer, useMemo } from 'react';
-import { GENERAL_DATA, CODING_DATA, WRITING_DATA, ART_DATA } from '../data/constants.jsx';
+import { GENERAL_DATA, CODING_DATA, WRITING_DATA, ART_DATA, AVATAR_DATA } from '../data/constants.jsx';
 
 // --- INITIAL STATE ---
 const initialState = {
   mode: 'text', // 'text' | 'art'
-  textSubMode: 'general',
+  textSubMode: 'general', // Used for both Text (general/coding/writing) and Art (general/avatar)
   targetModel: 'midjourney',
   customTopic: '',
   selections: {}, // { categoryId: [{value, weight}] }
@@ -70,6 +70,8 @@ function builderReducer(state, action) {
         const addSel = (cat, val) => { newSels[cat] = [{ value: val, weight: 1 }]; };
         
         const p = action.payload;
+        
+        // General/Text keys
         if (p.lang) addSel('language', p.lang);
         if (p.task) addSel('task', p.task);
         if (p.framework) addSel('framework', p.framework);
@@ -77,14 +79,26 @@ function builderReducer(state, action) {
         if (p.style) addSel('style', p.style);
         if (p.persona) addSel('persona', p.persona);
         if (p.tone) addSel('tone', p.tone);
+        
+        // Art keys
         if (p.genre) addSel('genre', p.genre);
         if (p.shot) addSel('shots', p.shot);
+        
+        // Avatar keys
+        if (p.avatar_style) addSel('avatar_style', p.avatar_style);
+        if (p.framing) addSel('framing', p.framing);
+        if (p.expression) addSel('expression', p.expression);
+        if (p.accessories) addSel('accessories', p.accessories);
+        if (p.background) addSel('background', p.background);
 
         return { 
             ...state, 
             selections: newSels, 
             customTopic: p.topic || '', 
-            variables: {} 
+            variables: {},
+            // Auto-switch mode if preset implies it
+            mode: p.avatar_style ? 'art' : (p.genre ? 'art' : 'text'),
+            textSubMode: p.avatar_style ? 'avatar' : (p.lang ? 'coding' : (p.framework ? 'writing' : 'general'))
         };
     case 'RANDOMIZE': {
         const dataSrc = action.payload; 
@@ -105,6 +119,8 @@ function builderReducer(state, action) {
         const shuffled = powerWords.sort(() => 0.5 - Math.random());
         const selected = shuffled.slice(0, 3);
         
+        // Use 'tech' for general art, or append to 'avatar_style' for avatars? 
+        // Let's stick to 'tech' logic for now or add to 'params'
         const currentTech = state.selections['tech'] || [];
         const newItems = selected.map(w => ({ value: w, weight: 1 }));
         
@@ -148,12 +164,10 @@ const formatOption = (item, isArtMode, model) => {
     const weight = item.weight;
     if (!isArtMode || weight === 1) return val;
     
-    // UPDATED: Handle model-specific weighting
     if (model === 'midjourney') return `${val}::${weight}`; 
     if (model === 'stable-diffusion') return `(${val}:${weight})`; 
     if (model === 'dalle') return `${val} (priority level ${weight})`; 
     
-    // Gemini and Flux typically prefer natural language without specific weight syntax
     if (model === 'gemini' || model === 'flux') return val;
 
     return val;
@@ -179,7 +193,11 @@ export const usePromptBuilder = (initialData) => {
   const [state, dispatch] = useReducer(builderReducer, initialState);
 
   const currentData = useMemo(() => {
-      if (state.mode === 'art') return ART_DATA;
+      if (state.mode === 'art') {
+          // --- CTO UPDATE: Switch Data based on Submode ---
+          if (state.textSubMode === 'avatar') return AVATAR_DATA;
+          return ART_DATA;
+      }
       if (state.textSubMode === 'coding') return CODING_DATA;
       if (state.textSubMode === 'writing') return WRITING_DATA;
       return GENERAL_DATA;
@@ -191,9 +209,10 @@ export const usePromptBuilder = (initialData) => {
 
   const generatedPrompt = useMemo(() => {
     const parts = [];
-    
+    const getVals = (catId) => state.selections[catId]?.map(i => i.value) || [];
+
+    // --- TEXT MODE ---
     if (state.mode === 'text') {
-      const getVals = (catId) => state.selections[catId]?.map(i => i.value) || [];
       
       if (state.textSubMode === 'coding') {
           const langs = getVals('language').join(', ');
@@ -232,55 +251,100 @@ export const usePromptBuilder = (initialData) => {
 
       return parts.join('\n');
     } else {
-      // --- ART MODE LOGIC UPDATED FOR GEMINI / FLUX ---
+      // --- ART MODE ---
       
-      // DALL-E and Gemini are conversational
+      // Conversational Models (DALLE / Gemini)
       if (state.targetModel === 'dalle' || state.targetModel === 'gemini') {
           parts.push("Create an image of");
-          if (processedTopic) parts.push(`${processedTopic}.`);
-          const genres = state.selections.genre?.map(i => i.value).join(' and ');
-          if (genres) parts.push(`The style should be ${genres}.`);
-          const envs = state.selections.environment?.map(i => i.value).join(', ');
-          if (envs) parts.push(`The scene is set in ${envs}.`);
-          const styles = state.selections.style?.map(i => i.value).join(', ');
-          if (styles) parts.push(`Artistic inspiration: ${styles}.`);
+          
+          if (state.textSubMode === 'avatar') {
+             // Specific conversational flow for avatars
+             const styles = getVals('avatar_style').join(', ');
+             const framings = getVals('framing').join(', ');
+             if (styles) parts.push(`a ${styles}`);
+             if (framings) parts.push(`(${framings})`);
+             parts.push("avatar of");
+             if (processedTopic) parts.push(`${processedTopic}.`);
+             const exprs = getVals('expression').join(', ');
+             if (exprs) parts.push(`Expression: ${exprs}.`);
+             const accs = getVals('accessories').join(', ');
+             if (accs) parts.push(`Wearing: ${accs}.`);
+             const bgs = getVals('background').join(', ');
+             if (bgs) parts.push(`Background: ${bgs}.`);
+          } else {
+             // General Art conversational flow
+             if (processedTopic) parts.push(`${processedTopic}.`);
+             const genres = getVals('genre').join(' and ');
+             if (genres) parts.push(`The style should be ${genres}.`);
+             const envs = getVals('environment').join(', ');
+             if (envs) parts.push(`The scene is set in ${envs}.`);
+             const styles = getVals('style').join(', ');
+             if (styles) parts.push(`Artistic inspiration: ${styles}.`);
+          }
+
           if (state.negativePrompt) parts.push(`Do not include: ${state.negativePrompt}.`);
           return parts.join(' ');
       }
 
-      // Midjourney, Stable Diffusion, Flux (Tag based)
+      // Tag-Based Models (Midjourney, SD, Flux)
       if (state.referenceImage?.trim()) parts.push(state.referenceImage.trim());
 
       const coreParts = [];
-      const genres = state.selections.genre?.map(i => formatOption(i, true, state.targetModel)) || [];
-      if (genres.length) coreParts.push(genres.join(' '));
-      if (processedTopic?.trim()) coreParts.push(processedTopic);
-      if (coreParts.length) parts.push(coreParts.join(' '));
+      
+      if (state.textSubMode === 'avatar') {
+          // --- AVATAR RECIPE ---
+          // [Framing] [Style] avatar of [Subject], [Expression], [Accessories], [Background]
+          const framings = state.selections.framing?.map(i => formatOption(i, true, state.targetModel)) || [];
+          const styles = state.selections.avatar_style?.map(i => formatOption(i, true, state.targetModel)) || [];
+          
+          if (framings.length) coreParts.push(framings.join(' '));
+          if (styles.length) coreParts.push(styles.join(' '));
+          
+          coreParts.push("avatar of");
+          if (processedTopic?.trim()) coreParts.push(processedTopic);
+          
+          if (coreParts.length) parts.push(coreParts.join(' '));
+
+          const exprs = state.selections.expression?.map(i => formatOption(i, true, state.targetModel)) || [];
+          if (exprs.length) parts.push(exprs.join(', '));
+
+          const accs = state.selections.accessories?.map(i => formatOption(i, true, state.targetModel)) || [];
+          if (accs.length) parts.push(accs.join(', '));
+          
+          const bgs = state.selections.background?.map(i => formatOption(i, true, state.targetModel)) || [];
+          if (bgs.length) parts.push(bgs.join(', '));
+      } else {
+          // --- GENERAL ART RECIPE ---
+          const genres = state.selections.genre?.map(i => formatOption(i, true, state.targetModel)) || [];
+          if (genres.length) coreParts.push(genres.join(' '));
+          if (processedTopic?.trim()) coreParts.push(processedTopic);
+          if (coreParts.length) parts.push(coreParts.join(' '));
+
+          const envs = state.selections.environment?.map(i => formatOption(i, true, state.targetModel)) || [];
+          if (envs.length) parts.push(`set in ${envs.join(', ')}`);
+          
+          const camParts = [];
+          const shots = state.selections.shots?.map(i => formatOption(i, true, state.targetModel)) || [];
+          const cameras = state.selections.camera?.map(i => formatOption(i, true, state.targetModel)) || [];
+          if (shots.length) camParts.push(...shots);
+          if (cameras.length) camParts.push(...cameras);
+          if (camParts.length) parts.push(camParts.join(', '));
+
+          const visualParts = [];
+          const visuals = state.selections.visuals?.map(i => formatOption(i, true, state.targetModel)) || [];
+          const tech = state.selections.tech?.map(i => formatOption(i, true, state.targetModel)) || [];
+          if (visuals.length) visualParts.push(...visuals);
+          if (tech.length) visualParts.push(...tech);
+          if (visualParts.length) parts.push(visualParts.join(', '));
+
+          const styles = state.selections.style?.map(i => formatOption(i, true, state.targetModel)) || [];
+          if (styles.length) {
+            parts.push(`in the style of ${styles.map(s => `by ${s}`).join(', ')}`);
+          }
+      }
 
       if (state.targetModel === 'stable-diffusion' && state.loraName) {
           parts.push(`<lora:${state.loraName}:${state.loraWeight}>`);
-      }
-
-      const envs = state.selections.environment?.map(i => formatOption(i, true, state.targetModel)) || [];
-      if (envs.length) parts.push(`set in ${envs.join(', ')}`);
-      
-      const camParts = [];
-      const shots = state.selections.shots?.map(i => formatOption(i, true, state.targetModel)) || [];
-      const cameras = state.selections.camera?.map(i => formatOption(i, true, state.targetModel)) || [];
-      if (shots.length) camParts.push(...shots);
-      if (cameras.length) camParts.push(...cameras);
-      if (camParts.length) parts.push(camParts.join(', '));
-
-      const visualParts = [];
-      const visuals = state.selections.visuals?.map(i => formatOption(i, true, state.targetModel)) || [];
-      const tech = state.selections.tech?.map(i => formatOption(i, true, state.targetModel)) || [];
-      if (visuals.length) visualParts.push(...visuals);
-      if (tech.length) visualParts.push(...tech);
-      if (visualParts.length) parts.push(visualParts.join(', '));
-
-      const styles = state.selections.style?.map(i => formatOption(i, true, state.targetModel)) || [];
-      if (styles.length) {
-        parts.push(`in the style of ${styles.map(s => `by ${s}`).join(', ')}`);
       }
 
       let mainPrompt = parts.join(', ').replace(/, ,/g, ',');
@@ -289,7 +353,6 @@ export const usePromptBuilder = (initialData) => {
       if (state.negativePrompt?.trim()) {
           if (state.targetModel === 'midjourney') suffix += ` --no ${state.negativePrompt.trim()}`;
           else if (state.targetModel === 'stable-diffusion') mainPrompt += ` [${state.negativePrompt.trim()}]`;
-          // Flux generally handles negative prompts via API params, but textual exclusion works too
       }
 
       if (state.seed && state.targetModel === 'midjourney') suffix += ` --seed ${state.seed}`;
@@ -300,10 +363,11 @@ export const usePromptBuilder = (initialData) => {
             if (state.targetModel === 'midjourney') {
                 if (p.includes(':')) suffix += ` --ar ${p}`;
                 else if (['Seamless Pattern'].includes(p)) suffix += ` --tile`;
+                else if (['Anime Style'].includes(p)) suffix += ` --niji 5`;
                 else if (!isNaN(p)) {
-                     if (['0', '100', '250', '500', '750', '1000'].includes(p)) suffix += ` --s ${p}`;
-                     else if (['10', '25', '50', '80'].includes(p)) suffix += ` --c ${p}`;
-                     else if (['250', '3000'].includes(p)) suffix += ` --w ${p}`;
+                      if (['0', '100', '250', '500', '750', '1000'].includes(p)) suffix += ` --s ${p}`;
+                      else if (['10', '25', '50', '80'].includes(p)) suffix += ` --c ${p}`;
+                      else if (['250', '3000'].includes(p)) suffix += ` --w ${p}`;
                 }
             }
         });

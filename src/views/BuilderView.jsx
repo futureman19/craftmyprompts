@@ -12,6 +12,7 @@ import { db, auth, APP_ID } from '../lib/firebase.js';
 import { PRESETS } from '../data/constants.jsx';
 import { usePromptBuilder } from '../hooks/usePromptBuilder.js';
 import TestRunnerModal from '../components/TestRunnerModal.jsx';
+import WizardMode from '../components/WizardMode.jsx'; 
 
 const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHistory, onLoginRequest }) => {
   // --- CUSTOM HOOK ---
@@ -27,6 +28,10 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
   const [activeCategory, setActiveCategory] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [showTestModal, setShowTestModal] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
+
+  // --- CTO UPDATE: Global API Key Support ---
+  const globalApiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
 
   // --- EFFECT: LOAD INITIAL DATA (REMIX) ---
   useEffect(() => {
@@ -159,7 +164,7 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
 
   // --- RENDER ---
   return (
-      <div className="flex h-full w-full">
+      <div className="flex h-full w-full relative">
         {/* Main Builder Panel */}
         <div className="flex-1 min-w-0 flex flex-col h-full overflow-hidden bg-slate-50 dark:bg-slate-900 transition-colors">
             <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 p-4 shadow-sm z-10 sticky top-0 transition-colors">
@@ -183,6 +188,13 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                     )}
                     {state.mode === 'art' && (
                          <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                            {/* --- CTO UPDATE: Avatar Toggle Buttons --- */}
+                            {['general', 'avatar'].map(m => (
+                                <button key={m} onClick={() => dispatch({ type: 'SET_SUBMODE', payload: m })} className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs border whitespace-nowrap transition-colors capitalize ${state.textSubMode === m || (m === 'general' && state.textSubMode !== 'avatar') ? 'bg-pink-600 text-white border-pink-600' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:border-slate-300'}`}>{m}</button>
+                            ))}
+                            
+                            <div className="w-px h-4 bg-slate-300 dark:bg-slate-600 mx-1"></div>
+                            
                             <span className="text-xs font-bold text-slate-400 uppercase whitespace-nowrap">Target:</span>
                             {['midjourney', 'stable-diffusion', 'dalle', 'gemini', 'flux'].map(m => (
                                 <button key={m} onClick={() => dispatch({ type: 'SET_TARGET_MODEL', payload: m })} className={`px-3 py-1 rounded-full text-xs border whitespace-nowrap capitalize transition-colors ${state.targetModel === m ? 'bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 border-slate-800 dark:border-slate-200' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:border-slate-300'}`}>{m.replace('-', ' ')}</button>
@@ -191,11 +203,19 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                     )}
                 </div>
                 <div className="flex gap-2">
+                      {/* Wizard Button */}
+                      <button 
+                        onClick={() => setShowWizard(true)}
+                        className="px-3 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white rounded-lg flex items-center gap-2 text-sm font-bold shadow-md transition-all animate-in fade-in"
+                      >
+                        <Wand2 size={16} /> <span className="hidden md:inline">Wizard Mode</span>
+                      </button>
+
                       <div className="relative group">
                           <button className="px-3 py-2 bg-slate-800 dark:bg-slate-700 text-white rounded-lg flex items-center gap-2 text-sm font-medium"><Command size={16} /> <span className="hidden md:inline">Presets</span></button>
                           <div className="absolute top-full left-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-600 hidden group-hover:block z-50 p-2">
                              <div className="text-[10px] font-bold text-slate-400 uppercase px-2 py-1">Quick Start</div>
-                             {(state.mode === 'text' ? PRESETS[state.textSubMode] || PRESETS.general : PRESETS.art).map((p, i) => (
+                             {(state.mode === 'text' ? PRESETS[state.textSubMode] || PRESETS.general : PRESETS[state.textSubMode] || PRESETS.art).map((p, i) => (
                                  <button key={i} onClick={() => applyPreset(p)} className="w-full text-left px-2 py-2 text-xs hover:bg-indigo-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg">{p.label}</button>
                              ))}
                           </div>
@@ -386,7 +406,7 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                     <button onClick={handleUnifiedSave} disabled={!generatedPrompt || isSaving} className="w-full py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-medium text-slate-300 flex items-center justify-center gap-2 transition-colors disabled:opacity-50"><Save size={14} /> {isSaving ? 'Saving...' : (saveVisibility === 'public' ? 'Save & Publish' : 'Save to Library')}</button>
                 </div>
                 
-                {/* NEW: Test Button Area */}
+                {/* Test Button Area */}
                 <button 
                     onClick={() => setShowTestModal(true)} 
                     disabled={!generatedPrompt}
@@ -398,10 +418,22 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
         </div>
 
         {/* Modal */}
+        {/* --- CTO UPDATE: Passing the global key to the modal --- */}
         <TestRunnerModal 
             isOpen={showTestModal} 
             onClose={() => setShowTestModal(false)} 
             prompt={generatedPrompt} 
+            defaultApiKey={globalApiKey}
+        />
+        
+        {/* --- 4. WIZARD COMPONENT ADDED --- */}
+        <WizardMode 
+            isOpen={showWizard} 
+            onClose={() => setShowWizard(false)}
+            data={currentData}
+            selections={state.selections}
+            onToggle={toggleSelection}
+            mode={state.mode}
         />
       </div>
   );

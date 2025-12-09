@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Play, Key, Loader, Check, AlertTriangle, Terminal, Cpu, RefreshCw } from 'lucide-react';
+import { X, Play, Key, Loader, Check, AlertTriangle, Terminal, Cpu, RefreshCw, Zap } from 'lucide-react';
 
-const TestRunnerModal = ({ isOpen, onClose, prompt }) => {
+const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey }) => {
   const [apiKey, setApiKey] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -9,19 +9,26 @@ const TestRunnerModal = ({ isOpen, onClose, prompt }) => {
   
   // Default fallback models if fetching fails
   const [availableModels, setAvailableModels] = useState([
-      { name: 'Gemini 1.5 Flash', name: 'models/gemini-1.5-flash' },
-      { name: 'Gemini 1.5 Pro', name: 'models/gemini-1.5-pro' },
+      { displayName: 'Gemini 1.5 Flash', name: 'models/gemini-1.5-flash' },
+      { displayName: 'Gemini 1.5 Pro', name: 'models/gemini-1.5-pro' },
   ]);
   const [selectedModel, setSelectedModel] = useState('models/gemini-1.5-flash'); 
 
-  // Load key from localStorage on mount
+  // --- CTO UPDATE: Smart Key Initialization ---
   useEffect(() => {
-    const savedKey = localStorage.getItem('craft_my_prompt_gemini_key');
-    if (savedKey) setApiKey(savedKey);
-  }, []);
+    if (defaultApiKey) {
+        // If the app provided a shared key, use it!
+        setApiKey(defaultApiKey);
+    } else {
+        // Otherwise, check for a user-saved key
+        const savedKey = localStorage.getItem('craft_my_prompt_gemini_key');
+        if (savedKey) setApiKey(savedKey);
+    }
+  }, [defaultApiKey, isOpen]);
 
+  // Only save to local storage if it's the USER'S key, not the global one
   const saveKey = () => {
-    if (apiKey.trim()) {
+    if (apiKey.trim() && apiKey !== defaultApiKey) {
         localStorage.setItem('craft_my_prompt_gemini_key', apiKey.trim());
     }
   };
@@ -32,7 +39,6 @@ const TestRunnerModal = ({ isOpen, onClose, prompt }) => {
       setResult(null);
   };
 
-  // --- NEW: Fetch actually available models from Google ---
   const fetchModels = async () => {
       if (!apiKey) return;
       setLoading(true);
@@ -46,13 +52,14 @@ const TestRunnerModal = ({ isOpen, onClose, prompt }) => {
           }
 
           if (data.models) {
-              // Filter for models that support 'generateContent'
               const validModels = data.models.filter(m => 
                   m.supportedGenerationMethods && m.supportedGenerationMethods.includes("generateContent")
               );
               setAvailableModels(validModels);
               if (validModels.length > 0) {
-                  setSelectedModel(validModels[0].name); // Select the first valid one automatically
+                  // Keep selection if valid, otherwise pick first
+                  const exists = validModels.find(m => m.name === selectedModel);
+                  if (!exists) setSelectedModel(validModels[0].name);
               }
           }
       } catch (err) {
@@ -62,6 +69,15 @@ const TestRunnerModal = ({ isOpen, onClose, prompt }) => {
       }
   };
 
+  // Fetch models automatically if we have a key and haven't fetched yet
+  useEffect(() => {
+      if (isOpen && apiKey && availableModels.length <= 2) {
+          fetchModels();
+      }
+  // eslint-disable-next-line
+  }, [isOpen, apiKey]);
+
+
   const handleRun = async () => {
     if (!apiKey) return;
     setLoading(true);
@@ -70,7 +86,6 @@ const TestRunnerModal = ({ isOpen, onClose, prompt }) => {
     saveKey(); 
 
     try {
-        // Ensure model name doesn't double-up on 'models/' prefix if already present
         const modelPath = selectedModel.startsWith('models/') ? selectedModel : `models/${selectedModel}`;
         
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/${modelPath}:generateContent?key=${apiKey}`, {
@@ -103,6 +118,8 @@ const TestRunnerModal = ({ isOpen, onClose, prompt }) => {
 
   if (!isOpen) return null;
 
+  const isUsingGlobalKey = defaultApiKey && apiKey === defaultApiKey;
+
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200">
       <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 flex flex-col max-h-[90vh] overflow-hidden">
@@ -126,20 +143,29 @@ const TestRunnerModal = ({ isOpen, onClose, prompt }) => {
                     <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
                         <Key size={14} /> Gemini API Key
                     </label>
-                    <div className="flex gap-2">
-                        <input 
-                            type="password" 
-                            value={apiKey}
-                            onChange={(e) => setApiKey(e.target.value)}
-                            placeholder="Paste API Key..."
-                            className="flex-1 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-mono"
-                        />
-                        {apiKey && (
-                            <button onClick={clearKey} className="px-3 py-2 text-xs font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
-                                Clear
-                            </button>
-                        )}
-                    </div>
+                    
+                    {/* --- CTO UPDATE: Smart UI for Keys --- */}
+                    {isUsingGlobalKey ? (
+                         <div className="flex items-center gap-2 p-2 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg text-emerald-700 dark:text-emerald-400 text-sm font-medium">
+                            <Zap size={16} fill="currentColor" /> 
+                            <span>Connected via App Key (Free Mode)</span>
+                         </div>
+                    ) : (
+                        <div className="flex gap-2">
+                            <input 
+                                type="password" 
+                                value={apiKey}
+                                onChange={(e) => setApiKey(e.target.value)}
+                                placeholder="Paste API Key..."
+                                className="flex-1 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-mono"
+                            />
+                            {apiKey && (
+                                <button onClick={clearKey} className="px-3 py-2 text-xs font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
+                                    Clear
+                                </button>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 <div className="space-y-2">
@@ -169,9 +195,11 @@ const TestRunnerModal = ({ isOpen, onClose, prompt }) => {
                 </div>
             </div>
             
-            <p className="text-[10px] text-slate-400">
-                Key is stored locally. Get one at <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-indigo-500 hover:underline">Google AI Studio</a>.
-            </p>
+            {!isUsingGlobalKey && (
+                <p className="text-[10px] text-slate-400">
+                    Key is stored locally. Get one at <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-indigo-500 hover:underline">Google AI Studio</a>.
+                </p>
+            )}
 
             {/* Prompt Preview (Read Only) */}
             <div className="space-y-2">
