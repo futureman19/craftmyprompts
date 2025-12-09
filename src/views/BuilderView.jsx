@@ -5,7 +5,7 @@ import {
   Sparkles, MessageSquare, Palette, Command, Search, Dices, 
   Brain, XCircle, ImagePlus, Ban, Cpu, Wand2, Code, 
   ChevronDown, FileText, Zap, RefreshCw, Check, Copy as CopyIcon, 
-  Lock, Globe, Save, UserCircle, Braces, Play 
+  Lock, Globe, Save, UserCircle, Braces, Play, ArrowLeft 
 } from 'lucide-react';
 
 import { db, auth, APP_ID } from '../lib/firebase.js';
@@ -29,6 +29,9 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
   const [searchTerm, setSearchTerm] = useState('');
   const [showTestModal, setShowTestModal] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
+  
+  // --- CTO UPDATE: Mobile Tab State ---
+  const [mobileTab, setMobileTab] = useState('edit'); // 'edit' | 'preview'
 
   // --- CTO UPDATE: Global API Key Support ---
   const globalApiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
@@ -43,6 +46,15 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
   }, [initialData, dispatch, showToast, clearInitialData]);
 
   // --- HANDLERS ---
+  const handleTestClick = () => {
+      if (!user) {
+          showToast("Please log in to use the Test Runner.", "error");
+          onLoginRequest(); // Opens the Auth Modal
+          return;
+      }
+      setShowTestModal(true);
+  };
+
   const toggleSelection = (categoryId, option) => {
       const isSingleSelect = (state.mode === 'text') || (state.mode === 'art' && categoryId === 'params');
       dispatch({ 
@@ -65,7 +77,6 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
     showToast("Copied to clipboard!");
   };
 
-  // --- NEW: Handle Copy JSON ---
   const handleCopyJSON = () => {
     const dataToCopy = {
         meta: {
@@ -164,10 +175,20 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
 
   // --- RENDER ---
   return (
-      <div className="flex h-full w-full relative">
-        {/* Main Builder Panel */}
-        <div className="flex-1 min-w-0 flex flex-col h-full overflow-hidden bg-slate-50 dark:bg-slate-900 transition-colors">
+      // CTO FIX: Changed to 'flex-col md:flex-row' to prevent horizontal squishing on mobile
+      <div className="flex flex-col md:flex-row h-full w-full relative">
+        
+        {/* --- LEFT PANEL: BUILDER --- */}
+        {/* Visible if mobileTab is 'edit' OR if we are on desktop (md:flex) */}
+        <div className={`flex-1 min-w-0 flex-col h-full overflow-hidden bg-slate-50 dark:bg-slate-900 transition-colors ${mobileTab === 'preview' ? 'hidden md:flex' : 'flex'}`}>
             <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 p-4 shadow-sm z-10 sticky top-0 transition-colors">
+                
+                {/* --- CTO UPDATE: Mobile Tab Switcher --- */}
+                <div className="md:hidden flex w-full bg-slate-100 dark:bg-slate-700 p-1 rounded-lg mb-4">
+                    <button onClick={() => setMobileTab('edit')} className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${mobileTab === 'edit' ? 'bg-white dark:bg-slate-600 shadow text-indigo-600 dark:text-indigo-300' : 'text-slate-500 dark:text-slate-400'}`}>Edit</button>
+                    <button onClick={() => setMobileTab('preview')} className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${mobileTab === 'preview' ? 'bg-white dark:bg-slate-600 shadow text-indigo-600 dark:text-indigo-300' : 'text-slate-500 dark:text-slate-400'}`}>Preview</button>
+                </div>
+
                 <div className="flex flex-col gap-4 mb-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -188,7 +209,6 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                     )}
                     {state.mode === 'art' && (
                          <div className="flex items-center gap-2 overflow-x-auto pb-1">
-                            {/* --- CTO UPDATE: Avatar Toggle Buttons --- */}
                             {['general', 'avatar'].map(m => (
                                 <button key={m} onClick={() => dispatch({ type: 'SET_SUBMODE', payload: m })} className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs border whitespace-nowrap transition-colors capitalize ${state.textSubMode === m || (m === 'general' && state.textSubMode !== 'avatar') ? 'bg-pink-600 text-white border-pink-600' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:border-slate-300'}`}>{m}</button>
                             ))}
@@ -203,7 +223,6 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                     )}
                 </div>
                 <div className="flex gap-2">
-                      {/* Wizard Button */}
                       <button 
                         onClick={() => setShowWizard(true)}
                         className="px-3 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white rounded-lg flex items-center gap-2 text-sm font-bold shadow-md transition-all animate-in fade-in"
@@ -371,10 +390,15 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
             </div>
         </div>
         
-        {/* PREVIEW PANEL - Right side */}
-        <div className="w-96 bg-slate-900 text-slate-100 flex flex-col h-full border-l border-slate-800 shadow-xl z-20 flex-shrink-0">
+        {/* --- RIGHT PANEL: PREVIEW --- */}
+        {/* Visible if mobileTab is 'preview' OR if we are on desktop (md:flex) */}
+        <div className={`bg-slate-900 text-slate-100 flex-col h-full border-l border-slate-800 shadow-xl z-20 flex-shrink-0 transition-all ${mobileTab === 'edit' ? 'hidden md:flex' : 'flex w-full'} md:w-96`}>
              <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900">
-                <h2 className="font-bold text-sm flex items-center gap-2"><FileText size={16} className={state.mode === 'text' ? 'text-indigo-400' : 'text-pink-400'} /> Preview</h2>
+                <div className="flex items-center gap-2">
+                    {/* --- CTO UPDATE: Back Button for Mobile --- */}
+                    <button onClick={() => setMobileTab('edit')} className="md:hidden text-slate-400 hover:text-white"><ArrowLeft size={20}/></button>
+                    <h2 className="font-bold text-sm flex items-center gap-2"><FileText size={16} className={state.mode === 'text' ? 'text-indigo-400' : 'text-pink-400'} /> Preview</h2>
+                </div>
                 <div className="flex gap-2">
                     {state.mode === 'art' && (<button onClick={() => dispatch({ type: 'MAGIC_EXPAND' })} className="p-1.5 bg-gradient-to-r from-yellow-500 to-orange-500 rounded hover:opacity-90 transition-opacity text-white" title="Magic Expand"><Zap size={14} /></button>)}
                     <button onClick={() => dispatch({ type: 'RESET' })} className="p-1.5 hover:bg-slate-800 rounded text-slate-500 hover:text-white transition-colors" title="Reset"><RefreshCw size={14} /></button>
@@ -408,7 +432,7 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                 
                 {/* Test Button Area */}
                 <button 
-                    onClick={() => setShowTestModal(true)} 
+                    onClick={handleTestClick} 
                     disabled={!generatedPrompt}
                     className="w-full py-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white rounded-lg text-xs font-bold shadow-lg shadow-indigo-900/50 flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -418,7 +442,6 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
         </div>
 
         {/* Modal */}
-        {/* --- CTO UPDATE: Passing the global key to the modal --- */}
         <TestRunnerModal 
             isOpen={showTestModal} 
             onClose={() => setShowTestModal(false)} 
@@ -426,7 +449,7 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
             defaultApiKey={globalApiKey}
         />
         
-        {/* --- 4. WIZARD COMPONENT ADDED --- */}
+        {/* Wizard Component */}
         <WizardMode 
             isOpen={showWizard} 
             onClose={() => setShowWizard(false)}
