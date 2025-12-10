@@ -12,11 +12,13 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // --- RULES FOR THE "craft-my-prompt-app" DATA ---
-    match /artifacts/craft-my-prompt-app {
+    // --- RULES FOR THE APP DATA ---
+    // CTO FIX: Use {appId} wildcard instead of hardcoded 'craft-my-prompt-app'
+    // This ensures the rules work even if the environment generates a unique App ID.
+    match /artifacts/{appId} {
 
       // 1. PUBLIC FEED (Posts)
-      // Path: /artifacts/craft-my-prompt-app/public/data/posts/{postId}
+      // Path: /artifacts/{appId}/public/data/posts/{postId}
       match /public/data/posts/{postId} {
         // Anyone can read the feed
         allow read: if true;
@@ -34,9 +36,16 @@ service cloud.firestore {
       }
 
       // 2. USER LIBRARY (Saved Prompts)
-      // Path: /artifacts/craft-my-prompt-app/users/{userId}/saved_prompts/{promptId}
+      // Path: /artifacts/{appId}/users/{userId}/saved_prompts/{promptId}
       match /users/{userId}/saved_prompts/{document=**} {
         // You can only Read, Write, Update, or Delete if you own this folder
+        allow read, write: if isOwner(userId);
+      }
+
+      // 3. USER PRESETS (Custom Templates) -- NEW
+      // Path: /artifacts/{appId}/users/{userId}/presets/{presetId}
+      match /users/{userId}/presets/{document=**} {
+        // Users can full control their own presets
         allow read, write: if isOwner(userId);
       }
     }

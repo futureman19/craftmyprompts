@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { addDoc, collection, serverTimestamp, onSnapshot, query, orderBy } from 'firebase/firestore'; // <--- 1. ADDED onSnapshot, query, orderBy
+import { addDoc, collection, serverTimestamp, onSnapshot, query, orderBy } from 'firebase/firestore'; 
 import { updateProfile } from 'firebase/auth';
 import { 
   Sparkles, MessageSquare, Palette, Command, Search, Dices, 
   Brain, XCircle, ImagePlus, Ban, Cpu, Wand2, Code, 
   ChevronDown, FileText, Zap, RefreshCw, Check, Copy as CopyIcon, 
-  Lock, Globe, Save, UserCircle, Braces, Play, ArrowLeft, Sliders, Terminal, Bookmark // <--- 2. ADDED Bookmark
+  Lock, Globe, Save, UserCircle, Braces, Play, ArrowLeft, Sliders, Terminal, Bookmark 
 } from 'lucide-react';
 
 import { db, auth, APP_ID } from '../lib/firebase.js';
@@ -103,12 +103,13 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
           const presetData = {
               label: name,
               mode: state.mode,
-              textSubMode: state.textSubMode,
-              selections: state.selections, // The magic sauce
-              customTopic: state.customTopic,
-              // Helper fields
-              lang: state.selections.language?.[0]?.value, // For tagging
-              avatar_style: state.selections.avatar_style?.[0]?.value, // For tagging
+              textSubMode: state.textSubMode || 'general', // Default to avoid undefined
+              selections: state.selections, 
+              customTopic: state.customTopic || '',
+              codeContext: state.codeContext || '',
+              // Helper fields - MUST use || null because Firestore throws on 'undefined'
+              lang: state.selections.language?.[0]?.value || null, 
+              avatar_style: state.selections.avatar_style?.[0]?.value || null,
               createdAt: serverTimestamp()
           };
 
