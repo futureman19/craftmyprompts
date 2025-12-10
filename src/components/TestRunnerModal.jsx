@@ -40,6 +40,15 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
     }
   }, [isOpen, defaultApiKey, defaultOpenAIKey]);
 
+  // --- AUTO-FETCH MODELS (CTO FIX) ---
+  // Automatically fetch valid models when a key is present to prevent "Model not found" errors
+  useEffect(() => {
+      if (isOpen && geminiKey) {
+          fetchModels(geminiKey);
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, geminiKey]);
+
   // --- HELPERS ---
   const saveKey = (key, providerName) => {
       const storageKey = `craft_my_prompt_${providerName}_key`;
@@ -55,6 +64,32 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
       localStorage.removeItem(storageKey);
       if (providerName === 'gemini') setGeminiKey('');
       else setOpenaiKey('');
+  };
+
+  // Helper to fetch models (Gemini only feature for now)
+  // Accepts key as arg to use latest state or passed value
+  const fetchModels = async (keyToUse = geminiKey) => {
+      if (!keyToUse) return;
+      try {
+          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${keyToUse}`);
+          const data = await response.json();
+          if (data.models) {
+              const validModels = data.models.filter(m => m.supportedGenerationMethods?.includes("generateContent"));
+              setAvailableModels(validModels);
+              
+              // CTO FIX: Auto-select a valid model if the current default is invalid
+              if (validModels.length > 0) {
+                  const currentExists = validModels.find(m => m.name === selectedModel);
+                  if (!currentExists) {
+                      // Prefer 1.5 Flash if available, otherwise take the first one
+                      const bestModel = validModels.find(m => m.name.includes('flash')) || validModels[0];
+                      setSelectedModel(bestModel.name);
+                  }
+              }
+          }
+      } catch (err) {
+          console.error("Failed to fetch models", err);
+      }
   };
 
   // --- API CALLS (Refactored for reuse) ---
@@ -131,21 +166,6 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
     }
   };
 
-  // Helper to fetch models (Gemini only feature for now)
-  const fetchModels = async () => {
-      if (!geminiKey) return;
-      try {
-          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${geminiKey}`);
-          const data = await response.json();
-          if (data.models) {
-              const validModels = data.models.filter(m => m.supportedGenerationMethods?.includes("generateContent"));
-              setAvailableModels(validModels);
-          }
-      } catch (err) {
-          console.error("Failed to fetch models", err);
-      }
-  };
-
   if (!isOpen) return null;
 
   const isUsingGlobalGemini = defaultApiKey && geminiKey === defaultApiKey;
@@ -189,7 +209,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                         <div className="flex justify-between items-center">
                             <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2"><Key size={14} /> Gemini Key</label>
                             {provider === 'gemini' && (
-                                <button onClick={fetchModels} disabled={!geminiKey} className="text-[10px] flex items-center gap-1 text-indigo-600 dark:text-indigo-400 hover:underline disabled:opacity-50">
+                                <button onClick={() => fetchModels()} disabled={!geminiKey} className="text-[10px] flex items-center gap-1 text-indigo-600 dark:text-indigo-400 hover:underline disabled:opacity-50">
                                     <RefreshCw size={10} /> Refresh Models
                                 </button>
                             )}
