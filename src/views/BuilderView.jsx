@@ -36,6 +36,7 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
   const [mobileTab, setMobileTab] = useState('edit');
 
   const globalApiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+  const globalOpenAIKey = import.meta.env.VITE_OPENAI_API_KEY || ''; 
 
   // --- EFFECT: LOAD INITIAL DATA (REMIX) ---
   useEffect(() => {
@@ -75,19 +76,16 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
       setShowTestModal(true);
   };
 
-  // --- CTO UPDATE: Save Snippet Handler ---
   const handleSaveSnippet = async (content, label = 'AI Result') => {
       if (!user) {
           showToast("Please log in to save snippets.", "error");
           onLoginRequest();
           return;
       }
-      
       try {
-          // Save the output (content) to a new 'snippets' collection
           await addDoc(collection(db, 'artifacts', APP_ID, 'users', user.uid, 'snippets'), {
               content: content,
-              label: label, // e.g. "Gemini Draft" or "Final Polish"
+              label: label, 
               type: state.mode,
               promptUsed: generatedPrompt,
               createdAt: serverTimestamp()
@@ -275,7 +273,7 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                             <div className={`p-2 rounded-lg text-white ${state.mode === 'text' ? 'bg-indigo-600' : (state.mode === 'art' ? 'bg-pink-600' : 'bg-purple-600')}`}><Sparkles size={20} /></div>
                             <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100 hidden md:block">CraftMyPrompt</h1>
                         </div>
-                        {/* --- CTO UPDATE: Added Video Button --- */}
+                        {/* Tab Switcher */}
                         <div className="flex bg-slate-100 dark:bg-slate-700 p-1 rounded-xl">
                             <button onClick={() => dispatch({ type: 'SET_MODE', payload: 'text' })} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${state.mode === 'text' ? 'bg-white dark:bg-slate-600 text-indigo-600 dark:text-indigo-300 shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}><MessageSquare size={14} /> Text</button>
                             <button onClick={() => dispatch({ type: 'SET_MODE', payload: 'art' })} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${state.mode === 'art' ? 'bg-white dark:bg-slate-600 text-pink-600 dark:text-pink-300 shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}><Palette size={14} /> Art</button>
@@ -323,7 +321,6 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                                     </div>
                                 )}
 
-                                {/* --- CTO UPDATE: Presets logic to include Video --- */}
                                 <div className="text-[10px] font-bold text-slate-400 uppercase px-2 py-1">Quick Start</div>
                                 {((state.mode === 'text' 
                                     ? PRESETS[state.textSubMode] || PRESETS.general 
@@ -399,6 +396,21 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                             <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700">
                                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2"><Ban size={14} /> Negative Prompt</h3>
                                 <input className="w-full p-2 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-700 focus:ring-2 focus:ring-purple-500 outline-none text-sm placeholder-slate-300 dark:text-slate-200" placeholder="e.g. static, blur, distortion, morphing" value={state.negativePrompt} onChange={(e) => dispatch({ type: 'UPDATE_FIELD', field: 'negativePrompt', value: e.target.value })} />
+                            </div>
+
+                            {/* Video Control Panel */}
+                             <div className="bg-slate-100 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700 space-y-4">
+                                <div className="flex items-center gap-2 mb-2"><Sliders size={16} className="text-purple-500" /><span className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400">Gen-2 / Pika Settings</span></div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <div className="flex justify-between text-[10px] uppercase font-bold text-slate-400 mb-1"><span>Motion (1-10)</span><span className="text-purple-500">{state.videoMotion || 5}</span></div>
+                                        <input type="range" min="1" max="10" step="1" value={state.videoMotion || 5} onChange={(e) => dispatch({type: 'UPDATE_FIELD', field: 'videoMotion', value: e.target.value})} className="w-full h-1 bg-slate-300 dark:bg-slate-600 rounded-lg appearance-none cursor-pointer accent-purple-600"/>
+                                    </div>
+                                    <div>
+                                         <div className="flex justify-between text-[10px] uppercase font-bold text-slate-400 mb-1"><span>Seed</span></div>
+                                         <input className="w-full p-1.5 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-purple-500 outline-none text-xs placeholder-slate-300 dark:text-slate-200" placeholder="Random" type="number" value={state.seed} onChange={(e) => dispatch({ type: 'UPDATE_FIELD', field: 'seed', value: e.target.value })} />
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     )}
@@ -582,7 +594,7 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
             onClose={() => setShowTestModal(false)} 
             prompt={generatedPrompt} 
             defaultApiKey={globalApiKey}
-            onSaveSnippet={handleSaveSnippet} // <--- Passed here
+            onSaveSnippet={handleSaveSnippet} 
         />
         
         {/* Wizard Component */}
