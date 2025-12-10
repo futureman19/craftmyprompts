@@ -16,7 +16,7 @@ const initialState = {
   seed: '',
   chainOfThought: false,
   codeOnly: false,
-  codeContext: '', // <--- CTO UPDATE: New state for Code Context
+  codeContext: '', 
   variables: {}
 };
 
@@ -80,6 +80,8 @@ function builderReducer(state, action) {
         if (p.style) addSel('style', p.style);
         if (p.persona) addSel('persona', p.persona);
         if (p.tone) addSel('tone', p.tone);
+        // CTO UPDATE: Load Author from preset
+        if (p.author) addSel('author', p.author);
         
         // Art keys
         if (p.genre) addSel('genre', p.genre);
@@ -96,7 +98,7 @@ function builderReducer(state, action) {
             ...state, 
             selections: newSels, 
             customTopic: p.topic || '', 
-            codeContext: p.codeContext || '', // Load code context from preset if available
+            codeContext: p.codeContext || '', 
             variables: {},
             // Auto-switch mode if preset implies it
             mode: p.avatar_style ? 'art' : (p.genre ? 'art' : 'text'),
@@ -144,7 +146,7 @@ function builderReducer(state, action) {
             textSubMode: data.textSubMode || 'general',
             selections: data.selections || {},
             customTopic: data.customTopic || '',
-            codeContext: data.codeContext || '', // Load code context
+            codeContext: data.codeContext || '', 
             negativePrompt: data.negativePrompt || '',
             referenceImage: data.referenceImage || '',
             targetModel: data.targetModel || 'midjourney',
@@ -227,10 +229,13 @@ export const usePromptBuilder = (initialData) => {
           const frameworks = getVals('framework').join(', ');
           const intent = getVals('intent').join(', ');
           const styles = getVals('style').join(', ');
+          // --- CTO UPDATE: Author Emulation Logic ---
+          const authors = getVals('author').join(', ');
           
           if (frameworks) parts.push(`Use the ${frameworks} framework.`);
           if (intent) parts.push(`Goal: ${intent}.`);
           if (styles) parts.push(`Style/Voice: ${styles}.`);
+          if (authors) parts.push(`Emulate the style of: ${authors}.`);
       } else {
           const persona = getVals('persona');
           const tone = getVals('tone');
@@ -246,7 +251,7 @@ export const usePromptBuilder = (initialData) => {
           parts.push(`\n${label}\n"${processedTopic}"\n`);
       }
 
-      // --- CTO UPDATE: APPEND CODE CONTEXT IF PRESENT ---
+      // Append Code Context if present
       if (state.textSubMode === 'coding' && state.codeContext?.trim()) {
           parts.push(`\nCODE CONTEXT:\n\`\`\`\n${state.codeContext}\n\`\`\`\n`);
       }
@@ -298,7 +303,6 @@ export const usePromptBuilder = (initialData) => {
       
       if (state.textSubMode === 'avatar') {
           // --- AVATAR RECIPE ---
-          // [Framing] [Style] avatar of [Subject], [Expression], [Accessories], [Background]
           const framings = state.selections.framing?.map(i => formatOption(i, true, state.targetModel)) || [];
           const styles = state.selections.avatar_style?.map(i => formatOption(i, true, state.targetModel)) || [];
           

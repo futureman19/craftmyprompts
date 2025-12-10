@@ -24,7 +24,8 @@ import {
   Smile,
   Glasses,
   User,
-  Layers
+  Layers,
+  Feather // <--- NEW IMPORT
 } from 'lucide-react';
 
 export const GENERAL_DATA = [
@@ -159,6 +160,18 @@ export const CODING_DATA = [
 ];
 
 export const WRITING_DATA = [
+  // --- CTO UPDATE: Added Author Emulation ---
+  {
+    id: 'author',
+    title: 'Emulate Author',
+    icon: <Feather size={20} />,
+    description: 'Write in the style of...',
+    subcategories: [
+      { name: 'Fiction Masters', options: ['J.K. Rowling', 'Stephen King', 'Ernest Hemingway', 'George R.R. Martin', 'Neil Gaiman', 'Agatha Christie'] },
+      { name: 'Classic', options: ['William Shakespeare', 'Mark Twain', 'Jane Austen', 'Charles Dickens', 'Oscar Wilde'] },
+      { name: 'Modern/Business', options: ['Malcolm Gladwell', 'Seth Godin', 'Tim Ferriss', 'Brene Brown', 'Gary Vaynerchuk'] }
+    ]
+  },
   {
     id: 'framework',
     title: 'Frameworks',
@@ -444,3 +457,25 @@ export const PRESETS = {
         { label: "Vector Sticker", avatar_style: "Vector Flat", background: "White Background", topic: "A flat vector sticker of {Subject}." }
     ]
 };
+
+// --- CTO UPDATE: RANDOM TOPICS FOR SURPRISE ME ---
+export const RANDOM_TOPICS = [
+    // Art Topics
+    "A futuristic city floating in the clouds",
+    "A cute astronaut cat exploring Mars",
+    "A mystical forest with glowing mushrooms",
+    "A cyberpunk street food vendor in Tokyo",
+    "An ancient library inside a giant tree",
+    "A steampunk airship battle",
+    "A serene japanese garden in winter",
+    "A neon-lit diner in the rain",
+    
+    // Writing/Text Topics
+    "Explain quantum computing to a 5 year old",
+    "Write a viral tweet about coffee",
+    "Create a 3-day workout plan for beginners",
+    "Write a scary story in 2 sentences",
+    "Explain why the sky is blue",
+    "Write a rejection letter to a ghost",
+    "Create a recipe for the ultimate sandwich"
+];

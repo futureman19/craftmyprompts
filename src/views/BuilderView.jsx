@@ -10,6 +10,7 @@ import {
 
 import { db, auth, APP_ID } from '../lib/firebase.js';
 import { PRESETS } from '../data/constants.jsx';
+import { STYLE_PREVIEWS } from '../data/stylePreviews.js'; 
 import { usePromptBuilder } from '../hooks/usePromptBuilder.js';
 import TestRunnerModal from '../components/TestRunnerModal.jsx';
 import WizardMode from '../components/WizardMode.jsx'; 
@@ -25,16 +26,18 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
   const [copiedJson, setCopiedJson] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveVisibility, setSaveVisibility] = useState('private');
-  const [activeCategory, setActiveCategory] = useState(null);
+  const [expandedCategories, setExpandedCategories] = useState({}); 
   const [searchTerm, setSearchTerm] = useState('');
   const [showTestModal, setShowTestModal] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
   
-  // --- CTO UPDATE: Custom Presets State ---
+  // --- STATE: Custom Presets & Mobile Tab ---
   const [customPresets, setCustomPresets] = useState([]);
   const [mobileTab, setMobileTab] = useState('edit');
 
+  // --- CTO UPDATE: Global API Key Support ---
   const globalApiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+  const globalOpenAIKey = import.meta.env.VITE_OPENAI_API_KEY || ''; // New Support for OpenAI
 
   // --- EFFECT: LOAD INITIAL DATA (REMIX) ---
   useEffect(() => {
@@ -45,13 +48,12 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
     }
   }, [initialData, dispatch, showToast, clearInitialData]);
 
-  // --- CTO UPDATE: Fetch Custom Presets ---
+  // --- EFFECT: FETCH CUSTOM PRESETS ---
   useEffect(() => {
       if (!user) {
           setCustomPresets([]);
           return;
       }
-      // Listen to the user's 'presets' collection in real-time
       const q = query(
           collection(db, 'artifacts', APP_ID, 'users', user.uid, 'presets'),
           orderBy('createdAt', 'desc')
@@ -75,10 +77,15 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
       setShowTestModal(true);
   };
 
+  const toggleCategory = (id) => {
+      setExpandedCategories(prev => ({
+          ...prev,
+          [id]: !prev[id]
+      }));
+  };
+
   const toggleSelection = (categoryId, option) => {
-      // CTO UPDATE: Smart Multi-Select Logic
-      // Instead of forcing single-select for ALL text modes, we only enforce it for specific categories
-      // where picking multiple options would be contradictory (e.g., Length can't be Short AND Long).
+      // Smart Multi-Select Logic
       const singleSelectCategories = ['length', 'format', 'framework_version', 'params', 'framing'];
       const isSingleSelect = singleSelectCategories.includes(categoryId);
 
@@ -93,7 +100,6 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
       showToast(`Loaded preset: ${preset.label || 'Custom'}`);
   };
 
-  // --- CTO UPDATE: Save as Preset Logic ---
   const handleSaveAsPreset = async () => {
       if (!user) {
           onLoginRequest();
@@ -104,15 +110,13 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
       if (!name) return;
 
       try {
-          // We save the 'state' configuration, not just the output string
           const presetData = {
               label: name,
               mode: state.mode,
-              textSubMode: state.textSubMode || 'general', // Default to avoid undefined
+              textSubMode: state.textSubMode || 'general', 
               selections: state.selections, 
               customTopic: state.customTopic || '',
               codeContext: state.codeContext || '',
-              // Helper fields - MUST use || null because Firestore throws on 'undefined'
               lang: state.selections.language?.[0]?.value || null, 
               avatar_style: state.selections.avatar_style?.[0]?.value || null,
               createdAt: serverTimestamp()
@@ -219,7 +223,6 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
       })).filter(cat => cat.subcategories.length > 0);
   }, [searchTerm, currentData]);
 
-  // --- CTO UPDATE: Smart Preview Renderer ---
   const renderHighlightedPrompt = (text) => {
       if (!text) return <span className="text-slate-500 italic">Your prompt will appear here...</span>;
       const parts = text.split(/(\{.*?\})/g);
@@ -231,7 +234,6 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
       });
   };
 
-  // --- RENDER ---
   return (
       <div className="flex flex-col md:flex-row h-full w-full relative">
         
@@ -286,7 +288,7 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                           <div className="absolute top-full left-0 w-64 pt-2 hidden group-hover:block z-50">
                              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-600 p-2 max-h-96 overflow-y-auto">
                                 
-                                {/* --- CTO UPDATE: Custom Presets Section --- */}
+                                {/* Custom Presets Section */}
                                 {user && customPresets.length > 0 && (
                                     <div className="mb-2 pb-2 border-b border-slate-100 dark:border-slate-700">
                                         <div className="text-[10px] font-bold text-indigo-500 uppercase px-2 py-1 flex items-center gap-1"><Bookmark size={10} /> My Presets</div>
@@ -315,21 +317,58 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
             </header>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
-                 {/* --- CTO UPDATE: TOP SECTION (Full Width) --- */}
+                 {/* --- UX UPDATE: MAIN TOPIC BOX MOVED TO TOP --- */}
                  <div className="space-y-4">
                     {!displayName && user && !user.displayName && (
                         <div className="bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800 p-3 rounded-lg flex gap-2 items-center text-sm">
                             <UserCircle className="text-indigo-500 dark:text-indigo-400" /><input className="bg-transparent border-b border-indigo-300 dark:border-indigo-600 outline-none flex-1 text-indigo-900 dark:text-indigo-100 placeholder-indigo-300 dark:placeholder-indigo-500" placeholder="Set display name..." onBlur={(e) => { if(e.target.value) { setDisplayName(e.target.value); updateProfile(user, { displayName: e.target.value }); } }} />
                         </div>
                     )}
-                    {state.mode === 'text' && (
-                        <div className="flex gap-2 overflow-x-auto pb-2">
-                            <button onClick={() => dispatch({ type: 'UPDATE_FIELD', field: 'chainOfThought', value: !state.chainOfThought })} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold border transition-all ${state.chainOfThought ? 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 dark:border-emerald-800' : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700'}`}><Brain size={14} /> Chain of Thought</button>
-                            {state.textSubMode === 'coding' && <button onClick={() => dispatch({ type: 'UPDATE_FIELD', field: 'codeOnly', value: !state.codeOnly })} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold border transition-all ${state.codeOnly ? 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/40 dark:text-red-300 dark:border-red-800' : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700'}`}><XCircle size={14} /> Code Only</button>}
+
+                    <div className="bg-white dark:bg-slate-800 rounded-xl p-5 shadow-sm border border-slate-200 dark:border-slate-700 relative group transition-all focus-within:ring-2 focus-within:ring-indigo-500/20">
+                        <div className="flex justify-between items-center mb-2">
+                            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                                <Wand2 size={14} /> {state.mode === 'text' ? (state.textSubMode === 'coding' ? 'Task / Instruction' : 'Topic / Content') : 'Main Subject'}
+                            </h3>
+                            {state.mode === 'text' && (
+                                <div className="flex items-center gap-2">
+                                     <button onClick={() => dispatch({ type: 'UPDATE_FIELD', field: 'chainOfThought', value: !state.chainOfThought })} className={`p-1.5 rounded-lg text-[10px] font-bold border transition-all flex items-center gap-1 ${state.chainOfThought ? 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 dark:border-emerald-800' : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-700 dark:text-slate-400 dark:border-slate-600 hover:bg-slate-200'}`} title="Chain of Thought"><Brain size={12} /> <span className="hidden sm:inline">CoT</span></button>
+                                     {state.textSubMode === 'coding' && <button onClick={() => dispatch({ type: 'UPDATE_FIELD', field: 'codeOnly', value: !state.codeOnly })} className={`p-1.5 rounded-lg text-[10px] font-bold border transition-all flex items-center gap-1 ${state.codeOnly ? 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/40 dark:text-red-300 dark:border-red-800' : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-700 dark:text-slate-400 dark:border-slate-600 hover:bg-slate-200'}`} title="Code Only"><XCircle size={12} /> <span className="hidden sm:inline">Code Only</span></button>}
+                                </div>
+                            )}
+                        </div>
+                        
+                        <textarea 
+                            className="w-full p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-700 focus:ring-0 focus:outline-none resize-none text-sm leading-relaxed dark:text-slate-200 min-h-[120px]" 
+                            rows={5}
+                            placeholder={state.mode === 'text' ? "Enter content here. Use {brackets} for variables..." : "e.g. 'A cyberpunk city'"} 
+                            value={state.customTopic} 
+                            onChange={(e) => dispatch({ type: 'UPDATE_FIELD', field: 'customTopic', value: e.target.value })} 
+                        />
+
+                        {detectedVars.length > 0 && (
+                            <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700 animate-in fade-in">
+                                <h4 className="text-[10px] font-bold text-indigo-400 uppercase mb-2 flex items-center gap-1"><Code size={10} /> Variables Detected</h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    {detectedVars.map(v => (
+                                        <div key={v}>
+                                            <input className="w-full p-1.5 rounded border border-indigo-200 dark:border-indigo-700 bg-white dark:bg-slate-800 text-sm focus:ring-1 focus:ring-indigo-500 outline-none dark:text-slate-200" placeholder={`Value for ${v}...`} value={state.variables[v] || ''} onChange={(e) => dispatch({ type: 'UPDATE_VARIABLE', key: v, value: e.target.value })} />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {state.mode === 'text' && state.textSubMode === 'coding' && (
+                        <div className="bg-slate-900 rounded-xl p-4 border border-slate-700 shadow-sm animate-in slide-in-from-top-2 fade-in">
+                            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2"><Terminal size={14} /> Code Context</h3>
+                            <textarea className="w-full p-3 bg-slate-950 text-slate-200 rounded-lg border border-slate-800 focus:ring-1 focus:ring-indigo-500 outline-none resize-none text-xs font-mono leading-relaxed placeholder-slate-600" rows={5} placeholder="// Paste your broken code or current file content here..." value={state.codeContext} onChange={(e) => dispatch({ type: 'UPDATE_FIELD', field: 'codeContext', value: e.target.value })} />
                         </div>
                     )}
+
                     {state.mode === 'art' && (
-                        <>
+                        <div className="space-y-4 animate-in slide-in-from-top-4 fade-in">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700">
                                     <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2"><ImagePlus size={14} /> Ref Image URL</h3>
@@ -340,8 +379,9 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                                     <input className="w-full p-2 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-700 focus:ring-2 focus:ring-red-500 outline-none text-sm placeholder-slate-300 dark:text-slate-200" placeholder="e.g. blur, text" value={state.negativePrompt} onChange={(e) => dispatch({ type: 'UPDATE_FIELD', field: 'negativePrompt', value: e.target.value })} />
                                 </div>
                             </div>
+
                             {state.targetModel === 'stable-diffusion' && (
-                                <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-xl p-4 shadow-sm border border-indigo-100 dark:border-indigo-800 flex gap-4 items-end">
+                                <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-xl p-4 shadow-sm border border-indigo-100 dark:border-indigo-800 flex gap-4 items-end animate-in slide-in-from-top-2 fade-in">
                                     <div className="flex-1"><h3 className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-2 flex items-center gap-2"><Cpu size={14} /> LoRA Model Name</h3><input className="w-full p-2 bg-white dark:bg-slate-800 rounded-lg border border-indigo-200 dark:border-indigo-700 focus:ring-2 focus:ring-indigo-500 outline-none text-sm placeholder-indigo-300 dark:text-slate-200" placeholder="e.g. arcane_style_v1" value={state.loraName} onChange={(e) => dispatch({ type: 'UPDATE_FIELD', field: 'loraName', value: e.target.value })} /></div>
                                     <div className="w-24"><label className="text-[10px] font-bold text-indigo-400 block mb-1">Weight</label><input type="number" step="0.1" className="w-full p-2 bg-white dark:bg-slate-800 rounded-lg border border-indigo-200 dark:border-indigo-700 text-sm dark:text-slate-200" value={state.loraWeight} onChange={(e) => dispatch({ type: 'UPDATE_FIELD', field: 'loraWeight', value: e.target.value })} /></div>
                                 </div>
@@ -365,59 +405,26 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                                     </div>
                                 </div>
                             )}
-                            <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700">
+                             <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700">
                                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2">Seed</h3>
                                 <input className="w-full p-2 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-700 focus:ring-2 focus:ring-pink-500 outline-none text-sm placeholder-slate-300 dark:text-slate-200" placeholder="Random if empty" value={state.seed} onChange={(e) => dispatch({ type: 'UPDATE_FIELD', field: 'seed', value: e.target.value })} type="number" />
                             </div>
-                        </>
+                        </div>
                     )}
-                    <div className="bg-white dark:bg-slate-800 rounded-xl p-5 shadow-sm border border-slate-200 dark:border-slate-700">
-                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2">
-                            <Wand2 size={14} /> {state.mode === 'text' ? (state.textSubMode === 'coding' ? 'Task / Instruction' : 'Topic / Content') : 'Main Subject'}
-                        </h3>
-                        <textarea 
-                            className="w-full p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none resize-none text-sm leading-relaxed dark:text-slate-200" 
-                            rows={5}
-                            placeholder={state.mode === 'text' ? "Enter content here. Use {brackets} for variables..." : "e.g. 'A cyberpunk city'"} 
-                            value={state.customTopic} 
-                            onChange={(e) => dispatch({ type: 'UPDATE_FIELD', field: 'customTopic', value: e.target.value })} 
-                        />
-                        
-                        {state.mode === 'text' && state.textSubMode === 'coding' && (
-                            <div className="mt-4 animate-in slide-in-from-top-2 fade-in">
-                                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2"><Terminal size={14} /> Code Context</h3>
-                                <textarea className="w-full p-3 bg-slate-900 text-slate-200 rounded-lg border border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none resize-none text-xs font-mono leading-relaxed placeholder-slate-600" rows={5} placeholder="// Paste your broken code or current file content here..." value={state.codeContext} onChange={(e) => dispatch({ type: 'UPDATE_FIELD', field: 'codeContext', value: e.target.value })} />
-                            </div>
-                        )}
-
-                        {detectedVars.length > 0 && (
-                            <div className="mt-2 p-2 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg border border-indigo-100 dark:border-indigo-800 animate-in fade-in slide-in-from-top-2">
-                                <h4 className="text-[10px] font-bold text-indigo-400 uppercase mb-2 flex items-center gap-1"><Code size={10} /> Variables Detected</h4>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                    {detectedVars.map(v => (
-                                        <div key={v}>
-                                            <label className="text-[10px] font-medium text-slate-500 dark:text-slate-400">{v}</label>
-                                            <input className="w-full p-1.5 rounded border border-indigo-200 dark:border-indigo-700 bg-white dark:bg-slate-800 text-sm focus:ring-1 focus:ring-indigo-500 outline-none dark:text-slate-200" placeholder={`Value for ${v}...`} value={state.variables[v] || ''} onChange={(e) => dispatch({ type: 'UPDATE_VARIABLE', key: v, value: e.target.value })} />
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
                  </div>
 
-                 {/* --- CTO UPDATE: CATEGORY GRID (2 Columns on Large Screens) --- */}
+                 {/* CATEGORY GRID (2 Columns on Large Screens) */}
                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                     {filteredData.map((category) => (
                         <div key={category.id} className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden h-fit">
-                            <div className="p-3 flex items-center justify-between cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors" onClick={() => setActiveCategory(activeCategory === category.id ? null : category.id)}>
+                            <div className="p-3 flex items-center justify-between cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors" onClick={() => toggleCategory(category.id)}>
                                 <div className="flex items-center gap-3">
                                     <div className={`p-1.5 rounded-md ${state.selections[category.id]?.length ? (state.mode === 'text' ? 'bg-indigo-100 text-indigo-600' : 'bg-pink-100 text-pink-600') : 'bg-slate-100 dark:bg-slate-700 text-slate-400'}`}>{category.icon}</div>
                                     <div><h2 className="font-semibold text-slate-700 dark:text-slate-200 text-sm">{category.title}</h2></div>
                                 </div>
-                                <ChevronDown size={16} className={`text-slate-400 transition-transform ${activeCategory === category.id ? 'rotate-180' : ''}`}/>
+                                <ChevronDown size={16} className={`text-slate-400 transition-transform ${expandedCategories[category.id] ? 'rotate-180' : ''}`}/>
                             </div>
-                            {activeCategory === category.id && (
+                            {expandedCategories[category.id] && (
                                 <div className="px-3 pb-4 pt-1 bg-slate-50/50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-700">
                                     {category.subcategories.map((sub) => {
                                         const visibleLimit = 8;
@@ -431,9 +438,13 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                                                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                                         {optionsToShow.map((option) => {
                                                             const isSelected = state.selections[category.id]?.find(i => i.value === option);
+                                                            // USE STYLE PREVIEW
+                                                            const previewUrl = STYLE_PREVIEWS[option] || `https://placehold.co/100x100/${isSelected ? 'pink' : 'e2e8f0'}/white?text=${option.charAt(0)}`;
+                                                            const opacityClass = STYLE_PREVIEWS[option] ? 'opacity-70' : 'opacity-20';
+                                                            
                                                             return (
                                                                 <button key={option} onClick={() => toggleSelection(category.id, option)} className={`relative h-16 rounded-lg text-xs font-medium border overflow-hidden text-left p-2 flex flex-col justify-end transition-all ${isSelected ? 'border-pink-500 ring-2 ring-pink-200 bg-pink-50' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500 text-slate-700 dark:text-slate-300'}`}>
-                                                                    <div className="absolute inset-0 opacity-20" style={{ background: `url('https://placehold.co/100x100/${isSelected ? 'pink' : 'e2e8f0'}/white?text=${option.charAt(0)}') center/cover` }} /><span className="relative z-10 truncate w-full">{option}</span>
+                                                                    <div className={`absolute inset-0 ${opacityClass} transition-opacity`} style={{ background: `url('${previewUrl}') center/cover` }} /><span className="relative z-10 truncate w-full shadow-black drop-shadow-md text-shadow">{option}</span>
                                                                 </button>
                                                             );
                                                         })}
@@ -468,7 +479,7 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                                     })}
                                 </div>
                             )}
-                            {activeCategory !== category.id && state.selections[category.id]?.length > 0 && (
+                            {!expandedCategories[category.id] && state.selections[category.id]?.length > 0 && (
                                 <div className="px-3 pb-3 flex flex-wrap gap-1">
                                     {state.selections[category.id].map(sel => (
                                         <span key={sel.value} className="text-[10px] px-1.5 py-0.5 rounded border bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700">{sel.value}</span>
@@ -512,6 +523,7 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                             <button onClick={() => setSaveVisibility('public')} className={`px-3 py-1 rounded-md flex items-center gap-1 transition-all ${saveVisibility === 'public' ? 'bg-indigo-600 text-white shadow' : 'text-slate-500 hover:text-slate-300'}`}><Globe size={12} /> Public</button>
                         </div>
                     </div>
+                    {/* Save as Preset Button */}
                     <div className="grid grid-cols-2 gap-2 mb-2">
                         <button onClick={handleUnifiedSave} disabled={!generatedPrompt || isSaving} className="col-span-1 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-medium text-slate-300 flex items-center justify-center gap-2 transition-colors disabled:opacity-50"><Save size={14} /> {isSaving ? 'Saving...' : (saveVisibility === 'public' ? 'Publish' : 'Save')}</button>
                         <button onClick={handleSaveAsPreset} disabled={!generatedPrompt} className="col-span-1 py-2 bg-indigo-900/50 hover:bg-indigo-900 rounded-lg text-xs font-medium text-indigo-300 border border-indigo-800 flex items-center justify-center gap-2 transition-colors disabled:opacity-50"><Bookmark size={14} /> Save Preset</button>
@@ -535,6 +547,7 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
             onClose={() => setShowTestModal(false)} 
             prompt={generatedPrompt} 
             defaultApiKey={globalApiKey}
+            defaultOpenAIKey={globalOpenAIKey} // Pass OpenAI Key
         />
         
         {/* Wizard Component */}
