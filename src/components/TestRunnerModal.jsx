@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Play, Key, Loader, Check, AlertTriangle, Terminal, Cpu, RefreshCw, Zap, Bot, Sparkles, Swords, GitCompare, Layers, MonitorPlay, Copy, ArrowRight, Target } from 'lucide-react';
+import { X, Play, Key, Loader, Check, AlertTriangle, Terminal, Cpu, RefreshCw, Zap, Bot, Sparkles, Swords, GitCompare, Layers, MonitorPlay, Copy, ArrowRight, Target, Split } from 'lucide-react';
 
 // --- INTERNAL COMPONENT: CODE BLOCK RENDERER ---
 const CodeBlock = ({ rawContent }) => {
@@ -42,6 +42,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
   // --- STATE ---
   const [viewMode, setViewMode] = useState('simple'); // 'simple' (Single Model) | 'advanced' (Workflows)
   const [provider, setProvider] = useState('gemini'); // 'gemini' | 'openai' | 'battle' | 'refine'
+  const [refineView, setRefineView] = useState('timeline'); // 'timeline' | 'diff'
   
   // CTO UPDATE: Configurable Refine Roles & Focus
   const [refineConfig, setRefineConfig] = useState({ 
@@ -300,7 +301,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200">
-      <div className={`bg-white dark:bg-slate-900 w-full rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 flex flex-col max-h-[90vh] overflow-hidden transition-all duration-300 ${provider === 'battle' || provider === 'refine' ? 'max-w-5xl' : 'max-w-2xl'}`}>
+      <div className={`bg-white dark:bg-slate-900 w-full rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 flex flex-col max-h-[90vh] overflow-hidden transition-all duration-300 ${provider === 'battle' || provider === 'refine' ? 'max-w-6xl' : 'max-w-2xl'}`}>
         
         {/* Header with Two-Tier Nav */}
         <div className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
@@ -347,11 +348,17 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
             {/* Refine Configuration Panel */}
             {provider === 'refine' && (
                 <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-100 dark:border-amber-800/50 animate-in fade-in space-y-4">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                          <h4 className="text-xs font-bold uppercase text-amber-600 dark:text-amber-400 flex items-center gap-2">
                             <Layers size={14} /> Workflow Pipeline
                          </h4>
-                         {/* Critique Focus Selector */}
+                         {/* View Toggle */}
+                         {refineSteps && (
+                             <div className="flex bg-white dark:bg-slate-800 p-1 rounded-lg border border-amber-200 dark:border-amber-800">
+                                 <button onClick={() => setRefineView('timeline')} className={`px-3 py-1 text-xs font-bold rounded-md transition-all flex items-center gap-1 ${refineView === 'timeline' ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300' : 'text-slate-400'}`}><Layers size={12} /> Timeline</button>
+                                 <button onClick={() => setRefineView('diff')} className={`px-3 py-1 text-xs font-bold rounded-md transition-all flex items-center gap-1 ${refineView === 'diff' ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300' : 'text-slate-400'}`}><Split size={12} /> Diff View</button>
+                             </div>
+                         )}
                          <div className="flex items-center gap-2">
                             <Target size={14} className="text-amber-500" />
                             <select 
@@ -472,7 +479,6 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                                     {copiedText === 'result' ? <Check size={10} /> : <Copy size={10} />} {copiedText === 'result' ? 'Copied' : 'Copy'}
                                 </button>
                             </div>
-                            {/* CTO UPDATE: Uses renderResultContent for syntax highlighting */}
                             {renderResultContent(result)}
                         </div>
                     )}
@@ -499,52 +505,75 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                 </div>
             )}
 
-            {/* Refine Results (Timeline View) */}
+            {/* Refine Results (Timeline OR Diff View) */}
             {provider === 'refine' && (loading || refineSteps) && (
                 <div className="space-y-4 animate-in slide-in-from-bottom-2 fade-in">
                     {loading && <div className="text-center text-sm font-bold text-amber-600 dark:text-amber-400 animate-pulse bg-amber-50 dark:bg-amber-900/20 py-2 rounded-lg">{statusMessage}</div>}
                     
-                    {/* Step 1: Draft */}
-                    {refineSteps?.draft && (
-                        <div className="p-4 bg-indigo-50/30 dark:bg-indigo-900/10 rounded-xl border border-indigo-100 dark:border-indigo-800">
-                             <div className="flex items-center gap-2 text-xs font-bold uppercase text-indigo-500 mb-2">
-                                <span className="bg-indigo-100 dark:bg-indigo-900/50 px-2 py-0.5 rounded text-indigo-700 dark:text-indigo-300">Step 1</span> Draft ({refineConfig.drafter === 'gemini' ? 'Gemini' : 'ChatGPT'})
-                             </div>
-                             {/* Draft is usually long, so we clamp it visually, but highlighting still works */}
-                             <div className="text-sm text-slate-600 dark:text-slate-400 line-clamp-3 hover:line-clamp-none transition-all cursor-pointer overflow-hidden" title="Click to expand">
-                                 {renderResultContent(refineSteps.draft)}
-                             </div>
-                        </div>
-                    )}
-                    
-                    {/* Step 2: Critique */}
-                    {refineSteps?.critique && (
-                        <div className="flex flex-col items-center">
-                            <div className="h-4 w-px bg-slate-300 dark:bg-slate-600 my-1"></div>
-                            <div className="p-4 w-full bg-emerald-50/30 dark:bg-emerald-900/10 rounded-xl border border-emerald-100 dark:border-emerald-800">
-                                <div className="flex items-center gap-2 text-xs font-bold uppercase text-emerald-500 mb-2">
-                                    <span className="bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 rounded text-emerald-700 dark:text-emerald-300">Step 2</span> Critique ({refineConfig.critiquer === 'gemini' ? 'Gemini' : 'ChatGPT'})
+                    {refineView === 'timeline' ? (
+                        <>
+                            {/* TIMELINE MODE */}
+                            {refineSteps?.draft && (
+                                <div className="p-4 bg-indigo-50/30 dark:bg-indigo-900/10 rounded-xl border border-indigo-100 dark:border-indigo-800">
+                                    <div className="flex items-center gap-2 text-xs font-bold uppercase text-indigo-500 mb-2">
+                                        <span className="bg-indigo-100 dark:bg-indigo-900/50 px-2 py-0.5 rounded text-indigo-700 dark:text-indigo-300">Step 1</span> Draft ({refineConfig.drafter === 'gemini' ? 'Gemini' : 'ChatGPT'})
+                                    </div>
+                                    <div className="text-sm text-slate-600 dark:text-slate-400 line-clamp-3 hover:line-clamp-none transition-all cursor-pointer overflow-hidden" title="Click to expand">
+                                        {renderResultContent(refineSteps.draft)}
+                                    </div>
                                 </div>
-                                <div className="text-sm text-slate-600 dark:text-slate-400 italic">
-                                    {/* Critique usually isn't code, but we format it anyway for consistency */}
-                                    {renderResultContent(refineSteps.critique)}
+                            )}
+                            
+                            {refineSteps?.critique && (
+                                <div className="flex flex-col items-center">
+                                    <div className="h-4 w-px bg-slate-300 dark:bg-slate-600 my-1"></div>
+                                    <div className="p-4 w-full bg-emerald-50/30 dark:bg-emerald-900/10 rounded-xl border border-emerald-100 dark:border-emerald-800">
+                                        <div className="flex items-center gap-2 text-xs font-bold uppercase text-emerald-500 mb-2">
+                                            <span className="bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 rounded text-emerald-700 dark:text-emerald-300">Step 2</span> Critique ({refineConfig.critiquer === 'gemini' ? 'Gemini' : 'ChatGPT'})
+                                        </div>
+                                        <div className="text-sm text-slate-600 dark:text-slate-400 italic">
+                                            {renderResultContent(refineSteps.critique)}
+                                        </div>
+                                    </div>
+                                    <div className="h-4 w-px bg-slate-300 dark:bg-slate-600 my-1"></div>
                                 </div>
-                            </div>
-                            <div className="h-4 w-px bg-slate-300 dark:bg-slate-600 my-1"></div>
-                        </div>
-                    )}
+                            )}
 
-                    {/* Step 3: Final */}
-                    {refineSteps?.final && (
-                        <div className="p-5 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-slate-800 dark:to-slate-800 rounded-xl border-2 border-amber-200 dark:border-amber-700 shadow-lg relative">
-                            <div className="flex items-center gap-2 text-sm font-bold uppercase text-amber-600 dark:text-amber-500 mb-3 border-b border-amber-200 dark:border-slate-700 pb-2">
-                                <Sparkles size={16} /> Final Polish ({refineConfig.drafter === 'gemini' ? 'Gemini' : 'ChatGPT'})
-                                <button onClick={() => copyToClipboard(refineSteps.final, 'final')} className="ml-auto text-[10px] bg-white dark:bg-slate-700 border border-amber-200 dark:border-slate-600 px-2 py-1 rounded hover:bg-amber-50 transition-colors flex items-center gap-1">
-                                    {copiedText === 'final' ? <Check size={12} /> : <Copy size={12} />} {copiedText === 'final' ? 'Copied' : 'Copy'}
-                                </button>
+                            {refineSteps?.final && (
+                                <div className="p-5 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-slate-800 dark:to-slate-800 rounded-xl border-2 border-amber-200 dark:border-amber-700 shadow-lg relative">
+                                    <div className="flex items-center gap-2 text-sm font-bold uppercase text-amber-600 dark:text-amber-500 mb-3 border-b border-amber-200 dark:border-slate-700 pb-2">
+                                        <Sparkles size={16} /> Final Polish ({refineConfig.drafter === 'gemini' ? 'Gemini' : 'ChatGPT'})
+                                        <button onClick={() => copyToClipboard(refineSteps.final, 'final')} className="ml-auto text-[10px] bg-white dark:bg-slate-700 border border-amber-200 dark:border-slate-600 px-2 py-1 rounded hover:bg-amber-50 transition-colors flex items-center gap-1">
+                                            {copiedText === 'final' ? <Check size={12} /> : <Copy size={12} />} {copiedText === 'final' ? 'Copied' : 'Copy'}
+                                        </button>
+                                    </div>
+                                    {renderResultContent(refineSteps.final)}
+                                </div>
+                            )}
+                        </>
+                    ) : (
+                        /* DIFF VIEW (Side by Side) */
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-[500px]">
+                            {/* Before Panel */}
+                             <div className="rounded-xl border border-red-200 dark:border-red-900 bg-red-50/30 dark:bg-red-900/10 p-4 flex flex-col h-full overflow-hidden">
+                                <div className="flex items-center gap-2 text-red-600 dark:text-red-400 font-bold mb-3 border-b border-red-200 dark:border-red-800 pb-2">
+                                     <MonitorPlay size={18} /> Original Draft
+                                </div>
+                                <div className="overflow-y-auto flex-1 text-xs text-slate-800 dark:text-slate-200 leading-relaxed font-mono">
+                                    {renderResultContent(refineSteps?.draft)}
+                                </div>
                             </div>
-                            {/* Final code block */}
-                            {renderResultContent(refineSteps.final)}
+                            
+                            {/* After Panel */}
+                            <div className="rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50/30 dark:bg-emerald-900/10 p-4 flex flex-col h-full overflow-hidden">
+                                <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold mb-3 border-b border-emerald-200 dark:border-emerald-800 pb-2">
+                                     <Sparkles size={18} /> Final Polish
+                                     <button onClick={() => copyToClipboard(refineSteps?.final, 'final')} className="ml-auto p-1.5 hover:bg-emerald-100 dark:hover:bg-emerald-900 rounded">{copiedText === 'final' ? <Check size={14} /> : <Copy size={14} />}</button>
+                                </div>
+                                <div className="overflow-y-auto flex-1 text-xs text-slate-800 dark:text-slate-200 leading-relaxed font-mono">
+                                    {renderResultContent(refineSteps?.final)}
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>
@@ -558,7 +587,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
             </button>
             <button 
                 onClick={handleRun}
-                disabled={loading || (viewMode === 'advanced' && (!geminiKey || !openaiKey)) || (viewMode === 'simple' && provider === 'gemini' && !geminiKey) || (viewMode === 'simple' && provider === 'openai' && !openaiKey)}
+                disabled={loading || (viewMode === 'advanced' && (!geminiKey || !openaiKey)) || (viewMode === 'simple' && provider === 'gemini' && !geminiKey) || (viewMode === 'simple' && provider === 'openai' && !openaiKey) || ((provider === 'battle' || provider === 'refine') && (!geminiKey || !openaiKey))}
                 className={`px-6 py-2 text-white rounded-lg text-sm font-bold shadow-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95 ${provider === 'battle' ? 'bg-gradient-to-r from-indigo-600 to-emerald-600 hover:opacity-90' : (provider === 'refine' ? 'bg-gradient-to-r from-amber-500 to-orange-600' : (provider === 'openai' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-indigo-600 hover:bg-indigo-700'))}`}
             >
                 {loading ? <Loader size={16} className="animate-spin" /> : (provider === 'battle' ? <Swords size={16} /> : (provider === 'refine' ? <GitCompare size={16} /> : <Play size={16} fill="currentColor" />))}
