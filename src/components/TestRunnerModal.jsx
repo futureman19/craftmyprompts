@@ -6,6 +6,9 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
   const [viewMode, setViewMode] = useState('simple'); // 'simple' (Single Model) | 'advanced' (Workflows)
   const [provider, setProvider] = useState('gemini'); // 'gemini' | 'openai' | 'battle' | 'refine'
   
+  // CTO UPDATE: Configurable Refine Roles
+  const [refineConfig, setRefineConfig] = useState({ drafter: 'gemini', critiquer: 'openai' });
+
   // Keys
   const [geminiKey, setGeminiKey] = useState('');
   const [openaiKey, setOpenaiKey] = useState('');
@@ -17,7 +20,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
   const [refineSteps, setRefineSteps] = useState(null); // { draft: '', critique: '', final: '' }
   const [statusMessage, setStatusMessage] = useState(''); 
   const [error, setError] = useState(null);
-  const [copiedText, setCopiedText] = useState(null); // To track which text was just copied
+  const [copiedText, setCopiedText] = useState(null); 
   
   // Models
   const [selectedModel, setSelectedModel] = useState(''); 
@@ -27,7 +30,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
   useEffect(() => {
     if (!isOpen) return;
 
-    // Load Keys from Props or Local Storage
+    // Load Keys
     if (defaultApiKey) setGeminiKey(defaultApiKey);
     else setGeminiKey(localStorage.getItem('craft_my_prompt_gemini_key') || '');
 
@@ -70,7 +73,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
           if (data.models) {
               const validModels = data.models.filter(m => m.supportedGenerationMethods?.includes("generateContent"));
               setAvailableModels(validModels);
-              // Auto-Select Logic: Prefer 2.0/Flash -> 1.5-Flash -> First Available
+              // Auto-Select Logic
               const currentExists = validModels.find(m => m.name === selectedModel);
               if (!selectedModel || !currentExists) {
                   const bestModel = validModels.find(m => m.name.includes('2.0-flash')) 
@@ -81,6 +84,15 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
           }
       } catch (err) {
           console.error("Failed to fetch models", err);
+      }
+  };
+
+  // --- GENERIC API HANDLER ---
+  const callAIProvider = async (providerName, promptText, key) => {
+      if (providerName === 'gemini') {
+          return await callGemini(promptText, key, selectedModel);
+      } else {
+          return await callOpenAI(promptText, key);
       }
   };
 
@@ -120,24 +132,42 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
 
     try {
         if (provider === 'refine') {
-            if (!geminiKey || !openaiKey) throw new Error("Both keys required for Refine Mode.");
-            saveKey(geminiKey, 'gemini'); saveKey(openaiKey, 'openai');
+            // Check keys for selected providers
+            if (refineConfig.drafter === 'gemini' && !geminiKey) throw new Error("Gemini API Key missing for Drafter.");
+            if (refineConfig.drafter === 'openai' && !openaiKey) throw new Error("OpenAI API Key missing for Drafter.");
+            if (refineConfig.critiquer === 'gemini' && !geminiKey) throw new Error("Gemini API Key missing for Critiquer.");
+            if (refineConfig.critiquer === 'openai' && !openaiKey) throw new Error("OpenAI API Key missing for Critiquer.");
 
-            setStatusMessage('Step 1/3: Gemini is drafting...');
-            const draft = await callGemini(prompt, geminiKey, selectedModel);
+            // Save keys
+            if (geminiKey) saveKey(geminiKey, 'gemini');
+            if (openaiKey) saveKey(openaiKey, 'openai');
+
+            // --- STEP 1: DRAFT ---
+            const drafterName = refineConfig.drafter === 'gemini' ? 'Gemini' : 'ChatGPT';
+            setStatusMessage(`Step 1/3: ${drafterName} is drafting...`);
+            
+            const drafterKey = refineConfig.drafter === 'gemini' ? geminiKey : openaiKey;
+            const draft = await callAIProvider(refineConfig.drafter, prompt, drafterKey);
+            
             setRefineSteps({ draft, critique: null, final: null });
 
-            setStatusMessage('Step 2/3: ChatGPT is critiquing...');
+            // --- STEP 2: CRITIQUE ---
+            const critiquerName = refineConfig.critiquer === 'gemini' ? 'Gemini' : 'ChatGPT';
+            setStatusMessage(`Step 2/3: ${critiquerName} is critiquing...`);
+            
+            const critiquerKey = refineConfig.critiquer === 'gemini' ? geminiKey : openaiKey;
             const critiquePrompt = `Act as a Senior Editor. Critique the following text. List 3 specific, actionable improvements.\n\nTEXT:\n${draft}`;
-            const critique = await callOpenAI(critiquePrompt, openaiKey);
+            const critique = await callAIProvider(refineConfig.critiquer, critiquePrompt, critiquerKey);
+            
             setRefineSteps({ draft, critique, final: null });
 
-            setStatusMessage('Step 3/3: Gemini is polishing...');
+            // --- STEP 3: POLISH (Back to Drafter) ---
+            setStatusMessage(`Step 3/3: ${drafterName} is polishing...`);
             const polishPrompt = `Rewrite the original text below to address the critique. Make it perfect.\n\nORIGINAL:\n${draft}\n\nCRITIQUE:\n${critique}`;
-            const final = await callGemini(polishPrompt, geminiKey, selectedModel);
+            const final = await callAIProvider(refineConfig.drafter, polishPrompt, drafterKey);
+            
             setRefineSteps({ draft, critique, final });
-            // UX UPDATE: Do NOT set 'result' here to avoid duplicate display. 
-            // We will render 'final' inside the Refine layout.
+            setResult(final); // Final result to display if needed
 
         } else if (provider === 'battle') {
             if (!geminiKey || !openaiKey) throw new Error("Both API Keys are required.");
@@ -231,11 +261,52 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                     <button onClick={() => setProvider('refine')} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-sm font-bold transition-all ${provider === 'refine' ? 'bg-white dark:bg-slate-800 shadow text-orange-600 dark:text-orange-400' : 'text-amber-700/50 dark:text-amber-500/50 hover:text-amber-700'}`}><GitCompare size={16} /> Refine (Loop)</button>
                 </div>
             )}
+            
+            {/* CTO UPDATE: Refine Configuration Panel */}
+            {provider === 'refine' && (
+                <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-100 dark:border-amber-800/50 animate-in fade-in">
+                    <h4 className="text-xs font-bold uppercase text-amber-600 dark:text-amber-400 mb-3 flex items-center gap-2">
+                        <Layers size={14} /> Workflow Pipeline
+                    </h4>
+                    <div className="flex items-center gap-2">
+                        <div className="flex-1">
+                            <label className="text-[10px] text-amber-500 font-bold uppercase block mb-1">Drafter (Writes V1)</label>
+                            <select 
+                                value={refineConfig.drafter}
+                                onChange={(e) => setRefineConfig(prev => ({ ...prev, drafter: e.target.value }))}
+                                className="w-full text-sm p-2 rounded-lg border border-amber-200 dark:border-amber-800 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-amber-500"
+                            >
+                                <option value="gemini">Gemini</option>
+                                <option value="openai">OpenAI (GPT-4)</option>
+                            </select>
+                        </div>
+                        <ArrowRight size={20} className="text-amber-300 mt-5" />
+                        <div className="flex-1">
+                            <label className="text-[10px] text-amber-500 font-bold uppercase block mb-1">Critiquer (Reviews)</label>
+                            <select 
+                                value={refineConfig.critiquer}
+                                onChange={(e) => setRefineConfig(prev => ({ ...prev, critiquer: e.target.value }))}
+                                className="w-full text-sm p-2 rounded-lg border border-amber-200 dark:border-amber-800 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-amber-500"
+                            >
+                                <option value="openai">OpenAI (GPT-4)</option>
+                                <option value="gemini">Gemini</option>
+                            </select>
+                        </div>
+                        <ArrowRight size={20} className="text-amber-300 mt-5" />
+                        <div className="flex-1 opacity-60">
+                             <label className="text-[10px] text-amber-500 font-bold uppercase block mb-1">Polisher (Final)</label>
+                             <div className="text-sm p-2 rounded-lg border border-amber-200 dark:border-amber-800 bg-slate-100 dark:bg-slate-800 text-slate-500 italic">
+                                 {refineConfig.drafter === 'gemini' ? 'Gemini' : 'OpenAI'}
+                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* API Keys (Context Aware) */}
             <div className="space-y-3 p-4 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800">
-                {/* Gemini Input */}
-                {(provider === 'gemini' || viewMode === 'advanced') && (
+                {/* Gemini Input - Logic Updated for Refine Config */}
+                {(provider === 'gemini' || provider === 'battle' || (provider === 'refine' && (refineConfig.drafter === 'gemini' || refineConfig.critiquer === 'gemini'))) && (
                     <div className="flex flex-col gap-2">
                         <div className="flex justify-between items-center">
                             <label className="text-[10px] font-bold uppercase text-indigo-500 flex items-center gap-1"><Key size={12} /> Gemini Key</label>
@@ -260,8 +331,8 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                 {/* Separator for Advanced Mode */}
                 {viewMode === 'advanced' && <div className="h-px bg-slate-200 dark:bg-slate-800 w-full my-1"></div>}
 
-                {/* OpenAI Input */}
-                {(provider === 'openai' || viewMode === 'advanced') && (
+                {/* OpenAI Input - Logic Updated for Refine Config */}
+                {(provider === 'openai' || provider === 'battle' || (provider === 'refine' && (refineConfig.drafter === 'openai' || refineConfig.critiquer === 'openai'))) && (
                     <div className="flex flex-col gap-2">
                         <label className="text-[10px] font-bold uppercase text-emerald-500 flex items-center gap-1"><Key size={12} /> OpenAI Key</label>
                         {isUsingGlobalOpenAI ? (
@@ -338,7 +409,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                     {refineSteps?.draft && (
                         <div className="p-4 bg-indigo-50/30 dark:bg-indigo-900/10 rounded-xl border border-indigo-100 dark:border-indigo-800">
                              <div className="flex items-center gap-2 text-xs font-bold uppercase text-indigo-500 mb-2">
-                                <span className="bg-indigo-100 dark:bg-indigo-900/50 px-2 py-0.5 rounded text-indigo-700 dark:text-indigo-300">Step 1</span> Draft (Gemini)
+                                <span className="bg-indigo-100 dark:bg-indigo-900/50 px-2 py-0.5 rounded text-indigo-700 dark:text-indigo-300">Step 1</span> Draft ({refineConfig.drafter === 'gemini' ? 'Gemini' : 'ChatGPT'})
                              </div>
                              <div className="text-sm text-slate-600 dark:text-slate-400 line-clamp-3 hover:line-clamp-none transition-all cursor-pointer" title="Click to expand">{refineSteps.draft}</div>
                         </div>
@@ -350,7 +421,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                             <div className="h-4 w-px bg-slate-300 dark:bg-slate-600 my-1"></div>
                             <div className="p-4 w-full bg-emerald-50/30 dark:bg-emerald-900/10 rounded-xl border border-emerald-100 dark:border-emerald-800">
                                 <div className="flex items-center gap-2 text-xs font-bold uppercase text-emerald-500 mb-2">
-                                    <span className="bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 rounded text-emerald-700 dark:text-emerald-300">Step 2</span> Critique (GPT-4)
+                                    <span className="bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 rounded text-emerald-700 dark:text-emerald-300">Step 2</span> Critique ({refineConfig.critiquer === 'gemini' ? 'Gemini' : 'ChatGPT'})
                                 </div>
                                 <div className="text-sm text-slate-600 dark:text-slate-400 italic">
                                     {refineSteps.critique}
@@ -364,7 +435,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                     {refineSteps?.final && (
                         <div className="p-5 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-slate-800 dark:to-slate-800 rounded-xl border-2 border-amber-200 dark:border-amber-700 shadow-lg relative">
                             <div className="flex items-center gap-2 text-sm font-bold uppercase text-amber-600 dark:text-amber-500 mb-3 border-b border-amber-200 dark:border-slate-700 pb-2">
-                                <Sparkles size={16} /> Final Polish (Gemini)
+                                <Sparkles size={16} /> Final Polish ({refineConfig.drafter === 'gemini' ? 'Gemini' : 'ChatGPT'})
                                 <button onClick={() => copyToClipboard(refineSteps.final, 'final')} className="ml-auto text-[10px] bg-white dark:bg-slate-700 border border-amber-200 dark:border-slate-600 px-2 py-1 rounded hover:bg-amber-50 transition-colors flex items-center gap-1">
                                     {copiedText === 'final' ? <Check size={12} /> : <Copy size={12} />} {copiedText === 'final' ? 'Copied' : 'Copy'}
                                 </button>
@@ -385,7 +456,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
             </button>
             <button 
                 onClick={handleRun}
-                disabled={loading || (viewMode === 'advanced' && (!geminiKey || !openaiKey)) || (viewMode === 'simple' && provider === 'gemini' && !geminiKey) || (viewMode === 'simple' && provider === 'openai' && !openaiKey)}
+                disabled={loading || (provider !== 'battle' && provider !== 'refine' && provider === 'gemini' && !geminiKey) || (provider !== 'battle' && provider !== 'refine' && provider === 'openai' && !openaiKey) || ((provider === 'battle' || provider === 'refine') && (!geminiKey || !openaiKey))}
                 className={`px-6 py-2 text-white rounded-lg text-sm font-bold shadow-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95 ${provider === 'battle' ? 'bg-gradient-to-r from-indigo-600 to-emerald-600 hover:opacity-90' : (provider === 'refine' ? 'bg-gradient-to-r from-amber-500 to-orange-600' : (provider === 'openai' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-indigo-600 hover:bg-indigo-700'))}`}
             >
                 {loading ? <Loader size={16} className="animate-spin" /> : (provider === 'battle' ? <Swords size={16} /> : (provider === 'refine' ? <GitCompare size={16} /> : <Play size={16} fill="currentColor" />))}
