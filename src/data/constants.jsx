@@ -25,7 +25,12 @@ import {
   Glasses,
   User,
   Layers,
-  Feather // <--- NEW IMPORT
+  Feather,
+  Video, // <--- NEW IMPORT
+  Film, // <--- NEW IMPORT
+  Move, // <--- NEW IMPORT
+  Activity, // <--- NEW IMPORT
+  Ban // <--- NEW IMPORT
 } from 'lucide-react';
 
 export const GENERAL_DATA = [
@@ -160,7 +165,6 @@ export const CODING_DATA = [
 ];
 
 export const WRITING_DATA = [
-  // --- CTO UPDATE: Added Author Emulation ---
   {
     id: 'author',
     title: 'Emulate Author',
@@ -417,6 +421,49 @@ export const AVATAR_DATA = [
   }
 ];
 
+// --- CTO UPDATE: NEW VIDEO DATA ---
+export const VIDEO_DATA = [
+    {
+      id: 'camera_move',
+      title: 'Camera Movement',
+      icon: <Move size={20} />,
+      description: 'How does the camera behave?',
+      subcategories: [
+        { name: 'Basic', options: ['Pan Left', 'Pan Right', 'Tilt Up', 'Tilt Down', 'Zoom In', 'Zoom Out', 'Static'] },
+        { name: 'Advanced', options: ['Roll Clockwise', 'Roll Counter-Clockwise', 'Truck Left', 'Truck Right', 'Pedestal Up', 'Pedestal Down', 'Rack Focus'] },
+        { name: 'Styles', options: ['Handheld Shake', 'Drone Flyover', 'FPV Drone', 'Orbit', 'Tracking Shot'] }
+      ]
+    },
+    {
+      id: 'motion_strength',
+      title: 'Motion Strength',
+      icon: <Activity size={20} />,
+      description: 'Intensity of movement',
+      subcategories: [
+        { name: 'Intensity', options: ['Subtle Motion', 'Normal Motion', 'High Motion', 'Hyper-Lapse', 'Slow Motion'] }
+      ]
+    },
+    {
+      id: 'aesthetics',
+      title: 'Aesthetics & FPS',
+      icon: <Film size={20} />,
+      description: 'Visual style of the footage',
+      subcategories: [
+        { name: 'Frame Rate', options: ['24fps (Cinematic)', '30fps (Standard)', '60fps (Smooth)'] },
+        { name: 'Look', options: ['VHS Glitch', '8mm Film Grain', '4k Digital Clean', 'CCTV Footage', 'GoPro Fisheye', 'Anime Style'] }
+      ]
+    },
+    {
+      id: 'video_negative',
+      title: 'Negative Prompt',
+      icon: <Ban size={20} />,
+      description: 'Avoid these artifacts',
+      subcategories: [
+        { name: 'Artifacts', options: ['Blurry', 'Distortion', 'Morphing', 'Static', 'Watermark', 'Text', 'Bad anatomy'] }
+      ]
+    }
+  ];
+
 export const PRESETS = {
     coding: [
         { label: "React Component", task: "Write Code", lang: "React", topic: "Create a functional component named {Name} that accepts props {Props} and renders {Description}." },
@@ -455,10 +502,15 @@ export const PRESETS = {
         { label: "Anime Profile", avatar_style: "Anime", framing: "Bust (Shoulders up)", expression: "Mysterious", topic: "An anime character of {Subject}." },
         { label: "Professional Headshot", avatar_style: "Realistic", framing: "Headshot", background: "Office Blur", topic: "A professional photo of {Subject} wearing a suit." },
         { label: "Vector Sticker", avatar_style: "Vector Flat", background: "White Background", topic: "A flat vector sticker of {Subject}." }
+    ],
+    // --- CTO UPDATE: VIDEO PRESETS ---
+    video: [
+        { label: "Cinematic Drone Shot", camera_move: "Drone Flyover", motion_strength: "Normal Motion", aesthetics: "4k Digital Clean", topic: "A sweeping aerial view of {Location} at sunset." },
+        { label: "Vintage VHS Style", camera_move: "Handheld Shake", aesthetics: "VHS Glitch", topic: "A 90s style home video of {Subject}." }
     ]
 };
 
-// --- CTO UPDATE: RANDOM TOPICS FOR SURPRISE ME ---
+// --- RANDOM TOPICS FOR SURPRISE ME ---
 export const RANDOM_TOPICS = [
     // Art Topics
     "A futuristic city floating in the clouds",
