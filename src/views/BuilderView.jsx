@@ -75,6 +75,30 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
       setShowTestModal(true);
   };
 
+  // --- CTO UPDATE: Save Snippet Handler ---
+  const handleSaveSnippet = async (content, label = 'AI Result') => {
+      if (!user) {
+          showToast("Please log in to save snippets.", "error");
+          onLoginRequest();
+          return;
+      }
+      
+      try {
+          // Save the output (content) to a new 'snippets' collection
+          await addDoc(collection(db, 'artifacts', APP_ID, 'users', user.uid, 'snippets'), {
+              content: content,
+              label: label, // e.g. "Gemini Draft" or "Final Polish"
+              type: state.mode,
+              promptUsed: generatedPrompt,
+              createdAt: serverTimestamp()
+          });
+          showToast("Result saved to Snippets!");
+      } catch (e) {
+          console.error("Error saving snippet:", e);
+          showToast("Failed to save snippet.", "error");
+      }
+  };
+
   const toggleCategory = (id) => {
       setExpandedCategories(prev => ({
           ...prev,
@@ -558,6 +582,7 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
             onClose={() => setShowTestModal(false)} 
             prompt={generatedPrompt} 
             defaultApiKey={globalApiKey}
+            onSaveSnippet={handleSaveSnippet} // <--- Passed here
         />
         
         {/* Wizard Component */}

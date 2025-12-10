@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Play, Key, Loader, Check, AlertTriangle, Terminal, Cpu, RefreshCw, Zap, Bot, Sparkles, Swords, GitCompare, Layers, MonitorPlay, Copy, ArrowRight, Target, Split } from 'lucide-react';
+import { X, Play, Key, Loader, Check, AlertTriangle, Terminal, Cpu, RefreshCw, Zap, Bot, Sparkles, Swords, GitCompare, Layers, MonitorPlay, Copy, ArrowRight, Target, Split, Bookmark } from 'lucide-react';
 
 // --- INTERNAL COMPONENT: CODE BLOCK RENDERER ---
 const CodeBlock = ({ rawContent }) => {
@@ -38,7 +38,8 @@ const CodeBlock = ({ rawContent }) => {
     );
 };
 
-const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAIKey }) => {
+// --- CTO UPDATE: Added onSaveSnippet prop ---
+const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippet }) => {
   // --- STATE ---
   const [viewMode, setViewMode] = useState('simple'); // 'simple' (Single Model) | 'advanced' (Workflows)
   const [provider, setProvider] = useState('gemini'); // 'gemini' | 'openai' | 'battle' | 'refine'
@@ -63,6 +64,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
   const [statusMessage, setStatusMessage] = useState(''); 
   const [error, setError] = useState(null);
   const [copiedText, setCopiedText] = useState(null); 
+  const [savedText, setSavedText] = useState(null); // Track saved state
   
   // Models
   const [selectedModel, setSelectedModel] = useState(''); 
@@ -107,12 +109,19 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
       setTimeout(() => setCopiedText(null), 2000);
   };
 
+  const handleSave = (text, label) => {
+      if (onSaveSnippet) {
+          onSaveSnippet(text, label);
+          setSavedText(label);
+          setTimeout(() => setSavedText(null), 2000);
+      }
+  };
+
   // --- CTO UPDATE: Smart Format Parser ---
   const renderResultContent = (text) => {
       if (!text) return null;
 
       // Split text by code blocks (```...```)
-      // The regex captures the delimiter so we can process it
       const parts = text.split(/(```[\s\S]*?```)/g);
 
       return (
@@ -475,9 +484,15 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                         <div className="relative">
                             <div className={`flex items-center gap-2 text-xs font-bold uppercase mb-2 ${provider === 'openai' ? 'text-emerald-600' : 'text-indigo-600'}`}>
                                 <Check size={14} /> Result
-                                <button onClick={() => copyToClipboard(result, 'result')} className="ml-auto text-[10px] bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors flex items-center gap-1">
-                                    {copiedText === 'result' ? <Check size={10} /> : <Copy size={10} />} {copiedText === 'result' ? 'Copied' : 'Copy'}
-                                </button>
+                                <div className="ml-auto flex items-center gap-2">
+                                     {/* SAVE BUTTON */}
+                                     <button onClick={() => handleSave(result, 'Single Result')} className="text-[10px] bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors flex items-center gap-1">
+                                        {savedText === 'Single Result' ? <Check size={10} className="text-emerald-500" /> : <Bookmark size={10} />} {savedText === 'Single Result' ? 'Saved' : 'Save'}
+                                    </button>
+                                    <button onClick={() => copyToClipboard(result, 'result')} className="text-[10px] bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors flex items-center gap-1">
+                                        {copiedText === 'result' ? <Check size={10} /> : <Copy size={10} />} {copiedText === 'result' ? 'Copied' : 'Copy'}
+                                    </button>
+                                </div>
                             </div>
                             {renderResultContent(result)}
                         </div>
@@ -491,14 +506,20 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                      <div className="rounded-xl border border-indigo-200 dark:border-indigo-900 bg-indigo-50/50 dark:bg-indigo-900/10 p-4 flex flex-col h-full relative">
                         <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold mb-3 border-b border-indigo-200 dark:border-indigo-800 pb-2">
                              <Sparkles size={18} /> Gemini
-                             {battleResults?.gemini && <button onClick={() => copyToClipboard(battleResults.gemini, 'gemini')} className="ml-auto p-1.5 hover:bg-indigo-100 dark:hover:bg-indigo-900 rounded">{copiedText === 'gemini' ? <Check size={14} /> : <Copy size={14} />}</button>}
+                             <div className="ml-auto flex items-center gap-1">
+                                {battleResults?.gemini && <button onClick={() => handleSave(battleResults.gemini, 'Gemini Battle')} className="p-1.5 hover:bg-indigo-100 dark:hover:bg-indigo-900 rounded">{savedText === 'Gemini Battle' ? <Bookmark size={14} fill="currentColor"/> : <Bookmark size={14} />}</button>}
+                                {battleResults?.gemini && <button onClick={() => copyToClipboard(battleResults.gemini, 'gemini')} className="p-1.5 hover:bg-indigo-100 dark:hover:bg-indigo-900 rounded">{copiedText === 'gemini' ? <Check size={14} /> : <Copy size={14} />}</button>}
+                             </div>
                         </div>
                         {loading ? <div className="text-sm italic text-indigo-400">Thinking...</div> : renderResultContent(battleResults?.gemini)}
                     </div>
                     <div className="rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50/50 dark:bg-emerald-900/10 p-4 flex flex-col h-full relative">
                         <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold mb-3 border-b border-emerald-200 dark:border-emerald-800 pb-2">
                              <Bot size={18} /> GPT-4o
-                             {battleResults?.openai && <button onClick={() => copyToClipboard(battleResults.openai, 'openai')} className="ml-auto p-1.5 hover:bg-emerald-100 dark:hover:bg-emerald-900 rounded">{copiedText === 'openai' ? <Check size={14} /> : <Copy size={14} />}</button>}
+                             <div className="ml-auto flex items-center gap-1">
+                                {battleResults?.openai && <button onClick={() => handleSave(battleResults.openai, 'OpenAI Battle')} className="p-1.5 hover:bg-emerald-100 dark:hover:bg-emerald-900 rounded">{savedText === 'OpenAI Battle' ? <Bookmark size={14} fill="currentColor"/> : <Bookmark size={14} />}</button>}
+                                {battleResults?.openai && <button onClick={() => copyToClipboard(battleResults.openai, 'openai')} className="p-1.5 hover:bg-emerald-100 dark:hover:bg-emerald-900 rounded">{copiedText === 'openai' ? <Check size={14} /> : <Copy size={14} />}</button>}
+                             </div>
                         </div>
                         {loading ? <div className="text-sm italic text-emerald-400">Thinking...</div> : renderResultContent(battleResults?.openai)}
                     </div>
@@ -517,6 +538,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                                 <div className="p-4 bg-indigo-50/30 dark:bg-indigo-900/10 rounded-xl border border-indigo-100 dark:border-indigo-800">
                                     <div className="flex items-center gap-2 text-xs font-bold uppercase text-indigo-500 mb-2">
                                         <span className="bg-indigo-100 dark:bg-indigo-900/50 px-2 py-0.5 rounded text-indigo-700 dark:text-indigo-300">Step 1</span> Draft ({refineConfig.drafter === 'gemini' ? 'Gemini' : 'ChatGPT'})
+                                        <button onClick={() => handleSave(refineSteps.draft, 'Draft')} className="ml-auto p-1 hover:bg-indigo-200 dark:hover:bg-indigo-800 rounded"><Bookmark size={12}/></button>
                                     </div>
                                     <div className="text-sm text-slate-600 dark:text-slate-400 line-clamp-3 hover:line-clamp-none transition-all cursor-pointer overflow-hidden" title="Click to expand">
                                         {renderResultContent(refineSteps.draft)}
@@ -530,6 +552,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                                     <div className="p-4 w-full bg-emerald-50/30 dark:bg-emerald-900/10 rounded-xl border border-emerald-100 dark:border-emerald-800">
                                         <div className="flex items-center gap-2 text-xs font-bold uppercase text-emerald-500 mb-2">
                                             <span className="bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 rounded text-emerald-700 dark:text-emerald-300">Step 2</span> Critique ({refineConfig.critiquer === 'gemini' ? 'Gemini' : 'ChatGPT'})
+                                            <button onClick={() => handleSave(refineSteps.critique, 'Critique')} className="ml-auto p-1 hover:bg-emerald-200 dark:hover:bg-emerald-800 rounded"><Bookmark size={12}/></button>
                                         </div>
                                         <div className="text-sm text-slate-600 dark:text-slate-400 italic">
                                             {renderResultContent(refineSteps.critique)}
@@ -543,9 +566,14 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                                 <div className="p-5 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-slate-800 dark:to-slate-800 rounded-xl border-2 border-amber-200 dark:border-amber-700 shadow-lg relative">
                                     <div className="flex items-center gap-2 text-sm font-bold uppercase text-amber-600 dark:text-amber-500 mb-3 border-b border-amber-200 dark:border-slate-700 pb-2">
                                         <Sparkles size={16} /> Final Polish ({refineConfig.drafter === 'gemini' ? 'Gemini' : 'ChatGPT'})
-                                        <button onClick={() => copyToClipboard(refineSteps.final, 'final')} className="ml-auto text-[10px] bg-white dark:bg-slate-700 border border-amber-200 dark:border-slate-600 px-2 py-1 rounded hover:bg-amber-50 transition-colors flex items-center gap-1">
-                                            {copiedText === 'final' ? <Check size={12} /> : <Copy size={12} />} {copiedText === 'final' ? 'Copied' : 'Copy'}
-                                        </button>
+                                        <div className="ml-auto flex gap-1">
+                                            <button onClick={() => handleSave(refineSteps.final, 'Refine Final')} className="text-[10px] bg-white dark:bg-slate-700 border border-amber-200 dark:border-slate-600 px-2 py-1 rounded hover:bg-amber-50 transition-colors flex items-center gap-1">
+                                                {savedText === 'Refine Final' ? <Check size={12} /> : <Bookmark size={12} />} {savedText === 'Refine Final' ? 'Saved' : 'Save'}
+                                            </button>
+                                            <button onClick={() => copyToClipboard(refineSteps.final, 'final')} className="text-[10px] bg-white dark:bg-slate-700 border border-amber-200 dark:border-slate-600 px-2 py-1 rounded hover:bg-amber-50 transition-colors flex items-center gap-1">
+                                                {copiedText === 'final' ? <Check size={12} /> : <Copy size={12} />} {copiedText === 'final' ? 'Copied' : 'Copy'}
+                                            </button>
+                                        </div>
                                     </div>
                                     {renderResultContent(refineSteps.final)}
                                 </div>
@@ -558,6 +586,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                              <div className="rounded-xl border border-red-200 dark:border-red-900 bg-red-50/30 dark:bg-red-900/10 p-4 flex flex-col h-full overflow-hidden">
                                 <div className="flex items-center gap-2 text-red-600 dark:text-red-400 font-bold mb-3 border-b border-red-200 dark:border-red-800 pb-2">
                                      <MonitorPlay size={18} /> Original Draft
+                                     <button onClick={() => handleSave(refineSteps?.draft, 'Refine Draft')} className="ml-auto p-1.5 hover:bg-red-100 dark:hover:bg-red-900 rounded"><Bookmark size={14} /></button>
                                 </div>
                                 <div className="overflow-y-auto flex-1 text-xs text-slate-800 dark:text-slate-200 leading-relaxed font-mono">
                                     {renderResultContent(refineSteps?.draft)}
@@ -568,7 +597,10 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                             <div className="rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50/30 dark:bg-emerald-900/10 p-4 flex flex-col h-full overflow-hidden">
                                 <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold mb-3 border-b border-emerald-200 dark:border-emerald-800 pb-2">
                                      <Sparkles size={18} /> Final Polish
-                                     <button onClick={() => copyToClipboard(refineSteps?.final, 'final')} className="ml-auto p-1.5 hover:bg-emerald-100 dark:hover:bg-emerald-900 rounded">{copiedText === 'final' ? <Check size={14} /> : <Copy size={14} />}</button>
+                                     <div className="ml-auto flex gap-1">
+                                        <button onClick={() => handleSave(refineSteps?.final, 'Refine Final')} className="p-1.5 hover:bg-emerald-100 dark:hover:bg-emerald-900 rounded"><Bookmark size={14} /></button>
+                                        <button onClick={() => copyToClipboard(refineSteps?.final, 'final')} className="p-1.5 hover:bg-emerald-100 dark:hover:bg-emerald-900 rounded">{copiedText === 'final' ? <Check size={14} /> : <Copy size={14} />}</button>
+                                     </div>
                                 </div>
                                 <div className="overflow-y-auto flex-1 text-xs text-slate-800 dark:text-slate-200 leading-relaxed font-mono">
                                     {renderResultContent(refineSteps?.final)}
