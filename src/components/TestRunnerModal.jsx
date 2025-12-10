@@ -84,21 +84,23 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
             if (!openaiKey) throw new Error("OpenAI API Key is missing.");
             saveKey(openaiKey, 'openai');
 
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            // --- CTO UPDATE: Use Vercel Proxy to avoid CORS ---
+            const response = await fetch('/api/openai', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${openaiKey}`
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    model: "gpt-4o", // Defaulting to GPT-4o for best results
-                    messages: [{ role: "user", content: prompt }],
-                    temperature: 0.7
+                    apiKey: openaiKey,
+                    prompt: prompt,
+                    model: "gpt-4o"
                 })
             });
 
             const data = await response.json();
-            if (!response.ok) throw new Error(data.error?.message || `OpenAI Error (${response.status})`);
+            
+            // Check for proxy errors
+            if (!response.ok) throw new Error(data.error || `OpenAI Error (${response.status})`);
+            
+            // OpenAI structure: choices[0].message.content
             textResult = data.choices?.[0]?.message?.content;
         }
 
