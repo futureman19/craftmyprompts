@@ -1,6 +1,43 @@
 import React, { useState, useEffect } from 'react';
 import { X, Play, Key, Loader, Check, AlertTriangle, Terminal, Cpu, RefreshCw, Zap, Bot, Sparkles, Swords, GitCompare, Layers, MonitorPlay, Copy, ArrowRight, Target } from 'lucide-react';
 
+// --- INTERNAL COMPONENT: CODE BLOCK RENDERER ---
+const CodeBlock = ({ rawContent }) => {
+    const [copied, setCopied] = useState(false);
+    
+    // Clean up: remove the opening ```lang line and closing ```
+    // This regex looks for the first newline to strip the header, and removes the last line
+    const cleanCode = rawContent.replace(/^```[a-z]*\n/i, '').replace(/```$/, '');
+    
+    // Extract language label if present (e.g. ```javascript)
+    const match = rawContent.match(/^```([a-z]+)/i);
+    const language = match ? match[1] : 'Code';
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(cleanCode);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    return (
+        <div className="my-3 rounded-lg overflow-hidden bg-[#1e1e1e] border border-slate-700 shadow-sm relative group">
+            <div className="flex justify-between items-center px-3 py-1.5 bg-[#252526] border-b border-slate-700">
+                <span className="text-[10px] uppercase font-bold text-slate-400 font-mono">{language}</span>
+                <button 
+                    onClick={handleCopy} 
+                    className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-white transition-colors"
+                >
+                    {copied ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
+                    {copied ? 'Copied' : 'Copy'}
+                </button>
+            </div>
+            <pre className="p-3 overflow-x-auto font-mono text-xs leading-5 text-[#d4d4d4]">
+                <code>{cleanCode}</code>
+            </pre>
+        </div>
+    );
+};
+
 const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAIKey }) => {
   // --- STATE ---
   const [viewMode, setViewMode] = useState('simple'); // 'simple' (Single Model) | 'advanced' (Workflows)
@@ -67,6 +104,35 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
       navigator.clipboard.writeText(text);
       setCopiedText(label);
       setTimeout(() => setCopiedText(null), 2000);
+  };
+
+  // --- CTO UPDATE: Smart Format Parser ---
+  const renderResultContent = (text) => {
+      if (!text) return null;
+
+      // Split text by code blocks (```...```)
+      // The regex captures the delimiter so we can process it
+      const parts = text.split(/(```[\s\S]*?```)/g);
+
+      return (
+          <div className="text-sm leading-relaxed text-slate-800 dark:text-slate-200">
+              {parts.map((part, index) => {
+                  if (part.startsWith('```')) {
+                      // Render Code Block Component
+                      return <CodeBlock key={index} rawContent={part} />;
+                  }
+                  // Render regular text (with line breaks preserved)
+                  // Don't render empty strings resulting from split
+                  if (!part.trim() && parts.length > 1) return null;
+                  
+                  return (
+                      <div key={index} className="whitespace-pre-wrap mb-2">
+                          {part}
+                      </div>
+                  );
+              })}
+          </div>
+      );
   };
 
   const fetchModels = async (keyToUse = geminiKey) => {
@@ -278,7 +344,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                 </div>
             )}
             
-            {/* CTO UPDATE: Refine Configuration Panel */}
+            {/* Refine Configuration Panel */}
             {provider === 'refine' && (
                 <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-100 dark:border-amber-800/50 animate-in fade-in space-y-4">
                     <div className="flex items-center justify-between">
@@ -406,9 +472,8 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                                     {copiedText === 'result' ? <Check size={10} /> : <Copy size={10} />} {copiedText === 'result' ? 'Copied' : 'Copy'}
                                 </button>
                             </div>
-                            <div className="prose prose-sm dark:prose-invert max-w-none">
-                                <div className="whitespace-pre-wrap text-slate-800 dark:text-slate-200 text-sm leading-relaxed">{result}</div>
-                            </div>
+                            {/* CTO UPDATE: Uses renderResultContent for syntax highlighting */}
+                            {renderResultContent(result)}
                         </div>
                     )}
                 </div>
@@ -422,14 +487,14 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                              <Sparkles size={18} /> Gemini
                              {battleResults?.gemini && <button onClick={() => copyToClipboard(battleResults.gemini, 'gemini')} className="ml-auto p-1.5 hover:bg-indigo-100 dark:hover:bg-indigo-900 rounded">{copiedText === 'gemini' ? <Check size={14} /> : <Copy size={14} />}</button>}
                         </div>
-                        {loading ? <div className="text-sm italic text-indigo-400">Thinking...</div> : <div className="whitespace-pre-wrap text-sm text-slate-800 dark:text-slate-200">{battleResults?.gemini}</div>}
+                        {loading ? <div className="text-sm italic text-indigo-400">Thinking...</div> : renderResultContent(battleResults?.gemini)}
                     </div>
                     <div className="rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50/50 dark:bg-emerald-900/10 p-4 flex flex-col h-full relative">
                         <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold mb-3 border-b border-emerald-200 dark:border-emerald-800 pb-2">
                              <Bot size={18} /> GPT-4o
                              {battleResults?.openai && <button onClick={() => copyToClipboard(battleResults.openai, 'openai')} className="ml-auto p-1.5 hover:bg-emerald-100 dark:hover:bg-emerald-900 rounded">{copiedText === 'openai' ? <Check size={14} /> : <Copy size={14} />}</button>}
                         </div>
-                        {loading ? <div className="text-sm italic text-emerald-400">Thinking...</div> : <div className="whitespace-pre-wrap text-sm text-slate-800 dark:text-slate-200">{battleResults?.openai}</div>}
+                        {loading ? <div className="text-sm italic text-emerald-400">Thinking...</div> : renderResultContent(battleResults?.openai)}
                     </div>
                 </div>
             )}
@@ -445,7 +510,10 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                              <div className="flex items-center gap-2 text-xs font-bold uppercase text-indigo-500 mb-2">
                                 <span className="bg-indigo-100 dark:bg-indigo-900/50 px-2 py-0.5 rounded text-indigo-700 dark:text-indigo-300">Step 1</span> Draft ({refineConfig.drafter === 'gemini' ? 'Gemini' : 'ChatGPT'})
                              </div>
-                             <div className="text-sm text-slate-600 dark:text-slate-400 line-clamp-3 hover:line-clamp-none transition-all cursor-pointer" title="Click to expand">{refineSteps.draft}</div>
+                             {/* Draft is usually long, so we clamp it visually, but highlighting still works */}
+                             <div className="text-sm text-slate-600 dark:text-slate-400 line-clamp-3 hover:line-clamp-none transition-all cursor-pointer overflow-hidden" title="Click to expand">
+                                 {renderResultContent(refineSteps.draft)}
+                             </div>
                         </div>
                     )}
                     
@@ -458,7 +526,8 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                                     <span className="bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 rounded text-emerald-700 dark:text-emerald-300">Step 2</span> Critique ({refineConfig.critiquer === 'gemini' ? 'Gemini' : 'ChatGPT'})
                                 </div>
                                 <div className="text-sm text-slate-600 dark:text-slate-400 italic">
-                                    {refineSteps.critique}
+                                    {/* Critique usually isn't code, but we format it anyway for consistency */}
+                                    {renderResultContent(refineSteps.critique)}
                                 </div>
                             </div>
                             <div className="h-4 w-px bg-slate-300 dark:bg-slate-600 my-1"></div>
@@ -474,9 +543,8 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                                     {copiedText === 'final' ? <Check size={12} /> : <Copy size={12} />} {copiedText === 'final' ? 'Copied' : 'Copy'}
                                 </button>
                             </div>
-                            <div className="whitespace-pre-wrap text-slate-900 dark:text-slate-100 text-base leading-relaxed">
-                                {refineSteps.final}
-                            </div>
+                            {/* Final code block */}
+                            {renderResultContent(refineSteps.final)}
                         </div>
                     )}
                 </div>
@@ -490,7 +558,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
             </button>
             <button 
                 onClick={handleRun}
-                disabled={loading || (provider !== 'battle' && provider !== 'refine' && provider === 'gemini' && !geminiKey) || (provider !== 'battle' && provider !== 'refine' && provider === 'openai' && !openaiKey) || ((provider === 'battle' || provider === 'refine') && (!geminiKey || !openaiKey))}
+                disabled={loading || (viewMode === 'advanced' && (!geminiKey || !openaiKey)) || (viewMode === 'simple' && provider === 'gemini' && !geminiKey) || (viewMode === 'simple' && provider === 'openai' && !openaiKey)}
                 className={`px-6 py-2 text-white rounded-lg text-sm font-bold shadow-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95 ${provider === 'battle' ? 'bg-gradient-to-r from-indigo-600 to-emerald-600 hover:opacity-90' : (provider === 'refine' ? 'bg-gradient-to-r from-amber-500 to-orange-600' : (provider === 'openai' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-indigo-600 hover:bg-indigo-700'))}`}
             >
                 {loading ? <Loader size={16} className="animate-spin" /> : (provider === 'battle' ? <Swords size={16} /> : (provider === 'refine' ? <GitCompare size={16} /> : <Play size={16} fill="currentColor" />))}
