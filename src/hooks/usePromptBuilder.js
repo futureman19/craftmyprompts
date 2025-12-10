@@ -1,9 +1,9 @@
 import { useReducer, useMemo } from 'react';
-import { GENERAL_DATA, CODING_DATA, WRITING_DATA, ART_DATA, AVATAR_DATA } from '../data/constants.jsx';
+import { GENERAL_DATA, CODING_DATA, WRITING_DATA, ART_DATA, AVATAR_DATA, VIDEO_DATA } from '../data/constants.jsx';
 
 // --- INITIAL STATE ---
 const initialState = {
-  mode: 'text', // 'text' | 'art'
+  mode: 'text', // 'text' | 'art' | 'video'
   textSubMode: 'general', // Used for both Text (general/coding/writing) and Art (general/avatar)
   targetModel: 'midjourney',
   customTopic: '',
@@ -80,7 +80,6 @@ function builderReducer(state, action) {
         if (p.style) addSel('style', p.style);
         if (p.persona) addSel('persona', p.persona);
         if (p.tone) addSel('tone', p.tone);
-        // CTO UPDATE: Load Author from preset
         if (p.author) addSel('author', p.author);
         
         // Art keys
@@ -94,14 +93,19 @@ function builderReducer(state, action) {
         if (p.accessories) addSel('accessories', p.accessories);
         if (p.background) addSel('background', p.background);
 
+        // Video keys
+        if (p.camera_move) addSel('camera_move', p.camera_move);
+        if (p.motion_strength) addSel('motion_strength', p.motion_strength);
+        if (p.aesthetics) addSel('aesthetics', p.aesthetics);
+
         return { 
             ...state, 
             selections: newSels, 
             customTopic: p.topic || '', 
             codeContext: p.codeContext || '', 
             variables: {},
-            // Auto-switch mode if preset implies it
-            mode: p.avatar_style ? 'art' : (p.genre ? 'art' : 'text'),
+            // Auto-switch mode logic
+            mode: p.camera_move ? 'video' : (p.avatar_style ? 'art' : (p.genre ? 'art' : 'text')),
             textSubMode: p.avatar_style ? 'avatar' : (p.lang ? 'coding' : (p.framework ? 'writing' : 'general'))
         };
     case 'RANDOMIZE': {
@@ -196,6 +200,9 @@ export const usePromptBuilder = (initialData) => {
   const [state, dispatch] = useReducer(builderReducer, initialState);
 
   const currentData = useMemo(() => {
+      // --- CTO UPDATE: VIDEO DATA LOGIC ---
+      if (state.mode === 'video') return VIDEO_DATA;
+      
       if (state.mode === 'art') {
           if (state.textSubMode === 'avatar') return AVATAR_DATA;
           return ART_DATA;
@@ -213,6 +220,40 @@ export const usePromptBuilder = (initialData) => {
     const parts = [];
     const getVals = (catId) => state.selections[catId]?.map(i => i.value) || [];
 
+    // --- VIDEO MODE ---
+    if (state.mode === 'video') {
+        // Recipe: [Topic]. [Camera Move], [Motion Strength], [Aesthetics]. [Negative]
+        
+        // 1. Topic
+        if (processedTopic?.trim()) parts.push(`${processedTopic}`);
+        
+        // 2. Camera & Motion
+        const camera = getVals('camera_move').join(', ');
+        const motion = getVals('motion_strength').join(', ');
+        
+        if (camera) parts.push(`Camera Movement: ${camera}`);
+        if (motion) parts.push(`Motion: ${motion}`);
+        
+        // 3. Aesthetics
+        const aesthetics = getVals('aesthetics').join(', ');
+        if (aesthetics) parts.push(`Style/Look: ${aesthetics}`);
+        
+        // 4. Negative Prompt (Video specific)
+        const videoNegs = getVals('video_negative');
+        let promptString = parts.join('. ');
+        
+        // Add manual negative prompt + selected negative tags
+        const allNegatives = [];
+        if (state.negativePrompt) allNegatives.push(state.negativePrompt);
+        if (videoNegs.length > 0) allNegatives.push(...videoNegs);
+        
+        if (allNegatives.length > 0) {
+            promptString += ` --no ${allNegatives.join(', ')}`;
+        }
+        
+        return promptString;
+    }
+
     // --- TEXT MODE ---
     if (state.mode === 'text') {
       
@@ -229,7 +270,6 @@ export const usePromptBuilder = (initialData) => {
           const frameworks = getVals('framework').join(', ');
           const intent = getVals('intent').join(', ');
           const styles = getVals('style').join(', ');
-          // --- CTO UPDATE: Author Emulation Logic ---
           const authors = getVals('author').join(', ');
           
           if (frameworks) parts.push(`Use the ${frameworks} framework.`);
@@ -251,7 +291,6 @@ export const usePromptBuilder = (initialData) => {
           parts.push(`\n${label}\n"${processedTopic}"\n`);
       }
 
-      // Append Code Context if present
       if (state.textSubMode === 'coding' && state.codeContext?.trim()) {
           parts.push(`\nCODE CONTEXT:\n\`\`\`\n${state.codeContext}\n\`\`\`\n`);
       }
@@ -268,7 +307,6 @@ export const usePromptBuilder = (initialData) => {
           parts.push("Create an image of");
           
           if (state.textSubMode === 'avatar') {
-             // Specific conversational flow for avatars
              const styles = getVals('avatar_style').join(', ');
              const framings = getVals('framing').join(', ');
              if (styles) parts.push(`a ${styles}`);
@@ -282,7 +320,6 @@ export const usePromptBuilder = (initialData) => {
              const bgs = getVals('background').join(', ');
              if (bgs) parts.push(`Background: ${bgs}.`);
           } else {
-             // General Art conversational flow
              if (processedTopic) parts.push(`${processedTopic}.`);
              const genres = getVals('genre').join(' and ');
              if (genres) parts.push(`The style should be ${genres}.`);

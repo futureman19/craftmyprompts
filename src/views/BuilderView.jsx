@@ -5,7 +5,7 @@ import {
   Sparkles, MessageSquare, Palette, Command, Search, Dices, 
   Brain, XCircle, ImagePlus, Ban, Cpu, Wand2, Code, 
   ChevronDown, FileText, Zap, RefreshCw, Check, Copy as CopyIcon, 
-  Lock, Globe, Save, UserCircle, Braces, Play, ArrowLeft, Sliders, Terminal, Bookmark 
+  Lock, Globe, Save, UserCircle, Braces, Play, ArrowLeft, Sliders, Terminal, Bookmark, Video 
 } from 'lucide-react';
 
 import { db, auth, APP_ID } from '../lib/firebase.js';
@@ -35,9 +35,7 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
   const [customPresets, setCustomPresets] = useState([]);
   const [mobileTab, setMobileTab] = useState('edit');
 
-  // --- CTO UPDATE: Global API Key Support ---
   const globalApiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
-  const globalOpenAIKey = import.meta.env.VITE_OPENAI_API_KEY || ''; // New Support for OpenAI
 
   // --- EFFECT: LOAD INITIAL DATA (REMIX) ---
   useEffect(() => {
@@ -86,7 +84,7 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
 
   const toggleSelection = (categoryId, option) => {
       // Smart Multi-Select Logic
-      const singleSelectCategories = ['length', 'format', 'framework_version', 'params', 'framing'];
+      const singleSelectCategories = ['length', 'format', 'framework_version', 'params', 'framing', 'motion_strength'];
       const isSingleSelect = singleSelectCategories.includes(categoryId);
 
       dispatch({ 
@@ -250,12 +248,14 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                 <div className="flex flex-col gap-4 mb-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <div className={`p-2 rounded-lg text-white ${state.mode === 'text' ? 'bg-indigo-600' : 'bg-pink-600'}`}><Sparkles size={20} /></div>
+                            <div className={`p-2 rounded-lg text-white ${state.mode === 'text' ? 'bg-indigo-600' : (state.mode === 'art' ? 'bg-pink-600' : 'bg-purple-600')}`}><Sparkles size={20} /></div>
                             <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100 hidden md:block">CraftMyPrompt</h1>
                         </div>
+                        {/* --- CTO UPDATE: Added Video Button --- */}
                         <div className="flex bg-slate-100 dark:bg-slate-700 p-1 rounded-xl">
                             <button onClick={() => dispatch({ type: 'SET_MODE', payload: 'text' })} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${state.mode === 'text' ? 'bg-white dark:bg-slate-600 text-indigo-600 dark:text-indigo-300 shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}><MessageSquare size={14} /> Text</button>
                             <button onClick={() => dispatch({ type: 'SET_MODE', payload: 'art' })} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${state.mode === 'art' ? 'bg-white dark:bg-slate-600 text-pink-600 dark:text-pink-300 shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}><Palette size={14} /> Art</button>
+                            <button onClick={() => dispatch({ type: 'SET_MODE', payload: 'video' })} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${state.mode === 'video' ? 'bg-white dark:bg-slate-600 text-purple-600 dark:text-purple-300 shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}><Video size={14} /> Video</button>
                         </div>
                     </div>
                     {state.mode === 'text' && (
@@ -288,7 +288,6 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                           <div className="absolute top-full left-0 w-64 pt-2 hidden group-hover:block z-50">
                              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-600 p-2 max-h-96 overflow-y-auto">
                                 
-                                {/* Custom Presets Section */}
                                 {user && customPresets.length > 0 && (
                                     <div className="mb-2 pb-2 border-b border-slate-100 dark:border-slate-700">
                                         <div className="text-[10px] font-bold text-indigo-500 uppercase px-2 py-1 flex items-center gap-1"><Bookmark size={10} /> My Presets</div>
@@ -300,8 +299,12 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                                     </div>
                                 )}
 
+                                {/* --- CTO UPDATE: Presets logic to include Video --- */}
                                 <div className="text-[10px] font-bold text-slate-400 uppercase px-2 py-1">Quick Start</div>
-                                {((state.mode === 'text' ? PRESETS[state.textSubMode] || PRESETS.general : (state.textSubMode === 'avatar' ? PRESETS.avatar : PRESETS.art)) || []).map((p, i) => (
+                                {((state.mode === 'text' 
+                                    ? PRESETS[state.textSubMode] || PRESETS.general 
+                                    : (state.mode === 'video' ? PRESETS.video : (state.textSubMode === 'avatar' ? PRESETS.avatar : PRESETS.art))
+                                ) || []).map((p, i) => (
                                     <button key={i} onClick={() => applyPreset(p)} className="w-full text-left px-2 py-2 text-xs hover:bg-indigo-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg">{p.label}</button>
                                 ))}
                              </div>
@@ -317,7 +320,6 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
             </header>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
-                 {/* --- UX UPDATE: MAIN TOPIC BOX MOVED TO TOP --- */}
                  <div className="space-y-4">
                     {!displayName && user && !user.displayName && (
                         <div className="bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800 p-3 rounded-lg flex gap-2 items-center text-sm">
@@ -364,6 +366,16 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                         <div className="bg-slate-900 rounded-xl p-4 border border-slate-700 shadow-sm animate-in slide-in-from-top-2 fade-in">
                             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2"><Terminal size={14} /> Code Context</h3>
                             <textarea className="w-full p-3 bg-slate-950 text-slate-200 rounded-lg border border-slate-800 focus:ring-1 focus:ring-indigo-500 outline-none resize-none text-xs font-mono leading-relaxed placeholder-slate-600" rows={5} placeholder="// Paste your broken code or current file content here..." value={state.codeContext} onChange={(e) => dispatch({ type: 'UPDATE_FIELD', field: 'codeContext', value: e.target.value })} />
+                        </div>
+                    )}
+
+                    {/* --- CTO UPDATE: VIDEO MODE INPUTS --- */}
+                    {state.mode === 'video' && (
+                         <div className="space-y-4 animate-in slide-in-from-top-4 fade-in">
+                            <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700">
+                                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2"><Ban size={14} /> Negative Prompt</h3>
+                                <input className="w-full p-2 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-700 focus:ring-2 focus:ring-purple-500 outline-none text-sm placeholder-slate-300 dark:text-slate-200" placeholder="e.g. static, blur, distortion, morphing" value={state.negativePrompt} onChange={(e) => dispatch({ type: 'UPDATE_FIELD', field: 'negativePrompt', value: e.target.value })} />
+                            </div>
                         </div>
                     )}
 
@@ -419,7 +431,7 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                         <div key={category.id} className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden h-fit">
                             <div className="p-3 flex items-center justify-between cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors" onClick={() => toggleCategory(category.id)}>
                                 <div className="flex items-center gap-3">
-                                    <div className={`p-1.5 rounded-md ${state.selections[category.id]?.length ? (state.mode === 'text' ? 'bg-indigo-100 text-indigo-600' : 'bg-pink-100 text-pink-600') : 'bg-slate-100 dark:bg-slate-700 text-slate-400'}`}>{category.icon}</div>
+                                    <div className={`p-1.5 rounded-md ${state.selections[category.id]?.length ? (state.mode === 'text' ? 'bg-indigo-100 text-indigo-600' : (state.mode === 'video' ? 'bg-purple-100 text-purple-600' : 'bg-pink-100 text-pink-600')) : 'bg-slate-100 dark:bg-slate-700 text-slate-400'}`}>{category.icon}</div>
                                     <div><h2 className="font-semibold text-slate-700 dark:text-slate-200 text-sm">{category.title}</h2></div>
                                 </div>
                                 <ChevronDown size={16} className={`text-slate-400 transition-transform ${expandedCategories[category.id] ? 'rotate-180' : ''}`}/>
@@ -443,7 +455,7 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                                                             const opacityClass = STYLE_PREVIEWS[option] ? 'opacity-70' : 'opacity-20';
                                                             
                                                             return (
-                                                                <button key={option} onClick={() => toggleSelection(category.id, option)} className={`relative h-16 rounded-lg text-xs font-medium border overflow-hidden text-left p-2 flex flex-col justify-end transition-all ${isSelected ? 'border-pink-500 ring-2 ring-pink-200 bg-pink-50' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500 text-slate-700 dark:text-slate-300'}`}>
+                                                                <button key={option} onClick={() => toggleSelection(category.id, option)} className={`relative h-16 rounded-lg text-xs font-medium border overflow-hidden text-left p-2 flex flex-col justify-end transition-all ${isSelected ? (state.mode === 'video' ? 'border-purple-500 ring-2 ring-purple-200 bg-purple-50' : 'border-pink-500 ring-2 ring-pink-200 bg-pink-50') : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500 text-slate-700 dark:text-slate-300'}`}>
                                                                     <div className={`absolute inset-0 ${opacityClass} transition-opacity`} style={{ background: `url('${previewUrl}') center/cover` }} /><span className="relative z-10 truncate w-full shadow-black drop-shadow-md text-shadow">{option}</span>
                                                                 </button>
                                                             );
@@ -462,7 +474,7 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                                                         const isSelected = !!selectionItem;
                                                         return (
                                                             <div key={option} className="flex items-center">
-                                                                <button onClick={() => toggleSelection(category.id, option)} className={`px-2.5 py-1 rounded-md text-xs border transition-all ${isSelected ? (state.mode === 'text' ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-pink-600 border-pink-600 text-white') : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:border-slate-300'}`}>{option}</button>
+                                                                <button onClick={() => toggleSelection(category.id, option)} className={`px-2.5 py-1 rounded-md text-xs border transition-all ${isSelected ? (state.mode === 'text' ? 'bg-indigo-600 border-indigo-600 text-white' : (state.mode === 'video' ? 'bg-purple-600 border-purple-600 text-white' : 'bg-pink-600 border-pink-600 text-white')) : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:border-slate-300'}`}>{option}</button>
                                                                 {isSelected && state.mode === 'art' && category.id !== 'params' && state.targetModel !== 'dalle' && state.targetModel !== 'gemini' && (
                                                                     <div className="ml-2 flex items-center gap-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-md px-2 py-0.5 animate-in slide-in-from-left-2 fade-in duration-200">
                                                                         <span className="text-[9px] text-slate-400 font-bold">W:</span>
@@ -523,7 +535,6 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                             <button onClick={() => setSaveVisibility('public')} className={`px-3 py-1 rounded-md flex items-center gap-1 transition-all ${saveVisibility === 'public' ? 'bg-indigo-600 text-white shadow' : 'text-slate-500 hover:text-slate-300'}`}><Globe size={12} /> Public</button>
                         </div>
                     </div>
-                    {/* Save as Preset Button */}
                     <div className="grid grid-cols-2 gap-2 mb-2">
                         <button onClick={handleUnifiedSave} disabled={!generatedPrompt || isSaving} className="col-span-1 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-medium text-slate-300 flex items-center justify-center gap-2 transition-colors disabled:opacity-50"><Save size={14} /> {isSaving ? 'Saving...' : (saveVisibility === 'public' ? 'Publish' : 'Save')}</button>
                         <button onClick={handleSaveAsPreset} disabled={!generatedPrompt} className="col-span-1 py-2 bg-indigo-900/50 hover:bg-indigo-900 rounded-lg text-xs font-medium text-indigo-300 border border-indigo-800 flex items-center justify-center gap-2 transition-colors disabled:opacity-50"><Bookmark size={14} /> Save Preset</button>
@@ -547,7 +558,6 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
             onClose={() => setShowTestModal(false)} 
             prompt={generatedPrompt} 
             defaultApiKey={globalApiKey}
-            defaultOpenAIKey={globalOpenAIKey} // Pass OpenAI Key
         />
         
         {/* Wizard Component */}
