@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { X, Play, Key, Loader, Check, AlertTriangle, Terminal, Cpu, RefreshCw, Zap, Bot, Sparkles, Swords, GitCompare, Layers, MonitorPlay, Copy, ArrowRight } from 'lucide-react';
+import { X, Play, Key, Loader, Check, AlertTriangle, Terminal, Cpu, RefreshCw, Zap, Bot, Sparkles, Swords, GitCompare, Layers, MonitorPlay, Copy, ArrowRight, Target } from 'lucide-react';
 
 const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAIKey }) => {
   // --- STATE ---
   const [viewMode, setViewMode] = useState('simple'); // 'simple' (Single Model) | 'advanced' (Workflows)
   const [provider, setProvider] = useState('gemini'); // 'gemini' | 'openai' | 'battle' | 'refine'
   
-  // CTO UPDATE: Configurable Refine Roles
-  const [refineConfig, setRefineConfig] = useState({ drafter: 'gemini', critiquer: 'openai' });
+  // CTO UPDATE: Configurable Refine Roles & Focus
+  const [refineConfig, setRefineConfig] = useState({ 
+      drafter: 'gemini', 
+      critiquer: 'openai',
+      focus: 'general' // 'general', 'security', 'performance', 'cleanliness', 'roast'
+  });
 
   // Keys
   const [geminiKey, setGeminiKey] = useState('');
@@ -156,14 +160,26 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
             setStatusMessage(`Step 2/3: ${critiquerName} is critiquing...`);
             
             const critiquerKey = refineConfig.critiquer === 'gemini' ? geminiKey : openaiKey;
-            const critiquePrompt = `Act as a Senior Editor. Critique the following text. List 3 specific, actionable improvements.\n\nTEXT:\n${draft}`;
+            
+            // Construct Critique Prompt based on Focus
+            const focusMap = {
+                'general': 'General Improvements & Clarity',
+                'security': 'Security Vulnerabilities & Safety',
+                'performance': 'Performance Optimization & Speed',
+                'cleanliness': 'Code Cleanliness, DRY Principles & Best Practices',
+                'roast': 'Roast this code (Humorous but harsh logic check)'
+            };
+            const focusText = focusMap[refineConfig.focus] || 'General Improvements';
+            
+            const critiquePrompt = `Act as a Senior Technical Lead specialized in ${focusText}. Review the following text/code. List 3 specific, actionable improvements strictly focusing on ${refineConfig.focus}.\n\nINPUT:\n${draft}`;
+            
             const critique = await callAIProvider(refineConfig.critiquer, critiquePrompt, critiquerKey);
             
             setRefineSteps({ draft, critique, final: null });
 
             // --- STEP 3: POLISH (Back to Drafter) ---
             setStatusMessage(`Step 3/3: ${drafterName} is polishing...`);
-            const polishPrompt = `Rewrite the original text below to address the critique. Make it perfect.\n\nORIGINAL:\n${draft}\n\nCRITIQUE:\n${critique}`;
+            const polishPrompt = `Rewrite the original input below to address the critique points. Keep the tone professional but implement the fixes.\n\nORIGINAL:\n${draft}\n\nCRITIQUE:\n${critique}`;
             const final = await callAIProvider(refineConfig.drafter, polishPrompt, drafterKey);
             
             setRefineSteps({ draft, critique, final });
@@ -264,13 +280,31 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
             
             {/* CTO UPDATE: Refine Configuration Panel */}
             {provider === 'refine' && (
-                <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-100 dark:border-amber-800/50 animate-in fade-in">
-                    <h4 className="text-xs font-bold uppercase text-amber-600 dark:text-amber-400 mb-3 flex items-center gap-2">
-                        <Layers size={14} /> Workflow Pipeline
-                    </h4>
+                <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-100 dark:border-amber-800/50 animate-in fade-in space-y-4">
+                    <div className="flex items-center justify-between">
+                         <h4 className="text-xs font-bold uppercase text-amber-600 dark:text-amber-400 flex items-center gap-2">
+                            <Layers size={14} /> Workflow Pipeline
+                         </h4>
+                         {/* Critique Focus Selector */}
+                         <div className="flex items-center gap-2">
+                            <Target size={14} className="text-amber-500" />
+                            <select 
+                                value={refineConfig.focus}
+                                onChange={(e) => setRefineConfig(prev => ({ ...prev, focus: e.target.value }))}
+                                className="text-xs p-1 rounded border border-amber-200 dark:border-amber-800 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-amber-500"
+                            >
+                                <option value="general">General Improvement</option>
+                                <option value="security">Security Audit</option>
+                                <option value="performance">Performance Optimization</option>
+                                <option value="cleanliness">Code Cleanup</option>
+                                <option value="roast">Roast My Code 🔥</option>
+                            </select>
+                         </div>
+                    </div>
+                    
                     <div className="flex items-center gap-2">
                         <div className="flex-1">
-                            <label className="text-[10px] text-amber-500 font-bold uppercase block mb-1">Drafter (Writes V1)</label>
+                            <label className="text-[10px] text-amber-500 font-bold uppercase block mb-1">Drafter</label>
                             <select 
                                 value={refineConfig.drafter}
                                 onChange={(e) => setRefineConfig(prev => ({ ...prev, drafter: e.target.value }))}
@@ -282,7 +316,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                         </div>
                         <ArrowRight size={20} className="text-amber-300 mt-5" />
                         <div className="flex-1">
-                            <label className="text-[10px] text-amber-500 font-bold uppercase block mb-1">Critiquer (Reviews)</label>
+                            <label className="text-[10px] text-amber-500 font-bold uppercase block mb-1">Critiquer</label>
                             <select 
                                 value={refineConfig.critiquer}
                                 onChange={(e) => setRefineConfig(prev => ({ ...prev, critiquer: e.target.value }))}
@@ -294,7 +328,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                         </div>
                         <ArrowRight size={20} className="text-amber-300 mt-5" />
                         <div className="flex-1 opacity-60">
-                             <label className="text-[10px] text-amber-500 font-bold uppercase block mb-1">Polisher (Final)</label>
+                             <label className="text-[10px] text-amber-500 font-bold uppercase block mb-1">Polisher</label>
                              <div className="text-sm p-2 rounded-lg border border-amber-200 dark:border-amber-800 bg-slate-100 dark:bg-slate-800 text-slate-500 italic">
                                  {refineConfig.drafter === 'gemini' ? 'Gemini' : 'OpenAI'}
                              </div>
@@ -305,7 +339,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
 
             {/* API Keys (Context Aware) */}
             <div className="space-y-3 p-4 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800">
-                {/* Gemini Input - Logic Updated for Refine Config */}
+                {/* Gemini Input */}
                 {(provider === 'gemini' || provider === 'battle' || (provider === 'refine' && (refineConfig.drafter === 'gemini' || refineConfig.critiquer === 'gemini'))) && (
                     <div className="flex flex-col gap-2">
                         <div className="flex justify-between items-center">
@@ -331,7 +365,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                 {/* Separator for Advanced Mode */}
                 {viewMode === 'advanced' && <div className="h-px bg-slate-200 dark:bg-slate-800 w-full my-1"></div>}
 
-                {/* OpenAI Input - Logic Updated for Refine Config */}
+                {/* OpenAI Input */}
                 {(provider === 'openai' || provider === 'battle' || (provider === 'refine' && (refineConfig.drafter === 'openai' || refineConfig.critiquer === 'openai'))) && (
                     <div className="flex flex-col gap-2">
                         <label className="text-[10px] font-bold uppercase text-emerald-500 flex items-center gap-1"><Key size={12} /> OpenAI Key</label>
