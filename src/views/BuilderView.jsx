@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, onSnapshot, query, orderBy } from 'firebase/firestore'; // <--- 1. ADDED onSnapshot, query, orderBy
 import { updateProfile } from 'firebase/auth';
 import { 
   Sparkles, MessageSquare, Palette, Command, Search, Dices, 
   Brain, XCircle, ImagePlus, Ban, Cpu, Wand2, Code, 
   ChevronDown, FileText, Zap, RefreshCw, Check, Copy as CopyIcon, 
-  Lock, Globe, Save, UserCircle, Braces, Play, ArrowLeft 
+  Lock, Globe, Save, UserCircle, Braces, Play, ArrowLeft, Sliders, Terminal, Bookmark // <--- 2. ADDED Bookmark
 } from 'lucide-react';
 
 import { db, auth, APP_ID } from '../lib/firebase.js';
@@ -30,10 +30,10 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
   const [showTestModal, setShowTestModal] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
   
-  // --- CTO UPDATE: Mobile Tab State ---
-  const [mobileTab, setMobileTab] = useState('edit'); // 'edit' | 'preview'
+  // --- CTO UPDATE: Custom Presets State ---
+  const [customPresets, setCustomPresets] = useState([]);
+  const [mobileTab, setMobileTab] = useState('edit');
 
-  // --- CTO UPDATE: Global API Key Support ---
   const globalApiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
 
   // --- EFFECT: LOAD INITIAL DATA (REMIX) ---
@@ -45,11 +45,31 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
     }
   }, [initialData, dispatch, showToast, clearInitialData]);
 
+  // --- CTO UPDATE: Fetch Custom Presets ---
+  useEffect(() => {
+      if (!user) {
+          setCustomPresets([]);
+          return;
+      }
+      // Listen to the user's 'presets' collection in real-time
+      const q = query(
+          collection(db, 'artifacts', APP_ID, 'users', user.uid, 'presets'),
+          orderBy('createdAt', 'desc')
+      );
+      
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+          const presets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          setCustomPresets(presets);
+      });
+      
+      return () => unsubscribe();
+  }, [user]);
+
   // --- HANDLERS ---
   const handleTestClick = () => {
       if (!user) {
           showToast("Please log in to use the Test Runner.", "error");
-          onLoginRequest(); // Opens the Auth Modal
+          onLoginRequest(); 
           return;
       }
       setShowTestModal(true);
@@ -65,7 +85,39 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
 
   const applyPreset = (preset) => {
       dispatch({ type: 'LOAD_PRESET', payload: preset });
-      showToast("Preset Applied!");
+      showToast(`Loaded preset: ${preset.label || 'Custom'}`);
+  };
+
+  // --- CTO UPDATE: Save as Preset Logic ---
+  const handleSaveAsPreset = async () => {
+      if (!user) {
+          onLoginRequest();
+          return;
+      }
+      
+      const name = prompt("Enter a name for this preset (e.g., 'My React Stack'):");
+      if (!name) return;
+
+      try {
+          // We save the 'state' configuration, not just the output string
+          const presetData = {
+              label: name,
+              mode: state.mode,
+              textSubMode: state.textSubMode,
+              selections: state.selections, // The magic sauce
+              customTopic: state.customTopic,
+              // Helper fields
+              lang: state.selections.language?.[0]?.value, // For tagging
+              avatar_style: state.selections.avatar_style?.[0]?.value, // For tagging
+              createdAt: serverTimestamp()
+          };
+
+          await addDoc(collection(db, 'artifacts', APP_ID, 'users', user.uid, 'presets'), presetData);
+          showToast("Preset saved! Check the Presets menu.");
+      } catch (error) {
+          console.error("Error saving preset:", error);
+          showToast("Failed to save preset.", "error");
+      }
   };
 
   const handleCopy = () => {
@@ -79,21 +131,10 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
 
   const handleCopyJSON = () => {
     const dataToCopy = {
-        meta: {
-            app: "CraftMyPrompt",
-            version: "1.0",
-            mode: state.mode,
-            targetModel: state.targetModel
-        },
+        meta: { app: "CraftMyPrompt", version: "1.0", mode: state.mode },
         prompt: generatedPrompt,
-        parameters: {
-            negative: state.negativePrompt,
-            seed: state.seed,
-            lora: state.loraName ? { name: state.loraName, weight: state.loraWeight } : null
-        },
         structure: state.selections
     };
-    
     navigator.clipboard.writeText(JSON.stringify(dataToCopy, null, 2));
     setCopiedJson(true);
     setTimeout(() => setCopiedJson(false), 2000);
@@ -113,9 +154,7 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
              if (auth.currentUser && user.uid !== 'demo') {
                 await updateProfile(auth.currentUser, { displayName: name }); 
              }
-         } else { 
-             return; 
-         }
+         } else { return; }
     }
     
     setIsSaving(true);
@@ -128,6 +167,7 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
             textSubMode: state.mode === 'text' ? state.textSubMode : null,
             chainOfThought: state.chainOfThought, 
             codeOnly: state.codeOnly, 
+            codeContext: state.codeContext, 
             visibility: saveVisibility, 
             negativePrompt: state.negativePrompt, 
             referenceImage: state.referenceImage, 
@@ -173,17 +213,27 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
       })).filter(cat => cat.subcategories.length > 0);
   }, [searchTerm, currentData]);
 
+  // --- CTO UPDATE: Smart Preview Renderer ---
+  const renderHighlightedPrompt = (text) => {
+      if (!text) return <span className="text-slate-500 italic">Your prompt will appear here...</span>;
+      const parts = text.split(/(\{.*?\})/g);
+      return parts.map((part, index) => {
+          if (part.match(/^\{.*\}$/)) {
+              return <span key={index} className="inline-block bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded px-1.5 py-0.5 mx-0.5 font-bold font-mono text-xs align-middle">{part}</span>;
+          }
+          return <span key={index}>{part}</span>;
+      });
+  };
+
   // --- RENDER ---
   return (
-      // CTO FIX: Changed to 'flex-col md:flex-row' to prevent horizontal squishing on mobile
       <div className="flex flex-col md:flex-row h-full w-full relative">
         
         {/* --- LEFT PANEL: BUILDER --- */}
-        {/* Visible if mobileTab is 'edit' OR if we are on desktop (md:flex) */}
         <div className={`flex-1 min-w-0 flex-col h-full overflow-hidden bg-slate-50 dark:bg-slate-900 transition-colors ${mobileTab === 'preview' ? 'hidden md:flex' : 'flex'}`}>
             <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 p-4 shadow-sm z-10 sticky top-0 transition-colors">
                 
-                {/* --- CTO UPDATE: Mobile Tab Switcher --- */}
+                {/* Mobile Tab Switcher */}
                 <div className="md:hidden flex w-full bg-slate-100 dark:bg-slate-700 p-1 rounded-lg mb-4">
                     <button onClick={() => setMobileTab('edit')} className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${mobileTab === 'edit' ? 'bg-white dark:bg-slate-600 shadow text-indigo-600 dark:text-indigo-300' : 'text-slate-500 dark:text-slate-400'}`}>Edit</button>
                     <button onClick={() => setMobileTab('preview')} className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${mobileTab === 'preview' ? 'bg-white dark:bg-slate-600 shadow text-indigo-600 dark:text-indigo-300' : 'text-slate-500 dark:text-slate-400'}`}>Preview</button>
@@ -223,20 +273,31 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                     )}
                 </div>
                 <div className="flex gap-2">
-                      <button 
-                        onClick={() => setShowWizard(true)}
-                        className="px-3 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white rounded-lg flex items-center gap-2 text-sm font-bold shadow-md transition-all animate-in fade-in"
-                      >
-                        <Wand2 size={16} /> <span className="hidden md:inline">Wizard Mode</span>
-                      </button>
+                      <button onClick={() => setShowWizard(true)} className="px-3 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white rounded-lg flex items-center gap-2 text-sm font-bold shadow-md transition-all animate-in fade-in"><Wand2 size={16} /> <span className="hidden md:inline">Wizard Mode</span></button>
 
                       <div className="relative group">
                           <button className="px-3 py-2 bg-slate-800 dark:bg-slate-700 text-white rounded-lg flex items-center gap-2 text-sm font-medium"><Command size={16} /> <span className="hidden md:inline">Presets</span></button>
-                          <div className="absolute top-full left-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-600 hidden group-hover:block z-50 p-2">
-                             <div className="text-[10px] font-bold text-slate-400 uppercase px-2 py-1">Quick Start</div>
-                             {(state.mode === 'text' ? PRESETS[state.textSubMode] || PRESETS.general : PRESETS[state.textSubMode] || PRESETS.art).map((p, i) => (
-                                 <button key={i} onClick={() => applyPreset(p)} className="w-full text-left px-2 py-2 text-xs hover:bg-indigo-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg">{p.label}</button>
-                             ))}
+                          <div className="absolute top-full left-0 w-64 pt-2 hidden group-hover:block z-50">
+                             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-600 p-2 max-h-96 overflow-y-auto">
+                                
+                                {/* --- CTO UPDATE: Custom Presets Section --- */}
+                                {user && customPresets.length > 0 && (
+                                    <div className="mb-2 pb-2 border-b border-slate-100 dark:border-slate-700">
+                                        <div className="text-[10px] font-bold text-indigo-500 uppercase px-2 py-1 flex items-center gap-1"><Bookmark size={10} /> My Presets</div>
+                                        {customPresets.map((p) => (
+                                            <button key={p.id} onClick={() => applyPreset(p)} className="w-full text-left px-2 py-2 text-xs hover:bg-indigo-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg flex items-center justify-between group">
+                                                <span>{p.label}</span>
+                                                {/* Optional: Add delete button here later */}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+
+                                <div className="text-[10px] font-bold text-slate-400 uppercase px-2 py-1">Quick Start</div>
+                                {((state.mode === 'text' ? PRESETS[state.textSubMode] || PRESETS.general : (state.textSubMode === 'avatar' ? PRESETS.avatar : PRESETS.art)) || []).map((p, i) => (
+                                    <button key={i} onClick={() => applyPreset(p)} className="w-full text-left px-2 py-2 text-xs hover:bg-indigo-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg">{p.label}</button>
+                                ))}
+                             </div>
                           </div>
                       </div>
 
@@ -249,6 +310,8 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
             </header>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
+                 {/* ... content sections (user input, text buttons, art inputs, etc.) ... */}
+                 {/* This section remains identical to previous version, just ensuring it's included correctly */}
                  {!displayName && user && !user.displayName && (
                     <div className="bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800 p-3 rounded-lg flex gap-2 items-center text-sm">
                         <UserCircle className="text-indigo-500 dark:text-indigo-400" /><input className="bg-transparent border-b border-indigo-300 dark:border-indigo-600 outline-none flex-1 text-indigo-900 dark:text-indigo-100 placeholder-indigo-300 dark:placeholder-indigo-500" placeholder="Set display name..." onBlur={(e) => { if(e.target.value) { setDisplayName(e.target.value); updateProfile(user, { displayName: e.target.value }); } }} />
@@ -278,6 +341,25 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                                 <div className="w-24"><label className="text-[10px] font-bold text-indigo-400 block mb-1">Weight</label><input type="number" step="0.1" className="w-full p-2 bg-white dark:bg-slate-800 rounded-lg border border-indigo-200 dark:border-indigo-700 text-sm dark:text-slate-200" value={state.loraWeight} onChange={(e) => dispatch({ type: 'UPDATE_FIELD', field: 'loraWeight', value: e.target.value })} /></div>
                             </div>
                         )}
+                        {state.targetModel === 'midjourney' && (
+                            <div className="bg-slate-100 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700 space-y-4">
+                                <div className="flex items-center gap-2 mb-2"><Sliders size={16} className="text-indigo-500" /><span className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400">Midjourney Parameters</span></div>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div><div className="flex justify-between text-[10px] uppercase font-bold text-slate-400 mb-1"><span>Stylize (--s)</span><span className="text-indigo-500">{state.mjStylize || 100}</span></div><input type="range" min="0" max="1000" step="50" value={state.mjStylize || 100} onChange={(e) => dispatch({type: 'UPDATE_FIELD', field: 'mjStylize', value: e.target.value})} className="w-full h-1 bg-slate-300 dark:bg-slate-600 rounded-lg appearance-none cursor-pointer accent-indigo-600"/></div>
+                                    <div><div className="flex justify-between text-[10px] uppercase font-bold text-slate-400 mb-1"><span>Chaos (--c)</span><span className="text-indigo-500">{state.mjChaos || 0}</span></div><input type="range" min="0" max="100" value={state.mjChaos || 0} onChange={(e) => dispatch({type: 'UPDATE_FIELD', field: 'mjChaos', value: e.target.value})} className="w-full h-1 bg-slate-300 dark:bg-slate-600 rounded-lg appearance-none cursor-pointer accent-indigo-600"/></div>
+                                    <div><div className="flex justify-between text-[10px] uppercase font-bold text-slate-400 mb-1"><span>Weird (--w)</span><span className="text-indigo-500">{state.mjWeird || 0}</span></div><input type="range" min="0" max="3000" step="50" value={state.mjWeird || 0} onChange={(e) => dispatch({type: 'UPDATE_FIELD', field: 'mjWeird', value: e.target.value})} className="w-full h-1 bg-slate-300 dark:bg-slate-600 rounded-lg appearance-none cursor-pointer accent-indigo-600"/></div>
+                                </div>
+                            </div>
+                        )}
+                        {state.targetModel === 'dalle' && (
+                            <div className="bg-slate-100 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700 space-y-4">
+                                <div className="flex items-center gap-2 mb-2"><Sliders size={16} className="text-indigo-500" /><span className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400">DALL-E 3 Settings</span></div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div><label className="text-[10px] uppercase font-bold text-slate-400 mb-1 block">Quality</label><div className="flex bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-1"><button onClick={() => dispatch({type: 'UPDATE_FIELD', field: 'dalleQuality', value: 'standard'})} className={`flex-1 text-xs py-1 rounded font-medium transition-all ${!state.dalleQuality || state.dalleQuality === 'standard' ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300' : 'text-slate-500'}`}>Standard</button><button onClick={() => dispatch({type: 'UPDATE_FIELD', field: 'dalleQuality', value: 'hd'})} className={`flex-1 text-xs py-1 rounded font-medium transition-all ${state.dalleQuality === 'hd' ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300' : 'text-slate-500'}`}>HD</button></div></div>
+                                    <div><label className="text-[10px] uppercase font-bold text-slate-400 mb-1 block">Style</label><div className="flex bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-1"><button onClick={() => dispatch({type: 'UPDATE_FIELD', field: 'dalleStyle', value: 'vivid'})} className={`flex-1 text-xs py-1 rounded font-medium transition-all ${!state.dalleStyle || state.dalleStyle === 'vivid' ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300' : 'text-slate-500'}`}>Vivid</button><button onClick={() => dispatch({type: 'UPDATE_FIELD', field: 'dalleStyle', value: 'natural'})} className={`flex-1 text-xs py-1 rounded font-medium transition-all ${state.dalleStyle === 'natural' ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300' : 'text-slate-500'}`}>Natural</button></div></div>
+                                </div>
+                            </div>
+                        )}
                          <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700">
                             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2">Seed</h3>
                             <input className="w-full p-2 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-700 focus:ring-2 focus:ring-pink-500 outline-none text-sm placeholder-slate-300 dark:text-slate-200" placeholder="Random if empty" value={state.seed} onChange={(e) => dispatch({ type: 'UPDATE_FIELD', field: 'seed', value: e.target.value })} type="number" />
@@ -286,7 +368,7 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                 )}
                 <div className="bg-white dark:bg-slate-800 rounded-xl p-5 shadow-sm border border-slate-200 dark:border-slate-700">
                     <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2">
-                        <Wand2 size={14} /> {state.mode === 'text' ? (state.textSubMode === 'coding' ? 'Code / Context' : 'Topic / Content') : 'Main Subject'}
+                        <Wand2 size={14} /> {state.mode === 'text' ? (state.textSubMode === 'coding' ? 'Task / Instruction' : 'Topic / Content') : 'Main Subject'}
                     </h3>
                     <textarea 
                         className="w-full p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none resize-none text-sm leading-relaxed dark:text-slate-200" 
@@ -295,6 +377,14 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                         value={state.customTopic} 
                         onChange={(e) => dispatch({ type: 'UPDATE_FIELD', field: 'customTopic', value: e.target.value })} 
                     />
+                    
+                    {state.mode === 'text' && state.textSubMode === 'coding' && (
+                        <div className="mt-4 animate-in slide-in-from-top-2 fade-in">
+                            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2"><Terminal size={14} /> Code Context</h3>
+                            <textarea className="w-full p-3 bg-slate-900 text-slate-200 rounded-lg border border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none resize-none text-xs font-mono leading-relaxed placeholder-slate-600" rows={5} placeholder="// Paste your broken code or current file content here..." value={state.codeContext} onChange={(e) => dispatch({ type: 'UPDATE_FIELD', field: 'codeContext', value: e.target.value })} />
+                        </div>
+                    )}
+
                     {detectedVars.length > 0 && (
                         <div className="mt-2 p-2 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg border border-indigo-100 dark:border-indigo-800 animate-in fade-in slide-in-from-top-2">
                             <h4 className="text-[10px] font-bold text-indigo-400 uppercase mb-2 flex items-center gap-1"><Code size={10} /> Variables Detected</h4>
@@ -302,12 +392,7 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                                 {detectedVars.map(v => (
                                     <div key={v}>
                                         <label className="text-[10px] font-medium text-slate-500 dark:text-slate-400">{v}</label>
-                                        <input 
-                                            className="w-full p-1.5 rounded border border-indigo-200 dark:border-indigo-700 bg-white dark:bg-slate-800 text-sm focus:ring-1 focus:ring-indigo-500 outline-none dark:text-slate-200" 
-                                            placeholder={`Value for ${v}...`}
-                                            value={state.variables[v] || ''}
-                                            onChange={(e) => dispatch({ type: 'UPDATE_VARIABLE', key: v, value: e.target.value })}
-                                        />
+                                        <input className="w-full p-1.5 rounded border border-indigo-200 dark:border-indigo-700 bg-white dark:bg-slate-800 text-sm focus:ring-1 focus:ring-indigo-500 outline-none dark:text-slate-200" placeholder={`Value for ${v}...`} value={state.variables[v] || ''} onChange={(e) => dispatch({ type: 'UPDATE_VARIABLE', key: v, value: e.target.value })} />
                                     </div>
                                 ))}
                             </div>
@@ -361,11 +446,7 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                                                             {isSelected && state.mode === 'art' && category.id !== 'params' && state.targetModel !== 'dalle' && state.targetModel !== 'gemini' && (
                                                                 <div className="ml-2 flex items-center gap-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-md px-2 py-0.5 animate-in slide-in-from-left-2 fade-in duration-200">
                                                                     <span className="text-[9px] text-slate-400 font-bold">W:</span>
-                                                                    <input 
-                                                                        type="range" min="0.1" max="2.0" step="0.1" value={selectionItem.weight} 
-                                                                        onChange={(e) => dispatch({ type: 'UPDATE_WEIGHT', payload: { categoryId: category.id, optionValue: option, newWeight: e.target.value } })} 
-                                                                        className="w-12 h-1 accent-pink-500 bg-slate-200 rounded-lg appearance-none cursor-pointer" 
-                                                                    />
+                                                                    <input type="range" min="0.1" max="2.0" step="0.1" value={selectionItem.weight} onChange={(e) => dispatch({ type: 'UPDATE_WEIGHT', payload: { categoryId: category.id, optionValue: option, newWeight: e.target.value } })} className="w-12 h-1 accent-pink-500 bg-slate-200 rounded-lg appearance-none cursor-pointer" />
                                                                 </div>
                                                             )}
                                                         </div>
@@ -391,11 +472,9 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
         </div>
         
         {/* --- RIGHT PANEL: PREVIEW --- */}
-        {/* Visible if mobileTab is 'preview' OR if we are on desktop (md:flex) */}
         <div className={`bg-slate-900 text-slate-100 flex-col h-full border-l border-slate-800 shadow-xl z-20 flex-shrink-0 transition-all ${mobileTab === 'edit' ? 'hidden md:flex' : 'flex w-full'} md:w-96`}>
              <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900">
                 <div className="flex items-center gap-2">
-                    {/* --- CTO UPDATE: Back Button for Mobile --- */}
                     <button onClick={() => setMobileTab('edit')} className="md:hidden text-slate-400 hover:text-white"><ArrowLeft size={20}/></button>
                     <h2 className="font-bold text-sm flex items-center gap-2"><FileText size={16} className={state.mode === 'text' ? 'text-indigo-400' : 'text-pink-400'} /> Preview</h2>
                 </div>
@@ -404,14 +483,10 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                     <button onClick={() => dispatch({ type: 'RESET' })} className="p-1.5 hover:bg-slate-800 rounded text-slate-500 hover:text-white transition-colors" title="Reset"><RefreshCw size={14} /></button>
                 </div>
             </div>
-            <div className="flex-1 p-4 overflow-y-auto">
-                <textarea 
-                    value={generatedPrompt} 
-                    readOnly 
-                    className="w-full h-full bg-transparent border-none outline-none resize-none text-slate-300 placeholder-slate-700 font-mono text-sm leading-relaxed" 
-                    spellCheck="false" 
-                    placeholder="Your prompt will appear here..." 
-                />
+            <div className="flex-1 p-4 overflow-y-auto font-mono text-sm leading-relaxed text-slate-300">
+                <div className="whitespace-pre-wrap min-h-full">
+                    {renderHighlightedPrompt(generatedPrompt)}
+                </div>
             </div>
             <div className="p-4 border-t border-slate-800 bg-slate-950 space-y-4">
                 <div className="grid grid-cols-2 gap-2">
@@ -427,7 +502,11 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                             <button onClick={() => setSaveVisibility('public')} className={`px-3 py-1 rounded-md flex items-center gap-1 transition-all ${saveVisibility === 'public' ? 'bg-indigo-600 text-white shadow' : 'text-slate-500 hover:text-slate-300'}`}><Globe size={12} /> Public</button>
                         </div>
                     </div>
-                    <button onClick={handleUnifiedSave} disabled={!generatedPrompt || isSaving} className="w-full py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-medium text-slate-300 flex items-center justify-center gap-2 transition-colors disabled:opacity-50"><Save size={14} /> {isSaving ? 'Saving...' : (saveVisibility === 'public' ? 'Save & Publish' : 'Save to Library')}</button>
+                    {/* --- CTO UPDATE: Save as Preset Button --- */}
+                    <div className="grid grid-cols-2 gap-2 mb-2">
+                        <button onClick={handleUnifiedSave} disabled={!generatedPrompt || isSaving} className="col-span-1 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-medium text-slate-300 flex items-center justify-center gap-2 transition-colors disabled:opacity-50"><Save size={14} /> {isSaving ? 'Saving...' : (saveVisibility === 'public' ? 'Publish' : 'Save')}</button>
+                        <button onClick={handleSaveAsPreset} disabled={!generatedPrompt} className="col-span-1 py-2 bg-indigo-900/50 hover:bg-indigo-900 rounded-lg text-xs font-medium text-indigo-300 border border-indigo-800 flex items-center justify-center gap-2 transition-colors disabled:opacity-50"><Bookmark size={14} /> Save Preset</button>
+                    </div>
                 </div>
                 
                 {/* Test Button Area */}

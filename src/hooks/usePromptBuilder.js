@@ -16,6 +16,7 @@ const initialState = {
   seed: '',
   chainOfThought: false,
   codeOnly: false,
+  codeContext: '', // <--- CTO UPDATE: New state for Code Context
   variables: {}
 };
 
@@ -95,6 +96,7 @@ function builderReducer(state, action) {
             ...state, 
             selections: newSels, 
             customTopic: p.topic || '', 
+            codeContext: p.codeContext || '', // Load code context from preset if available
             variables: {},
             // Auto-switch mode if preset implies it
             mode: p.avatar_style ? 'art' : (p.genre ? 'art' : 'text'),
@@ -119,8 +121,6 @@ function builderReducer(state, action) {
         const shuffled = powerWords.sort(() => 0.5 - Math.random());
         const selected = shuffled.slice(0, 3);
         
-        // Use 'tech' for general art, or append to 'avatar_style' for avatars? 
-        // Let's stick to 'tech' logic for now or add to 'params'
         const currentTech = state.selections['tech'] || [];
         const newItems = selected.map(w => ({ value: w, weight: 1 }));
         
@@ -144,6 +144,7 @@ function builderReducer(state, action) {
             textSubMode: data.textSubMode || 'general',
             selections: data.selections || {},
             customTopic: data.customTopic || '',
+            codeContext: data.codeContext || '', // Load code context
             negativePrompt: data.negativePrompt || '',
             referenceImage: data.referenceImage || '',
             targetModel: data.targetModel || 'midjourney',
@@ -194,7 +195,6 @@ export const usePromptBuilder = (initialData) => {
 
   const currentData = useMemo(() => {
       if (state.mode === 'art') {
-          // --- CTO UPDATE: Switch Data based on Submode ---
           if (state.textSubMode === 'avatar') return AVATAR_DATA;
           return ART_DATA;
       }
@@ -242,8 +242,13 @@ export const usePromptBuilder = (initialData) => {
       }
 
       if (processedTopic?.trim()) {
-          const label = state.textSubMode === 'coding' ? 'CODE / CONTEXT:' : 'TOPIC / CONTENT:';
+          const label = state.textSubMode === 'coding' ? 'TASK / INSTRUCTION:' : 'TOPIC / CONTENT:';
           parts.push(`\n${label}\n"${processedTopic}"\n`);
+      }
+
+      // --- CTO UPDATE: APPEND CODE CONTEXT IF PRESENT ---
+      if (state.textSubMode === 'coding' && state.codeContext?.trim()) {
+          parts.push(`\nCODE CONTEXT:\n\`\`\`\n${state.codeContext}\n\`\`\`\n`);
       }
 
       if (state.chainOfThought) parts.push("Take a deep breath and think step-by-step to ensure the highest quality response.");
