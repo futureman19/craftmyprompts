@@ -1,744 +1,125 @@
-import React, { useState, useEffect } from 'react';
-import { X, Play, Key, Loader, Check, AlertTriangle, Terminal, Cpu, RefreshCw, Zap, Bot, Sparkles, Swords, GitCompare, Layers, MonitorPlay, Copy, ArrowRight, Target, Split, Bookmark, Github, ShieldCheck } from 'lucide-react';
+import React from 'react';
+import { X, Terminal } from 'lucide-react';
+import { useTestRunner } from '../hooks/useTestRunner';
+import TestRunnerControls from './test-runner/TestRunnerControls';
+import TestRunnerResults from './test-runner/TestRunnerResults';
 import GitHubModal from './GitHubModal';
 
+const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippet }) => {
+    
+    // 1. Initialize the "Brain" (Custom Hook)
+    const runner = useTestRunner(defaultApiKey, defaultOpenAIKey);
 
-// --- INTERNAL COMPONENT: CODE BLOCK RENDERER ---
-const CodeBlock = ({ rawContent, onShip }) => {
-    const [copied, setCopied] = useState(false);
-   
-    // Clean up: remove the opening ```lang line and closing ```
-    // This regex looks for the first newline to strip the header, and removes the last line
-    const cleanCode = rawContent.replace(/^```[a-z]*\n/i, '').replace(/```$/, '');
-   
-    // Extract language label if present (e.g. ```javascript)
-    const match = rawContent.match(/^```([a-z]+)/i);
-    const language = match ? match[1] : 'Code';
+    if (!isOpen) return null;
 
-
-    const handleCopy = () => {
-        navigator.clipboard.writeText(cleanCode);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+    // 2. Main Run Handler (Bridge between Hook and UI)
+    const handleRunClick = () => {
+        runner.runTest(prompt);
     };
 
-
     return (
-        <div className="my-3 rounded-lg overflow-hidden bg-[#1e1e1e] border border-slate-700 shadow-sm relative group">
-            <div className="flex justify-between items-center px-3 py-1.5 bg-[#252526] border-b border-slate-700">
-                <span className="text-[10px] uppercase font-bold text-slate-400 font-mono">{language}</span>
-                <div className="flex items-center gap-3">
-                    {/* --- SHIP BUTTON --- */}
-                    <button
-                        onClick={() => onShip(cleanCode)}
-                        className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-white transition-colors"
-                        title="Push to GitHub"
-                    >
-                        <Github size={12} /> Ship
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200">
+            <div className={`bg-white dark:bg-slate-900 w-full rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 flex flex-col max-h-[90vh] overflow-hidden transition-all duration-300 ${runner.provider === 'battle' || runner.provider === 'refine' ? 'max-w-6xl' : 'max-w-2xl'}`}>
+                
+                {/* --- HEADER --- */}
+                <div className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
+                    <div className="p-4 flex justify-between items-center">
+                        <h3 className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                            <Terminal size={18} className="text-indigo-500" /> Test Prompt
+                        </h3>
+                        <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                            <X size={20} />
+                        </button>
+                    </div>
+                    
+                    {/* View Mode Tabs (Simple vs Orchestrator) */}
+                    {/* We pass this into Controls, or keep it here. Let's keep specific layout control here. */}
+                </div>
+
+                {/* --- CONTENT SCROLL AREA --- */}
+                <div className="p-6 overflow-y-auto flex-1 space-y-6">
+                    
+                    {/* 1. CONTROLS (Inputs, Keys, Mode Selection) */}
+                    <TestRunnerControls 
+                        viewMode={runner.viewMode}
+                        provider={runner.provider}
+                        geminiKey={runner.geminiKey}
+                        openaiKey={runner.openaiKey}
+                        refineConfig={runner.refineConfig}
+                        selectedModel={runner.selectedModel}
+                        availableModels={runner.availableModels}
+                        isUsingGlobalGemini={!!defaultApiKey && runner.geminiKey === defaultApiKey}
+                        isUsingGlobalOpenAI={!!defaultOpenAIKey && runner.openaiKey === defaultOpenAIKey}
+                        
+                        onViewChange={runner.handleViewChange}
+                        onProviderChange={runner.setProvider}
+                        onGeminiKeyChange={runner.setGeminiKey}
+                        onOpenaiKeyChange={runner.setOpenaiKey}
+                        onClearKey={runner.clearKey}
+                        onFetchModels={runner.fetchModels}
+                        onModelChange={runner.setSelectedModel}
+                        onRefineConfigChange={(key, val) => runner.setRefineConfig(prev => ({ ...prev, [key]: val }))}
+                    />
+
+                    {/* 2. PROMPT PREVIEW */}
+                    {(!runner.battleResults && !runner.refineSteps && !runner.result) && (
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-bold uppercase text-slate-400">Current Prompt</label>
+                            <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs font-mono text-slate-600 dark:text-slate-300 max-h-32 overflow-y-auto border border-slate-200 dark:border-slate-700 whitespace-pre-wrap">
+                                {prompt}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 3. RESULTS DISPLAY */}
+                    <TestRunnerResults 
+                        loading={runner.loading}
+                        result={runner.result}
+                        error={runner.error}
+                        statusMessage={runner.statusMessage}
+                        provider={runner.provider}
+                        battleResults={runner.battleResults}
+                        refineSteps={runner.refineSteps}
+                        refineView={runner.refineView}
+                        
+                        onSaveSnippet={onSaveSnippet}
+                        onShipCode={runner.handleShipCode}
+                        setRefineView={runner.setRefineView}
+                    />
+                </div>
+
+                {/* --- FOOTER --- */}
+                <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex justify-end gap-3">
+                    <button onClick={onClose} className="px-4 py-2 text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 font-medium transition-colors">
+                        Cancel
                     </button>
-                    <div className="w-px h-3 bg-slate-600"></div>
-                    <button
-                        onClick={handleCopy}
-                        className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-white transition-colors"
+                    <button 
+                        onClick={handleRunClick}
+                        disabled={
+                            runner.loading || 
+                            (runner.viewMode === 'advanced' && (!runner.geminiKey || !runner.openaiKey)) || 
+                            (runner.viewMode === 'simple' && runner.provider === 'gemini' && !runner.geminiKey) || 
+                            (runner.viewMode === 'simple' && runner.provider === 'openai' && !runner.openaiKey)
+                        }
+                        className={`px-6 py-2 text-white rounded-lg text-sm font-bold shadow-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95 ${
+                            runner.provider === 'battle' ? 'bg-gradient-to-r from-indigo-600 to-emerald-600 hover:opacity-90' : 
+                            (runner.provider === 'refine' ? 'bg-gradient-to-r from-amber-500 to-orange-600' : 
+                            (runner.provider === 'openai' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-indigo-600 hover:bg-indigo-700'))
+                        }`}
                     >
-                        {copied ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
-                        {copied ? 'Copy' : 'Copy'}
+                        {runner.provider === 'battle' ? 'Start Battle' : (runner.provider === 'refine' ? 'Start Loop' : 'Run Test')}
                     </button>
                 </div>
             </div>
-            <pre className="p-3 overflow-x-auto font-mono text-xs leading-5 text-[#d4d4d4]">
-                <code>{cleanCode}</code>
-            </pre>
+
+            {/* GitHub Modal (triggered by logic in useTestRunner) */}
+            <GitHubModal 
+                isOpen={runner.showGithub} 
+                onClose={() => runner.setShowGithub(false)} 
+                codeToPush={runner.codeToShip} 
+            />
         </div>
     );
 };
 
-
-const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippet }) => {
-  // --- STATE ---
-  const [viewMode, setViewMode] = useState('simple'); // 'simple' (Single Model) | 'advanced' (Workflows)
-  const [provider, setProvider] = useState('gemini'); // 'gemini' | 'openai' | 'battle' | 'refine'
-  const [refineView, setRefineView] = useState('timeline'); // 'timeline' | 'diff'
- 
-  // GitHub State
-  const [showGithub, setShowGithub] = useState(false);
-  const [codeToShip, setCodeToShip] = useState('');
-
-
-  // Refine Config
-  const [refineConfig, setRefineConfig] = useState({
-      drafter: 'gemini',
-      critiquer: 'openai',
-      focus: 'general' // 'general', 'security', 'performance', 'cleanliness', 'roast'
-  });
-
-
-  // Keys
-  const [geminiKey, setGeminiKey] = useState('');
-  const [openaiKey, setOpenaiKey] = useState('');
- 
-  // Execution
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null); // Single result (Gemini/OpenAI/Refine Final)
-  const [battleResults, setBattleResults] = useState(null); // { gemini: '', openai: '' }
-  const [refineSteps, setRefineSteps] = useState(null); // { draft: '', critique: '', final: '' }
-  const [statusMessage, setStatusMessage] = useState('');
-  const [error, setError] = useState(null);
-  const [copiedText, setCopiedText] = useState(null);
-  const [savedText, setSavedText] = useState(null); // Track saved state
- 
-  // Models
-  const [selectedModel, setSelectedModel] = useState('');
-  const [availableModels, setAvailableModels] = useState([]);
-
-
-  // --- INITIALIZATION ---
-  useEffect(() => {
-    if (!isOpen) return;
-
-
-    // Load Keys (Prioritize Props, Fallback to LocalStorage)
-    if (defaultApiKey) {
-        setGeminiKey(defaultApiKey);
-    } else {
-        const saved = localStorage.getItem('craft_my_prompt_gemini_key');
-        if (saved) setGeminiKey(saved);
-    }
-
-
-    if (defaultOpenAIKey) {
-        setOpenaiKey(defaultOpenAIKey);
-    } else {
-        const saved = localStorage.getItem('craft_my_prompt_openai_key');
-        if (saved) setOpenaiKey(saved);
-    }
-   
-  }, [isOpen, defaultApiKey, defaultOpenAIKey]);
-
-
-  // Auto-Fetch Gemini Models
-  useEffect(() => {
-      if (isOpen && geminiKey) fetchModels(geminiKey);
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, geminiKey]);
-
-
-  // --- HELPERS ---
-  const saveKey = (key, providerName) => {
-      const storageKey = `craft_my_prompt_${providerName}_key`;
-      const defaultKey = providerName === 'gemini' ? defaultApiKey : defaultOpenAIKey;
-      // Only save if it's NOT the global key (don't save empty or default strings)
-      if (key && key.trim() && key !== defaultKey) {
-          localStorage.setItem(storageKey, key.trim());
-      }
-  };
-
-
-  const clearKey = (providerName) => {
-      const storageKey = `craft_my_prompt_${providerName}_key`;
-      localStorage.removeItem(storageKey);
-      if (providerName === 'gemini') setGeminiKey('');
-      else setOpenaiKey('');
-  };
-
-
-  const copyToClipboard = (text, label) => {
-      navigator.clipboard.writeText(text);
-      setCopiedText(label);
-      setTimeout(() => setCopiedText(null), 2000);
-  };
-
-
-  const handleSave = (text, label) => {
-      if (onSaveSnippet) {
-          onSaveSnippet(text, label);
-          setSavedText(label);
-          setTimeout(() => setSavedText(null), 2000);
-      }
-  };
-
-
-  const handleShipCode = (code) => {
-      setCodeToShip(code);
-      setShowGithub(true);
-  };
-
-
-  // --- FORMAT PARSER ---
-  const renderResultContent = (text) => {
-      if (!text) return null;
-
-
-      // Split text by code blocks (```...```)
-      const parts = text.split(/(```[\s\S]*?```)/g);
-
-
-      return (
-          <div className="text-sm leading-relaxed text-slate-800 dark:text-slate-200">
-              {parts.map((part, index) => {
-                  if (part.startsWith('```')) {
-                      // Render Code Block Component
-                      return <CodeBlock key={index} rawContent={part} onShip={handleShipCode} />;
-                  }
-                  // Render regular text (with line breaks preserved)
-                  if (!part.trim() && parts.length > 1) return null;
-                 
-                  return (
-                      <div key={index} className="whitespace-pre-wrap mb-2">
-                          {part}
-                      </div>
-                  );
-              })}
-          </div>
-      );
-  };
-
-
-  const fetchModels = async (keyToUse = geminiKey) => {
-      if (!keyToUse) return;
-      try {
-          const response = await fetch('/api/gemini', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                  apiKey: keyToUse,
-                  endpoint: 'listModels'
-              })
-          });
-
-
-          const data = await response.json();
-         
-          if (!response.ok) {
-              console.error("Model fetch error:", data.error);
-              return;
-          }
-
-
-          if (data.models) {
-              const validModels = data.models.filter(m => m.supportedGenerationMethods?.includes("generateContent"));
-              setAvailableModels(validModels);
-              // Auto-Select Logic
-              const currentExists = validModels.find(m => m.name === selectedModel);
-              if (!selectedModel || !currentExists) {
-                  const bestModel = validModels.find(m => m.name.includes('2.0-flash'))
-                                 || validModels.find(m => m.name.includes('flash'))
-                                 || validModels[0];
-                  if (bestModel) setSelectedModel(bestModel.name);
-              }
-          }
-      } catch (err) {
-          console.error("Failed to fetch models", err);
-      }
-  };
-
-
-  // --- API HANDLERS ---
-  const callAIProvider = async (providerName, promptText, key) => {
-      if (providerName === 'gemini') return await callGemini(promptText, key, selectedModel);
-      else return await callOpenAI(promptText, key);
-  };
-
-
-  const callGemini = async (promptText, key, model) => {
-      const targetModel = model || 'models/gemini-1.5-flash';
-      const response = await fetch('/api/gemini', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-              apiKey: key,
-              prompt: promptText,
-              model: targetModel
-          })
-      });
-
-
-      const data = await response.json();
-     
-      if (!response.ok) throw new Error(data.error || `Gemini Error (${response.status})`);
-     
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      return text || "No text returned from Gemini.";
-  };
-
-
-  const callOpenAI = async (promptText, key) => {
-      const response = await fetch('/api/openai', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ apiKey: key, prompt: promptText, model: "gpt-4o" })
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || `OpenAI Error (${response.status})`);
-      return data.choices?.[0]?.message?.content || "No text returned.";
-  };
-
-
-  // --- MAIN RUN HANDLER ---
-  const handleRun = async () => {
-    setLoading(true);
-    setError(null);
-    setResult(null);
-    setBattleResults(null);
-    setRefineSteps(null);
-    setStatusMessage('');
-
-
-    try {
-        if (provider === 'refine') {
-            // Check keys for selected providers
-            if (refineConfig.drafter === 'gemini' && !geminiKey) throw new Error("Gemini API Key missing for Drafter.");
-            if (refineConfig.drafter === 'openai' && !openaiKey) throw new Error("OpenAI API Key missing for Drafter.");
-            if (refineConfig.critiquer === 'gemini' && !geminiKey) throw new Error("Gemini API Key missing for Critiquer.");
-            if (refineConfig.critiquer === 'openai' && !openaiKey) throw new Error("OpenAI API Key missing for Critiquer.");
-
-
-            // Save keys
-            if (geminiKey) saveKey(geminiKey, 'gemini');
-            if (openaiKey) saveKey(openaiKey, 'openai');
-
-
-            // --- STEP 1: DRAFT ---
-            const drafterName = refineConfig.drafter === 'gemini' ? 'Gemini' : 'ChatGPT';
-            setStatusMessage(`Step 1/3: ${drafterName} is drafting...`);
-           
-            const drafterKey = refineConfig.drafter === 'gemini' ? geminiKey : openaiKey;
-            const draft = await callAIProvider(refineConfig.drafter, prompt, drafterKey);
-           
-            setRefineSteps({ draft, critique: null, final: null });
-
-
-            // --- STEP 2: CRITIQUE ---
-            const critiquerName = refineConfig.critiquer === 'gemini' ? 'Gemini' : 'ChatGPT';
-            setStatusMessage(`Step 2/3: ${critiquerName} is critiquing...`);
-           
-            const critiquerKey = refineConfig.critiquer === 'gemini' ? geminiKey : openaiKey;
-           
-            // Construct Critique Prompt based on Focus
-            const focusMap = {
-                'general': 'General Improvements & Clarity',
-                'security': 'Security Vulnerabilities & Safety',
-                'performance': 'Performance Optimization & Speed',
-                'cleanliness': 'Code Cleanliness, DRY Principles & Best Practices',
-                'roast': 'Roast this code (Humorous but harsh logic check)'
-            };
-            const focusText = focusMap[refineConfig.focus] || 'General Improvements';
-           
-            const critiquePrompt = `Act as a Senior Technical Lead specialized in ${focusText}. Review the following text/code. List 3 specific, actionable improvements strictly focusing on ${refineConfig.focus}.\n\nINPUT:\n${draft}`;
-           
-            const critique = await callAIProvider(refineConfig.critiquer, critiquePrompt, critiquerKey);
-           
-            setRefineSteps({ draft, critique, final: null });
-
-
-            // --- STEP 3: POLISH (Back to Drafter) ---
-            setStatusMessage(`Step 3/3: ${drafterName} is polishing...`);
-            const polishPrompt = `Rewrite the original input below to address the critique points. Keep the tone professional but implement the fixes.\n\nORIGINAL:\n${draft}\n\nCRITIQUE:\n${critique}`;
-            const final = await callAIProvider(refineConfig.drafter, polishPrompt, drafterKey);
-           
-            setRefineSteps({ draft, critique, final });
-            setResult(final); // Final result to display if needed
-
-
-        } else if (provider === 'battle') {
-            if (!geminiKey || !openaiKey) throw new Error("Both API Keys are required.");
-            saveKey(geminiKey, 'gemini'); saveKey(openaiKey, 'openai');
-            setStatusMessage('Fighting...');
-            const [geminiRes, openaiRes] = await Promise.allSettled([
-                callGemini(prompt, geminiKey, selectedModel),
-                callOpenAI(prompt, openaiKey)
-            ]);
-            setBattleResults({
-                gemini: geminiRes.status === 'fulfilled' ? geminiRes.value : `Error: ${geminiRes.reason.message}`,
-                openai: openaiRes.status === 'fulfilled' ? openaiRes.value : `Error: ${openaiRes.reason.message}`
-            });
-
-
-        } else if (provider === 'gemini') {
-            if (!geminiKey) throw new Error("Gemini Key missing.");
-            saveKey(geminiKey, 'gemini');
-            setStatusMessage('Gemini is thinking...');
-            const text = await callGemini(prompt, geminiKey, selectedModel);
-            setResult(text);
-
-
-        } else if (provider === 'openai') {
-            if (!openaiKey) throw new Error("OpenAI Key missing.");
-            saveKey(openaiKey, 'openai');
-            setStatusMessage('ChatGPT is thinking...');
-            const text = await callOpenAI(prompt, openaiKey);
-            setResult(text);
-        }
-    } catch (err) {
-        setError(err.message);
-    } finally {
-        setLoading(false);
-        setStatusMessage('');
-    }
-  };
-
-
-  // --- UI HANDLERS ---
-  const handleViewChange = (mode) => {
-      setViewMode(mode);
-      if (mode === 'simple') setProvider('gemini');
-      if (mode === 'advanced') setProvider('battle');
-  };
-
-
-  if (!isOpen) return null;
-
-
-  const isUsingGlobalGemini = defaultApiKey && geminiKey === defaultApiKey;
-  const isUsingGlobalOpenAI = defaultOpenAIKey && openaiKey === defaultOpenAIKey;
-
-
-  return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200">
-      <div className={`bg-white dark:bg-slate-900 w-full rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 flex flex-col max-h-[90vh] overflow-hidden transition-all duration-300 ${provider === 'battle' || provider === 'refine' ? 'max-w-6xl' : 'max-w-2xl'}`}>
-       
-        {/* Header with Two-Tier Nav */}
-        <div className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
-            <div className="p-4 flex justify-between items-center">
-                <h3 className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                    <Terminal size={18} className="text-indigo-500" /> Test Prompt
-                </h3>
-                <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><X size={20} /></button>
-            </div>
-           
-            {/* TIER 1: MODE SELECTOR */}
-            <div className="flex px-4 gap-6 text-sm font-medium text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
-                <button
-                    onClick={() => handleViewChange('simple')}
-                    className={`pb-3 border-b-2 transition-all flex items-center gap-2 ${viewMode === 'simple' ? 'text-indigo-600 dark:text-indigo-400 border-indigo-600 dark:border-indigo-400' : 'border-transparent hover:text-slate-700 dark:hover:text-slate-200'}`}
-                >
-                    <MonitorPlay size={16} /> Individual Run
-                </button>
-                <button
-                    onClick={() => handleViewChange('advanced')}
-                    className={`pb-3 border-b-2 transition-all flex items-center gap-2 ${viewMode === 'advanced' ? 'text-amber-600 dark:text-amber-400 border-amber-600 dark:border-amber-400' : 'border-transparent hover:text-slate-700 dark:hover:text-slate-200'}`}
-                >
-                    <Layers size={16} /> Orchestrator
-                </button>
-            </div>
-        </div>
-
-
-        {/* Content */}
-        <div className="p-6 overflow-y-auto flex-1 space-y-6">
-           
-            {/* TIER 2: TOOL SELECTOR */}
-            {viewMode === 'simple' ? (
-                <div className="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-lg">
-                    <button onClick={() => setProvider('gemini')} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-sm font-bold transition-all ${provider === 'gemini' ? 'bg-white dark:bg-slate-700 shadow text-indigo-600 dark:text-indigo-300' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}><Sparkles size={16} /> Gemini</button>
-                    <button onClick={() => setProvider('openai')} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-sm font-bold transition-all ${provider === 'openai' ? 'bg-white dark:bg-slate-700 shadow text-emerald-600 dark:text-emerald-300' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}><Bot size={16} /> OpenAI</button>
-                </div>
-            ) : (
-                <div className="flex p-1 bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30 rounded-lg">
-                    <button onClick={() => setProvider('battle')} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-sm font-bold transition-all ${provider === 'battle' ? 'bg-white dark:bg-slate-800 shadow text-amber-600 dark:text-amber-400' : 'text-amber-700/50 dark:text-amber-500/50 hover:text-amber-700'}`}><Swords size={16} /> Battle (Compare)</button>
-                    <button onClick={() => setProvider('refine')} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-sm font-bold transition-all ${provider === 'refine' ? 'bg-white dark:bg-slate-800 shadow text-orange-600 dark:text-orange-400' : 'text-amber-700/50 dark:text-amber-500/50 hover:text-amber-700'}`}><GitCompare size={16} /> Refine (Loop)</button>
-                </div>
-            )}
-           
-            {/* Refine Configuration Panel */}
-            {provider === 'refine' && (
-                <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-100 dark:border-amber-800/50 animate-in fade-in space-y-4">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                         <h4 className="text-xs font-bold uppercase text-amber-600 dark:text-amber-400 flex items-center gap-2">
-                            <Layers size={14} /> Workflow Pipeline
-                         </h4>
-                         {/* View Toggle */}
-                         {refineSteps && (
-                             <div className="flex bg-white dark:bg-slate-800 p-1 rounded-lg border border-amber-200 dark:border-amber-800">
-                                 <button onClick={() => setRefineView('timeline')} className={`px-3 py-1 text-xs font-bold rounded-md transition-all flex items-center gap-1 ${refineView === 'timeline' ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300' : 'text-slate-400'}`}><Layers size={12} /> Timeline</button>
-                                 <button onClick={() => setRefineView('diff')} className={`px-3 py-1 text-xs font-bold rounded-md transition-all flex items-center gap-1 ${refineView === 'diff' ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300' : 'text-slate-400'}`}><Split size={12} /> Diff View</button>
-                             </div>
-                         )}
-                         <div className="flex items-center gap-2">
-                            <Target size={14} className="text-amber-500" />
-                            <select
-                                value={refineConfig.focus}
-                                onChange={(e) => setRefineConfig(prev => ({ ...prev, focus: e.target.value }))}
-                                className="text-xs p-1 rounded border border-amber-200 dark:border-amber-800 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-amber-500"
-                            >
-                                <option value="general">General Improvement</option>
-                                <option value="security">Security Audit</option>
-                                <option value="performance">Performance Optimization</option>
-                                <option value="cleanliness">Code Cleanup</option>
-                                <option value="roast">Roast My Code 🔥</option>
-                            </select>
-                         </div>
-                    </div>
-                   
-                    <div className="flex items-center gap-2">
-                        <div className="flex-1">
-                            <label className="text-[10px] text-amber-500 font-bold uppercase block mb-1">Drafter</label>
-                            <select
-                                value={refineConfig.drafter}
-                                onChange={(e) => setRefineConfig(prev => ({ ...prev, drafter: e.target.value }))}
-                                className="w-full text-sm p-2 rounded-lg border border-amber-200 dark:border-amber-800 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-amber-500"
-                            >
-                                <option value="gemini">Gemini</option>
-                                <option value="openai">OpenAI (GPT-4)</option>
-                            </select>
-                        </div>
-                        <ArrowRight size={20} className="text-amber-300 mt-5" />
-                        <div className="flex-1">
-                            <label className="text-[10px] text-amber-500 font-bold uppercase block mb-1">Critiquer</label>
-                            <select
-                                value={refineConfig.critiquer}
-                                onChange={(e) => setRefineConfig(prev => ({ ...prev, critiquer: e.target.value }))}
-                                className="w-full text-sm p-2 rounded-lg border border-amber-200 dark:border-amber-800 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-amber-500"
-                            >
-                                <option value="openai">OpenAI (GPT-4)</option>
-                                <option value="gemini">Gemini</option>
-                            </select>
-                        </div>
-                        <ArrowRight size={20} className="text-amber-300 mt-5" />
-                        <div className="flex-1 opacity-60">
-                             <label className="text-[10px] text-amber-500 font-bold uppercase block mb-1">Polisher</label>
-                             <div className="text-sm p-2 rounded-lg border border-amber-200 dark:border-amber-800 bg-slate-100 dark:bg-slate-800 text-slate-500 italic">
-                                 {refineConfig.drafter === 'gemini' ? 'Gemini' : 'OpenAI'}
-                             </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-
-            {/* API Keys (Context Aware) */}
-            <div className="space-y-3 p-4 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800">
-                {/* Security Note - CTO UPDATE */}
-                <div className="flex items-center gap-2 text-xs text-slate-400 mb-2">
-                    <ShieldCheck size={12} className="text-emerald-500" />
-                    <span>Keys are stored locally on your device for security.</span>
-                </div>
-
-
-                {/* Gemini Input */}
-                {(provider === 'gemini' || provider === 'battle' || (provider === 'refine' && (refineConfig.drafter === 'gemini' || refineConfig.critiquer === 'gemini'))) && (
-                    <div className="flex flex-col gap-2">
-                        <div className="flex justify-between items-center">
-                            <label className="text-[10px] font-bold uppercase text-indigo-500 flex items-center gap-1"><Key size={12} /> Gemini Key</label>
-                            {provider === 'gemini' && <button onClick={() => fetchModels()} disabled={!geminiKey} className="text-[10px] flex items-center gap-1 text-slate-400 hover:text-indigo-500 hover:underline disabled:opacity-30"><RefreshCw size={10} /> Refresh Models</button>}
-                        </div>
-                        {isUsingGlobalGemini ? (
-                             <div className="flex items-center gap-2 p-2 bg-indigo-50/50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 rounded-md text-indigo-700 dark:text-indigo-400 text-xs font-medium"><Zap size={14} fill="currentColor" /> <span>Connected via App Key (Free)</span></div>
-                        ) : (
-                            <div className="flex gap-2">
-                                <input type="password" value={geminiKey} onChange={(e) => setGeminiKey(e.target.value)} placeholder="Paste Google API Key..." className="flex-1 px-3 py-1.5 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono dark:text-slate-200 focus:ring-1 focus:ring-indigo-500 outline-none" />
-                                {geminiKey && <button onClick={() => clearKey('gemini')} className="text-xs text-red-400 hover:underline px-1">Clear</button>}
-                            </div>
-                        )}
-                        {provider === 'gemini' && (
-                             <select value={selectedModel} onChange={(e) => setSelectedModel(e.target.value)} className="w-full px-2 py-1.5 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs outline-none">
-                                {availableModels.length > 0 ? availableModels.map(m => <option key={m.name} value={m.name}>{m.displayName}</option>) : <option value="">Fetching models...</option>}
-                            </select>
-                        )}
-                    </div>
-                )}
-               
-                {/* Separator for Advanced Mode */}
-                {viewMode === 'advanced' && <div className="h-px bg-slate-200 dark:bg-slate-800 w-full my-1"></div>}
-
-
-                {/* OpenAI Input */}
-                {(provider === 'openai' || provider === 'battle' || (provider === 'refine' && (refineConfig.drafter === 'openai' || refineConfig.critiquer === 'openai'))) && (
-                    <div className="flex flex-col gap-2">
-                        <label className="text-[10px] font-bold uppercase text-emerald-500 flex items-center gap-1"><Key size={12} /> OpenAI Key</label>
-                        {isUsingGlobalOpenAI ? (
-                            <div className="flex items-center gap-2 p-2 bg-emerald-50/50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 rounded-md text-emerald-700 dark:text-emerald-400 text-xs font-medium"><Zap size={14} fill="currentColor" /> <span>Connected via App Key</span></div>
-                        ) : (
-                            <div className="flex gap-2">
-                                <input type="password" value={openaiKey} onChange={(e) => setOpenaiKey(e.target.value)} placeholder="sk-..." className="flex-1 px-3 py-1.5 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono dark:text-slate-200 focus:ring-1 focus:ring-emerald-500 outline-none" />
-                                {openaiKey && <button onClick={() => clearKey('openai')} className="text-xs text-red-400 hover:underline px-1">Clear</button>}
-                            </div>
-                        )}
-                    </div>
-                )}
-            </div>
-
-
-            {/* Prompt Preview */}
-            {(!battleResults && !refineSteps && !result) && (
-                <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase text-slate-400">Current Prompt</label>
-                    <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs font-mono text-slate-600 dark:text-slate-300 max-h-32 overflow-y-auto border border-slate-200 dark:border-slate-700 whitespace-pre-wrap">{prompt}</div>
-                </div>
-            )}
-
-
-            {/* --- RESULTS DISPLAY --- */}
-           
-            {/* Single Result */}
-            {(result || error || (loading && viewMode === 'simple')) && (
-                <div className={`rounded-xl border p-4 animate-in slide-in-from-bottom-2 fade-in ${error ? 'bg-red-50 border-red-100 dark:bg-red-900/10 dark:border-red-800' : 'bg-slate-50 border-slate-200 dark:bg-slate-800/50 dark:border-slate-700'}`}>
-                    {loading ? (
-                        <div className="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-400"><Loader size={16} className="animate-spin" /> {statusMessage || 'Generating...'}</div>
-                    ) : error ? (
-                        <div className="flex items-start gap-2 text-red-600 dark:text-red-400 text-sm"><AlertTriangle size={16} className="mt-0.5 flex-shrink-0" /><div className="overflow-hidden"><strong className="block font-bold">Error</strong><span className="break-words">{error}</span></div></div>
-                    ) : (
-                        <div className="relative">
-                            <div className={`flex items-center gap-2 text-xs font-bold uppercase mb-2 ${provider === 'openai' ? 'text-emerald-600' : 'text-indigo-600'}`}>
-                                <Check size={14} /> Result
-                                <div className="ml-auto flex items-center gap-2">
-                                     {/* SAVE BUTTON */}
-                                     <button onClick={() => handleSave(result, 'Single Result')} className="text-[10px] bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors flex items-center gap-1">
-                                        {savedText === 'Single Result' ? <Check size={10} className="text-emerald-500" /> : <Bookmark size={10} />} {savedText === 'Single Result' ? 'Saved' : 'Save'}
-                                    </button>
-                                    <button onClick={() => copyToClipboard(result, 'result')} className="text-[10px] bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors flex items-center gap-1">
-                                        {copiedText === 'result' ? <Check size={10} /> : <Copy size={10} />} {copiedText === 'result' ? 'Copied' : 'Copy'}
-                                    </button>
-                                </div>
-                            </div>
-                            {renderResultContent(result)}
-                        </div>
-                    )}
-                </div>
-            )}
-
-
-            {/* Battle Results (Parallel Display) */}
-            {provider === 'battle' && (loading || battleResults) && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in slide-in-from-bottom-2 fade-in">
-                     <div className="rounded-xl border border-indigo-200 dark:border-indigo-900 bg-indigo-50/50 dark:bg-indigo-900/10 p-4 flex flex-col h-full relative">
-                        <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold mb-3 border-b border-indigo-200 dark:border-indigo-800 pb-2">
-                             <Sparkles size={18} /> Gemini
-                             <div className="ml-auto flex items-center gap-1">
-                                {battleResults?.gemini && <button onClick={() => handleSave(battleResults.gemini, 'Gemini Battle')} className="p-1.5 hover:bg-indigo-100 dark:hover:bg-indigo-900 rounded">{savedText === 'Gemini Battle' ? <Bookmark size={14} fill="currentColor"/> : <Bookmark size={14} />}</button>}
-                                {battleResults?.gemini && <button onClick={() => copyToClipboard(battleResults.gemini, 'gemini')} className="p-1.5 hover:bg-indigo-100 dark:hover:bg-indigo-900 rounded">{copiedText === 'gemini' ? <Check size={14} /> : <Copy size={14} />}</button>}
-                             </div>
-                        </div>
-                        {loading ? <div className="text-sm italic text-indigo-400">Thinking...</div> : renderResultContent(battleResults?.gemini)}
-                    </div>
-                    <div className="rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50/50 dark:bg-emerald-900/10 p-4 flex flex-col h-full relative">
-                        <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold mb-3 border-b border-emerald-200 dark:border-emerald-800 pb-2">
-                             <Bot size={18} /> GPT-4o
-                             <div className="ml-auto flex items-center gap-1">
-                                {battleResults?.openai && <button onClick={() => handleSave(battleResults.openai, 'OpenAI Battle')} className="p-1.5 hover:bg-emerald-100 dark:hover:bg-emerald-900 rounded">{savedText === 'OpenAI Battle' ? <Bookmark size={14} fill="currentColor"/> : <Bookmark size={14} />}</button>}
-                                {battleResults?.openai && <button onClick={() => copyToClipboard(battleResults.openai, 'openai')} className="p-1.5 hover:bg-emerald-100 dark:hover:bg-emerald-900 rounded">{copiedText === 'openai' ? <Check size={14} /> : <Copy size={14} />}</button>}
-                             </div>
-                        </div>
-                        {loading ? <div className="text-sm italic text-emerald-400">Thinking...</div> : renderResultContent(battleResults?.openai)}
-                    </div>
-                </div>
-            )}
-
-
-            {/* Refine Results (Timeline OR Diff View) */}
-            {provider === 'refine' && (loading || refineSteps) && (
-                <div className="space-y-4 animate-in slide-in-from-bottom-2 fade-in">
-                    {loading && <div className="text-center text-sm font-bold text-amber-600 dark:text-amber-400 animate-pulse bg-amber-50 dark:bg-amber-900/20 py-2 rounded-lg">{statusMessage}</div>}
-                   
-                    {refineView === 'timeline' ? (
-                        <>
-                            {/* TIMELINE MODE */}
-                            {refineSteps?.draft && (
-                                <div className="p-4 bg-indigo-50/30 dark:bg-indigo-900/10 rounded-xl border border-indigo-100 dark:border-indigo-800">
-                                    <div className="flex items-center gap-2 text-xs font-bold uppercase text-indigo-500 mb-2">
-                                        <span className="bg-indigo-100 dark:bg-indigo-900/50 px-2 py-0.5 rounded text-indigo-700 dark:text-indigo-300">Step 1</span> Draft ({refineConfig.drafter === 'gemini' ? 'Gemini' : 'ChatGPT'})
-                                        <button onClick={() => handleSave(refineSteps.draft, 'Draft')} className="ml-auto p-1 hover:bg-indigo-200 dark:hover:bg-indigo-800 rounded"><Bookmark size={12}/></button>
-                                    </div>
-                                    <div className="text-sm text-slate-600 dark:text-slate-400 line-clamp-3 hover:line-clamp-none transition-all cursor-pointer overflow-hidden" title="Click to expand">
-                                        {renderResultContent(refineSteps.draft)}
-                                    </div>
-                                </div>
-                            )}
-                           
-                            {refineSteps?.critique && (
-                                <div className="flex flex-col items-center">
-                                    <div className="h-4 w-px bg-slate-300 dark:bg-slate-600 my-1"></div>
-                                    <div className="p-4 w-full bg-emerald-50/30 dark:bg-emerald-900/10 rounded-xl border border-emerald-100 dark:border-emerald-800">
-                                        <div className="flex items-center gap-2 text-xs font-bold uppercase text-emerald-500 mb-2">
-                                            <span className="bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 rounded text-emerald-700 dark:text-emerald-300">Step 2</span> Critique ({refineConfig.critiquer === 'gemini' ? 'Gemini' : 'ChatGPT'})
-                                            <button onClick={() => handleSave(refineSteps.critique, 'Critique')} className="ml-auto p-1 hover:bg-emerald-200 dark:hover:bg-emerald-800 rounded"><Bookmark size={12}/></button>
-                                        </div>
-                                        <div className="text-sm text-slate-600 dark:text-slate-400 italic">
-                                            {renderResultContent(refineSteps.critique)}
-                                        </div>
-                                    </div>
-                                    <div className="h-4 w-px bg-slate-300 dark:bg-slate-600 my-1"></div>
-                                </div>
-                            )}
-
-
-                            {refineSteps?.final && (
-                                <div className="p-5 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-slate-800 dark:to-slate-800 rounded-xl border-2 border-amber-200 dark:border-amber-700 shadow-lg relative">
-                                    <div className="flex items-center gap-2 text-sm font-bold uppercase text-amber-600 dark:text-amber-500 mb-3 border-b border-amber-200 dark:border-slate-700 pb-2">
-                                        <Sparkles size={16} /> Final Polish ({refineConfig.drafter === 'gemini' ? 'Gemini' : 'ChatGPT'})
-                                        <div className="ml-auto flex gap-1">
-                                            <button onClick={() => handleSave(refineSteps.final, 'Refine Final')} className="text-[10px] bg-white dark:bg-slate-700 border border-amber-200 dark:border-slate-600 px-2 py-1 rounded hover:bg-amber-50 transition-colors flex items-center gap-1">
-                                                {savedText === 'Refine Final' ? <Check size={12} /> : <Bookmark size={12} />} {savedText === 'Refine Final' ? 'Saved' : 'Save'}
-                                            </button>
-                                            <button onClick={() => copyToClipboard(refineSteps.final, 'final')} className="text-[10px] bg-white dark:bg-slate-700 border border-amber-200 dark:border-slate-600 px-2 py-1 rounded hover:bg-amber-50 transition-colors flex items-center gap-1">
-                                                {copiedText === 'final' ? <Check size={12} /> : <Copy size={12} />} {copiedText === 'final' ? 'Copied' : 'Copy'}
-                                            </button>
-                                        </div>
-                                    </div>
-                                    {renderResultContent(refineSteps.final)}
-                                </div>
-                            )}
-                        </>
-                    ) : (
-                        /* DIFF VIEW (Side by Side) */
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-[500px]">
-                            {/* Before Panel */}
-                             <div className="rounded-xl border border-red-200 dark:border-red-900 bg-red-50/30 dark:bg-red-900/10 p-4 flex flex-col h-full overflow-hidden">
-                                <div className="flex items-center gap-2 text-red-600 dark:text-red-400 font-bold mb-3 border-b border-red-200 dark:border-red-800 pb-2">
-                                     <MonitorPlay size={18} /> Original Draft
-                                     <button onClick={() => handleSave(refineSteps?.draft, 'Refine Draft')} className="ml-auto p-1.5 hover:bg-red-100 dark:hover:bg-red-900 rounded"><Bookmark size={14} /></button>
-                                </div>
-                                <div className="overflow-y-auto flex-1 text-xs text-slate-800 dark:text-slate-200 leading-relaxed font-mono">
-                                    {renderResultContent(refineSteps?.draft)}
-                                </div>
-                            </div>
-                           
-                            {/* After Panel */}
-                            <div className="rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50/30 dark:bg-emerald-900/10 p-4 flex flex-col h-full overflow-hidden">
-                                <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold mb-3 border-b border-emerald-200 dark:border-emerald-800 pb-2">
-                                     <Sparkles size={18} /> Final Polish
-                                     <div className="ml-auto flex gap-1">
-                                        <button onClick={() => handleSave(refineSteps?.final, 'Refine Final')} className="p-1.5 hover:bg-emerald-100 dark:hover:bg-emerald-900 rounded"><Bookmark size={14} /></button>
-                                        <button onClick={() => copyToClipboard(refineSteps?.final, 'final')} className="p-1.5 hover:bg-emerald-100 dark:hover:bg-emerald-900 rounded">{copiedText === 'final' ? <Check size={14} /> : <Copy size={14} />}</button>
-                                     </div>
-                                </div>
-                                <div className="overflow-y-auto flex-1 text-xs text-slate-800 dark:text-slate-200 leading-relaxed font-mono">
-                                    {renderResultContent(refineSteps?.final)}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            )}
-        </div>
-
-
-        {/* Footer */}
-        <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex justify-end gap-3">
-            <button onClick={onClose} className="px-4 py-2 text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 font-medium transition-colors">
-                Cancel
-            </button>
-            <button
-                onClick={handleRun}
-                disabled={loading || (viewMode === 'advanced' && (!geminiKey || !openaiKey)) || (viewMode === 'simple' && provider === 'gemini' && !geminiKey) || (viewMode === 'simple' && provider === 'openai' && !openaiKey) || ((provider === 'battle' || provider === 'refine') && (!geminiKey || !openaiKey))}
-                className={`px-6 py-2 text-white rounded-lg text-sm font-bold shadow-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95 ${provider === 'battle' ? 'bg-gradient-to-r from-indigo-600 to-emerald-600 hover:opacity-90' : (provider === 'refine' ? 'bg-gradient-to-r from-amber-500 to-orange-600' : (provider === 'openai' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-indigo-600 hover:bg-indigo-700'))}`}
-            >
-                {loading ? <Loader size={16} className="animate-spin" /> : (provider === 'battle' ? <Swords size={16} /> : (provider === 'refine' ? <GitCompare size={16} /> : <Play size={16} fill="currentColor" />))}
-                {provider === 'battle' ? 'Start Battle' : (provider === 'refine' ? 'Start Loop' : 'Run Test')}
-            </button>
-        </div>
-      </div>
-     
-      {/* --- CTO UPDATE: Render GitHub Modal at the top level --- */}
-      <GitHubModal
-          isOpen={showGithub}
-          onClose={() => setShowGithub(false)}
-          codeToPush={codeToShip}
-      />
-    </div>
-  );
-};
-
-
 export default TestRunnerModal;
-
