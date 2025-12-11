@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { X, Play, Key, Loader, Check, AlertTriangle, Terminal, Cpu, RefreshCw, Zap, Bot, Sparkles, Swords, GitCompare, Layers, MonitorPlay, Copy, ArrowRight, Target, Split, Bookmark } from 'lucide-react';
+import { X, Play, Key, Loader, Check, AlertTriangle, Terminal, Cpu, RefreshCw, Zap, Bot, Sparkles, Swords, GitCompare, Layers, MonitorPlay, Copy, ArrowRight, Target, Split, Bookmark, Github } from 'lucide-react';
+import GitHubModal from './GitHubModal'; 
 
 // --- INTERNAL COMPONENT: CODE BLOCK RENDERER ---
-const CodeBlock = ({ rawContent }) => {
+const CodeBlock = ({ rawContent, onShip }) => {
     const [copied, setCopied] = useState(false);
     
     // Clean up: remove the opening ```lang line and closing ```
-    // This regex looks for the first newline to strip the header, and removes the last line
     const cleanCode = rawContent.replace(/^```[a-z]*\n/i, '').replace(/```$/, '');
     
     // Extract language label if present (e.g. ```javascript)
@@ -23,13 +23,24 @@ const CodeBlock = ({ rawContent }) => {
         <div className="my-3 rounded-lg overflow-hidden bg-[#1e1e1e] border border-slate-700 shadow-sm relative group">
             <div className="flex justify-between items-center px-3 py-1.5 bg-[#252526] border-b border-slate-700">
                 <span className="text-[10px] uppercase font-bold text-slate-400 font-mono">{language}</span>
-                <button 
-                    onClick={handleCopy} 
-                    className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-white transition-colors"
-                >
-                    {copied ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
-                    {copied ? 'Copied' : 'Copy'}
-                </button>
+                <div className="flex items-center gap-3">
+                    {/* --- SHIP BUTTON --- */}
+                    <button 
+                        onClick={() => onShip(cleanCode)} 
+                        className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-white transition-colors"
+                        title="Push to GitHub"
+                    >
+                        <Github size={12} /> Ship
+                    </button>
+                    <div className="w-px h-3 bg-slate-600"></div>
+                    <button 
+                        onClick={handleCopy} 
+                        className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-white transition-colors"
+                    >
+                        {copied ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
+                        {copied ? 'Copy' : 'Copy'}
+                    </button>
+                </div>
             </div>
             <pre className="p-3 overflow-x-auto font-mono text-xs leading-5 text-[#d4d4d4]">
                 <code>{cleanCode}</code>
@@ -38,18 +49,21 @@ const CodeBlock = ({ rawContent }) => {
     );
 };
 
-// --- CTO UPDATE: Added onSaveSnippet prop ---
 const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippet }) => {
   // --- STATE ---
-  const [viewMode, setViewMode] = useState('simple'); // 'simple' (Single Model) | 'advanced' (Workflows)
-  const [provider, setProvider] = useState('gemini'); // 'gemini' | 'openai' | 'battle' | 'refine'
-  const [refineView, setRefineView] = useState('timeline'); // 'timeline' | 'diff'
+  const [viewMode, setViewMode] = useState('simple'); 
+  const [provider, setProvider] = useState('gemini'); 
+  const [refineView, setRefineView] = useState('timeline');
   
-  // CTO UPDATE: Configurable Refine Roles & Focus
+  // GitHub State
+  const [showGithub, setShowGithub] = useState(false);
+  const [codeToShip, setCodeToShip] = useState('');
+
+  // Refine Config
   const [refineConfig, setRefineConfig] = useState({ 
       drafter: 'gemini', 
       critiquer: 'openai',
-      focus: 'general' // 'general', 'security', 'performance', 'cleanliness', 'roast'
+      focus: 'general' 
   });
 
   // Keys
@@ -58,13 +72,13 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
   
   // Execution
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null); // Single result (Gemini/OpenAI/Refine Final)
-  const [battleResults, setBattleResults] = useState(null); // { gemini: '', openai: '' }
-  const [refineSteps, setRefineSteps] = useState(null); // { draft: '', critique: '', final: '' }
+  const [result, setResult] = useState(null); 
+  const [battleResults, setBattleResults] = useState(null); 
+  const [refineSteps, setRefineSteps] = useState(null); 
   const [statusMessage, setStatusMessage] = useState(''); 
   const [error, setError] = useState(null);
   const [copiedText, setCopiedText] = useState(null); 
-  const [savedText, setSavedText] = useState(null); // Track saved state
+  const [savedText, setSavedText] = useState(null); 
   
   // Models
   const [selectedModel, setSelectedModel] = useState(''); 
@@ -74,7 +88,6 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
   useEffect(() => {
     if (!isOpen) return;
 
-    // Load Keys
     if (defaultApiKey) setGeminiKey(defaultApiKey);
     else setGeminiKey(localStorage.getItem('craft_my_prompt_gemini_key') || '');
 
@@ -83,7 +96,6 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
     
   }, [isOpen, defaultApiKey, defaultOpenAIKey]);
 
-  // Auto-Fetch Gemini Models
   useEffect(() => {
       if (isOpen && geminiKey) fetchModels(geminiKey);
       // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -117,29 +129,23 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
       }
   };
 
-  // --- CTO UPDATE: Smart Format Parser ---
+  const handleShipCode = (code) => {
+      setCodeToShip(code);
+      setShowGithub(true);
+  };
+
   const renderResultContent = (text) => {
       if (!text) return null;
-
-      // Split text by code blocks (```...```)
       const parts = text.split(/(```[\s\S]*?```)/g);
 
       return (
           <div className="text-sm leading-relaxed text-slate-800 dark:text-slate-200">
               {parts.map((part, index) => {
                   if (part.startsWith('```')) {
-                      // Render Code Block Component
-                      return <CodeBlock key={index} rawContent={part} />;
+                      return <CodeBlock key={index} rawContent={part} onShip={handleShipCode} />;
                   }
-                  // Render regular text (with line breaks preserved)
-                  // Don't render empty strings resulting from split
                   if (!part.trim() && parts.length > 1) return null;
-                  
-                  return (
-                      <div key={index} className="whitespace-pre-wrap mb-2">
-                          {part}
-                      </div>
-                  );
+                  return <div key={index} className="whitespace-pre-wrap mb-2">{part}</div>;
               })}
           </div>
       );
@@ -153,7 +159,6 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
           if (data.models) {
               const validModels = data.models.filter(m => m.supportedGenerationMethods?.includes("generateContent"));
               setAvailableModels(validModels);
-              // Auto-Select Logic
               const currentExists = validModels.find(m => m.name === selectedModel);
               if (!selectedModel || !currentExists) {
                   const bestModel = validModels.find(m => m.name.includes('2.0-flash')) 
@@ -167,16 +172,12 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
       }
   };
 
-  // --- GENERIC API HANDLER ---
+  // --- API HANDLERS ---
   const callAIProvider = async (providerName, promptText, key) => {
-      if (providerName === 'gemini') {
-          return await callGemini(promptText, key, selectedModel);
-      } else {
-          return await callOpenAI(promptText, key);
-      }
+      if (providerName === 'gemini') return await callGemini(promptText, key, selectedModel);
+      else return await callOpenAI(promptText, key);
   };
 
-  // --- API CALLS ---
   const callGemini = async (promptText, key, model) => {
       const targetModel = model || 'models/gemini-1.5-flash';
       const modelPath = targetModel.startsWith('models/') ? targetModel : `models/${targetModel}`;
@@ -212,17 +213,14 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
 
     try {
         if (provider === 'refine') {
-            // Check keys for selected providers
             if (refineConfig.drafter === 'gemini' && !geminiKey) throw new Error("Gemini API Key missing for Drafter.");
             if (refineConfig.drafter === 'openai' && !openaiKey) throw new Error("OpenAI API Key missing for Drafter.");
             if (refineConfig.critiquer === 'gemini' && !geminiKey) throw new Error("Gemini API Key missing for Critiquer.");
             if (refineConfig.critiquer === 'openai' && !openaiKey) throw new Error("OpenAI API Key missing for Critiquer.");
 
-            // Save keys
             if (geminiKey) saveKey(geminiKey, 'gemini');
             if (openaiKey) saveKey(openaiKey, 'openai');
 
-            // --- STEP 1: DRAFT ---
             const drafterName = refineConfig.drafter === 'gemini' ? 'Gemini' : 'ChatGPT';
             setStatusMessage(`Step 1/3: ${drafterName} is drafting...`);
             
@@ -231,13 +229,11 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
             
             setRefineSteps({ draft, critique: null, final: null });
 
-            // --- STEP 2: CRITIQUE ---
             const critiquerName = refineConfig.critiquer === 'gemini' ? 'Gemini' : 'ChatGPT';
             setStatusMessage(`Step 2/3: ${critiquerName} is critiquing...`);
             
             const critiquerKey = refineConfig.critiquer === 'gemini' ? geminiKey : openaiKey;
             
-            // Construct Critique Prompt based on Focus
             const focusMap = {
                 'general': 'General Improvements & Clarity',
                 'security': 'Security Vulnerabilities & Safety',
@@ -253,13 +249,12 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
             
             setRefineSteps({ draft, critique, final: null });
 
-            // --- STEP 3: POLISH (Back to Drafter) ---
             setStatusMessage(`Step 3/3: ${drafterName} is polishing...`);
             const polishPrompt = `Rewrite the original input below to address the critique points. Keep the tone professional but implement the fixes.\n\nORIGINAL:\n${draft}\n\nCRITIQUE:\n${critique}`;
             const final = await callAIProvider(refineConfig.drafter, polishPrompt, drafterKey);
             
             setRefineSteps({ draft, critique, final });
-            setResult(final); // Final result to display if needed
+            setResult(final); 
 
         } else if (provider === 'battle') {
             if (!geminiKey || !openaiKey) throw new Error("Both API Keys are required.");
@@ -485,7 +480,6 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                             <div className={`flex items-center gap-2 text-xs font-bold uppercase mb-2 ${provider === 'openai' ? 'text-emerald-600' : 'text-indigo-600'}`}>
                                 <Check size={14} /> Result
                                 <div className="ml-auto flex items-center gap-2">
-                                     {/* SAVE BUTTON */}
                                      <button onClick={() => handleSave(result, 'Single Result')} className="text-[10px] bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors flex items-center gap-1">
                                         {savedText === 'Single Result' ? <Check size={10} className="text-emerald-500" /> : <Bookmark size={10} />} {savedText === 'Single Result' ? 'Saved' : 'Save'}
                                     </button>
@@ -627,6 +621,13 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
             </button>
         </div>
       </div>
+      
+      {/* --- CTO UPDATE: Render GitHub Modal at the top level --- */}
+      <GitHubModal 
+          isOpen={showGithub} 
+          onClose={() => setShowGithub(false)} 
+          codeToPush={codeToShip} 
+      />
     </div>
   );
 };
