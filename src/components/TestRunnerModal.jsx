@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Play, Key, Loader, Check, AlertTriangle, Terminal, Cpu, RefreshCw, Zap, Bot, Sparkles, Swords, GitCompare, Layers, MonitorPlay, Copy, ArrowRight, Target, Split, Bookmark, Github } from 'lucide-react';
+import { X, Play, Key, Loader, Check, AlertTriangle, Terminal, Cpu, RefreshCw, Zap, Bot, Sparkles, Swords, GitCompare, Layers, MonitorPlay, Copy, ArrowRight, Target, Split, Bookmark, Github, ShieldCheck } from 'lucide-react';
 import GitHubModal from './GitHubModal';
 
 
@@ -97,13 +97,21 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
     if (!isOpen) return;
 
 
-    // Load Keys
-    if (defaultApiKey) setGeminiKey(defaultApiKey);
-    else setGeminiKey(localStorage.getItem('craft_my_prompt_gemini_key') || '');
+    // Load Keys (Prioritize Props, Fallback to LocalStorage)
+    if (defaultApiKey) {
+        setGeminiKey(defaultApiKey);
+    } else {
+        const saved = localStorage.getItem('craft_my_prompt_gemini_key');
+        if (saved) setGeminiKey(saved);
+    }
 
 
-    if (defaultOpenAIKey) setOpenaiKey(defaultOpenAIKey);
-    else setOpenaiKey(localStorage.getItem('craft_my_prompt_openai_key') || '');
+    if (defaultOpenAIKey) {
+        setOpenaiKey(defaultOpenAIKey);
+    } else {
+        const saved = localStorage.getItem('craft_my_prompt_openai_key');
+        if (saved) setOpenaiKey(saved);
+    }
    
   }, [isOpen, defaultApiKey, defaultOpenAIKey]);
 
@@ -119,7 +127,10 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
   const saveKey = (key, providerName) => {
       const storageKey = `craft_my_prompt_${providerName}_key`;
       const defaultKey = providerName === 'gemini' ? defaultApiKey : defaultOpenAIKey;
-      if (key.trim() && key !== defaultKey) localStorage.setItem(storageKey, key.trim());
+      // Only save if it's NOT the global key (don't save empty or default strings)
+      if (key && key.trim() && key !== defaultKey) {
+          localStorage.setItem(storageKey, key.trim());
+      }
   };
 
 
@@ -497,6 +508,13 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
 
             {/* API Keys (Context Aware) */}
             <div className="space-y-3 p-4 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800">
+                {/* Security Note - CTO UPDATE */}
+                <div className="flex items-center gap-2 text-xs text-slate-400 mb-2">
+                    <ShieldCheck size={12} className="text-emerald-500" />
+                    <span>Keys are stored locally on your device for security.</span>
+                </div>
+
+
                 {/* Gemini Input */}
                 {(provider === 'gemini' || provider === 'battle' || (provider === 'refine' && (refineConfig.drafter === 'gemini' || refineConfig.critiquer === 'gemini'))) && (
                     <div className="flex flex-col gap-2">
@@ -703,25 +721,24 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
             <button
                 onClick={handleRun}
                 disabled={loading || (viewMode === 'advanced' && (!geminiKey || !openaiKey)) || (viewMode === 'simple' && provider === 'gemini' && !geminiKey) || (viewMode === 'simple' && provider === 'openai' && !openaiKey) || ((provider === 'battle' || provider === 'refine') && (!geminiKey || !openaiKey))}
-            className={`px-6 py-2 text-white rounded-lg text-sm font-bold shadow-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95 ${provider === 'battle' ? 'bg-gradient-to-r from-indigo-600 to-emerald-600 hover:opacity-90' : (provider === 'refine' ? 'bg-gradient-to-r from-amber-500 to-orange-600' : (provider === 'openai' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-indigo-600 hover:bg-indigo-700'))}`}
-        >
-            {loading ? <Loader size={16} className="animate-spin" /> : (provider === 'battle' ? <Swords size={16} /> : (provider === 'refine' ? <GitCompare size={16} /> : <Play size={16} fill="currentColor" />))}
-            {provider === 'battle' ? 'Start Battle' : (provider === 'refine' ? 'Start Loop' : 'Run Test')}
-        </button>
+                className={`px-6 py-2 text-white rounded-lg text-sm font-bold shadow-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95 ${provider === 'battle' ? 'bg-gradient-to-r from-indigo-600 to-emerald-600 hover:opacity-90' : (provider === 'refine' ? 'bg-gradient-to-r from-amber-500 to-orange-600' : (provider === 'openai' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-indigo-600 hover:bg-indigo-700'))}`}
+            >
+                {loading ? <Loader size={16} className="animate-spin" /> : (provider === 'battle' ? <Swords size={16} /> : (provider === 'refine' ? <GitCompare size={16} /> : <Play size={16} fill="currentColor" />))}
+                {provider === 'battle' ? 'Start Battle' : (provider === 'refine' ? 'Start Loop' : 'Run Test')}
+            </button>
+        </div>
+      </div>
+     
+      {/* --- CTO UPDATE: Render GitHub Modal at the top level --- */}
+      <GitHubModal
+          isOpen={showGithub}
+          onClose={() => setShowGithub(false)}
+          codeToPush={codeToShip}
+      />
     </div>
-  </div>
-  
-  {/* --- CTO UPDATE: Render GitHub Modal at the top level --- */}
-  <GitHubModal 
-      isOpen={showGithub} 
-      onClose={() => setShowGithub(false)} 
-      codeToPush={codeToShip} 
-  />
-</div>
+  );
+};
 
 
-); };
 export default TestRunnerModal;
-
-
 
