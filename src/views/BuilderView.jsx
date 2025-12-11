@@ -5,7 +5,7 @@ import {
   Sparkles, MessageSquare, Palette, Command, Search, Dices, 
   Brain, XCircle, ImagePlus, Ban, Cpu, Wand2, Code, 
   ChevronDown, FileText, Zap, RefreshCw, Check, Copy as CopyIcon, 
-  Lock, Globe, Save, UserCircle, Braces, Play, ArrowLeft, Sliders, Terminal, Bookmark, Video 
+  Lock, Globe, Save, UserCircle, Braces, Play, ArrowLeft, Sliders, Terminal, Bookmark, Video, Download 
 } from 'lucide-react';
 
 import { db, auth, APP_ID } from '../lib/firebase.js';
@@ -34,6 +34,10 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
   // --- STATE: Custom Presets & Mobile Tab ---
   const [customPresets, setCustomPresets] = useState([]);
   const [mobileTab, setMobileTab] = useState('edit');
+  
+  // --- CTO UPDATE: Context Fetching State ---
+  const [contextUrl, setContextUrl] = useState('');
+  const [isFetchingContext, setIsFetchingContext] = useState(false);
 
   const globalApiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
   const globalOpenAIKey = import.meta.env.VITE_OPENAI_API_KEY || ''; 
@@ -67,6 +71,39 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
   }, [user]);
 
   // --- HANDLERS ---
+  
+  // --- CTO UPDATE: Handle Fetch Context ---
+  const handleFetchContext = async () => {
+      if (!contextUrl) return;
+      setIsFetchingContext(true);
+      
+      try {
+          // We call our own Vercel API route to bypass CORS restrictions
+          const response = await fetch('/api/fetch-context', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ url: contextUrl })
+          });
+
+          if (!response.ok) throw new Error("Failed to fetch content");
+          
+          const data = await response.json();
+          
+          // Append the new content to the existing code context
+          const header = `\n// --- IMPORTED FROM: ${contextUrl} ---\n`;
+          const newContent = (state.codeContext || '') + header + data.content;
+          
+          dispatch({ type: 'UPDATE_FIELD', field: 'codeContext', value: newContent });
+          setContextUrl(''); // Clear input
+          showToast("Context imported successfully!");
+      } catch (error) {
+          console.error(error);
+          showToast("Failed to fetch URL. Ensure it's public.", "error");
+      } finally {
+          setIsFetchingContext(false);
+      }
+  };
+
   const handleTestClick = () => {
       if (!user) {
           showToast("Please log in to use the Test Runner.", "error");
@@ -385,12 +422,32 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
 
                     {state.mode === 'text' && state.textSubMode === 'coding' && (
                         <div className="bg-slate-900 rounded-xl p-4 border border-slate-700 shadow-sm animate-in slide-in-from-top-2 fade-in">
-                            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2"><Terminal size={14} /> Code Context</h3>
+                            <div className="flex justify-between items-center mb-2">
+                                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2"><Terminal size={14} /> Code Context</h3>
+                                {/* --- CTO UPDATE: FETCH URL INPUT --- */}
+                                <div className="flex items-center gap-2 bg-slate-800 p-1 rounded-lg">
+                                    <Globe size={12} className="text-indigo-400 ml-1" />
+                                    <input 
+                                        type="text" 
+                                        placeholder="Fetch URL..." 
+                                        value={contextUrl}
+                                        onChange={(e) => setContextUrl(e.target.value)}
+                                        className="bg-transparent border-none text-xs text-slate-200 w-32 focus:w-64 transition-all focus:outline-none placeholder-slate-600"
+                                    />
+                                    <button 
+                                        onClick={handleFetchContext} 
+                                        disabled={isFetchingContext || !contextUrl}
+                                        className="bg-indigo-600 hover:bg-indigo-500 text-white rounded p-1 transition-colors disabled:opacity-50"
+                                    >
+                                        {isFetchingContext ? <RefreshCw size={12} className="animate-spin" /> : <Download size={12} />}
+                                    </button>
+                                </div>
+                            </div>
                             <textarea className="w-full p-3 bg-slate-950 text-slate-200 rounded-lg border border-slate-800 focus:ring-1 focus:ring-indigo-500 outline-none resize-none text-xs font-mono leading-relaxed placeholder-slate-600" rows={5} placeholder="// Paste your broken code or current file content here..." value={state.codeContext} onChange={(e) => dispatch({ type: 'UPDATE_FIELD', field: 'codeContext', value: e.target.value })} />
                         </div>
                     )}
 
-                    {/* --- CTO UPDATE: VIDEO MODE INPUTS --- */}
+                    {/* --- VIDEO MODE INPUTS --- */}
                     {state.mode === 'video' && (
                          <div className="space-y-4 animate-in slide-in-from-top-4 fade-in">
                             <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700">
@@ -415,6 +472,7 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                         </div>
                     )}
 
+                    {/* ART INPUTS */}
                     {state.mode === 'art' && (
                         <div className="space-y-4 animate-in slide-in-from-top-4 fade-in">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -461,7 +519,7 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                     )}
                  </div>
 
-                 {/* CATEGORY GRID (2 Columns on Large Screens) */}
+                 {/* CATEGORY GRID */}
                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                     {filteredData.map((category) => (
                         <div key={category.id} className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden h-fit">
@@ -486,7 +544,6 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                                                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                                         {optionsToShow.map((option) => {
                                                             const isSelected = state.selections[category.id]?.find(i => i.value === option);
-                                                            // USE STYLE PREVIEW
                                                             const previewUrl = STYLE_PREVIEWS[option] || `https://placehold.co/100x100/${isSelected ? 'pink' : 'e2e8f0'}/white?text=${option.charAt(0)}`;
                                                             const opacityClass = STYLE_PREVIEWS[option] ? 'opacity-70' : 'opacity-20';
                                                             
@@ -510,7 +567,7 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                                                         const isSelected = !!selectionItem;
                                                         return (
                                                             <div key={option} className="flex items-center">
-                                                                <button onClick={() => toggleSelection(category.id, option)} className={`px-2.5 py-1 rounded-md text-xs border transition-all ${isSelected ? (state.mode === 'text' ? 'bg-indigo-600 border-indigo-600 text-white' : (state.mode === 'video' ? 'bg-purple-600 border-purple-600 text-white' : 'bg-pink-600 border-pink-600 text-white')) : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:border-slate-300'}`}>{option}</button>
+                                                                <button onClick={() => toggleSelection(category.id, option)} className={`px-2.5 py-1 rounded-md text-xs border transition-all ${isSelected ? (state.mode === 'text' ? 'bg-indigo-600 border-indigo-600 text-white' : (state.mode === 'video' ? 'bg-purple-600 border-purple-600 text-white' : 'bg-pink-600 border-pink-600 text-white')) : 'bg-white dark:bg-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:border-slate-300'}`}>{option}</button>
                                                                 {isSelected && state.mode === 'art' && category.id !== 'params' && state.targetModel !== 'dalle' && state.targetModel !== 'gemini' && (
                                                                     <div className="ml-2 flex items-center gap-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-md px-2 py-0.5 animate-in slide-in-from-left-2 fade-in duration-200">
                                                                         <span className="text-[9px] text-slate-400 font-bold">W:</span>
