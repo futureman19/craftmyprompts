@@ -1,17 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { X, Play, Key, Loader, Check, AlertTriangle, Terminal, Cpu, RefreshCw, Zap, Bot, Sparkles, Swords, GitCompare, Layers, MonitorPlay, Copy, ArrowRight, Target, Split, Bookmark, Github } from 'lucide-react';
-import GitHubModal from './GitHubModal'; 
+import GitHubModal from './GitHubModal';
+
 
 // --- INTERNAL COMPONENT: CODE BLOCK RENDERER ---
 const CodeBlock = ({ rawContent, onShip }) => {
     const [copied, setCopied] = useState(false);
-    
+   
     // Clean up: remove the opening ```lang line and closing ```
+    // This regex looks for the first newline to strip the header, and removes the last line
     const cleanCode = rawContent.replace(/^```[a-z]*\n/i, '').replace(/```$/, '');
-    
+   
     // Extract language label if present (e.g. ```javascript)
     const match = rawContent.match(/^```([a-z]+)/i);
     const language = match ? match[1] : 'Code';
+
 
     const handleCopy = () => {
         navigator.clipboard.writeText(cleanCode);
@@ -19,22 +22,23 @@ const CodeBlock = ({ rawContent, onShip }) => {
         setTimeout(() => setCopied(false), 2000);
     };
 
+
     return (
         <div className="my-3 rounded-lg overflow-hidden bg-[#1e1e1e] border border-slate-700 shadow-sm relative group">
             <div className="flex justify-between items-center px-3 py-1.5 bg-[#252526] border-b border-slate-700">
                 <span className="text-[10px] uppercase font-bold text-slate-400 font-mono">{language}</span>
                 <div className="flex items-center gap-3">
                     {/* --- SHIP BUTTON --- */}
-                    <button 
-                        onClick={() => onShip(cleanCode)} 
+                    <button
+                        onClick={() => onShip(cleanCode)}
                         className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-white transition-colors"
                         title="Push to GitHub"
                     >
                         <Github size={12} /> Ship
                     </button>
                     <div className="w-px h-3 bg-slate-600"></div>
-                    <button 
-                        onClick={handleCopy} 
+                    <button
+                        onClick={handleCopy}
                         className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-white transition-colors"
                     >
                         {copied ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
@@ -49,57 +53,67 @@ const CodeBlock = ({ rawContent, onShip }) => {
     );
 };
 
+
 const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippet }) => {
   // --- STATE ---
-  const [viewMode, setViewMode] = useState('simple'); 
-  const [provider, setProvider] = useState('gemini'); 
-  const [refineView, setRefineView] = useState('timeline');
-  
+  const [viewMode, setViewMode] = useState('simple'); // 'simple' (Single Model) | 'advanced' (Workflows)
+  const [provider, setProvider] = useState('gemini'); // 'gemini' | 'openai' | 'battle' | 'refine'
+  const [refineView, setRefineView] = useState('timeline'); // 'timeline' | 'diff'
+ 
   // GitHub State
   const [showGithub, setShowGithub] = useState(false);
   const [codeToShip, setCodeToShip] = useState('');
 
+
   // Refine Config
-  const [refineConfig, setRefineConfig] = useState({ 
-      drafter: 'gemini', 
+  const [refineConfig, setRefineConfig] = useState({
+      drafter: 'gemini',
       critiquer: 'openai',
-      focus: 'general' 
+      focus: 'general' // 'general', 'security', 'performance', 'cleanliness', 'roast'
   });
+
 
   // Keys
   const [geminiKey, setGeminiKey] = useState('');
   const [openaiKey, setOpenaiKey] = useState('');
-  
+ 
   // Execution
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null); 
-  const [battleResults, setBattleResults] = useState(null); 
-  const [refineSteps, setRefineSteps] = useState(null); 
-  const [statusMessage, setStatusMessage] = useState(''); 
+  const [result, setResult] = useState(null); // Single result (Gemini/OpenAI/Refine Final)
+  const [battleResults, setBattleResults] = useState(null); // { gemini: '', openai: '' }
+  const [refineSteps, setRefineSteps] = useState(null); // { draft: '', critique: '', final: '' }
+  const [statusMessage, setStatusMessage] = useState('');
   const [error, setError] = useState(null);
-  const [copiedText, setCopiedText] = useState(null); 
-  const [savedText, setSavedText] = useState(null); 
-  
+  const [copiedText, setCopiedText] = useState(null);
+  const [savedText, setSavedText] = useState(null); // Track saved state
+ 
   // Models
-  const [selectedModel, setSelectedModel] = useState(''); 
+  const [selectedModel, setSelectedModel] = useState('');
   const [availableModels, setAvailableModels] = useState([]);
+
 
   // --- INITIALIZATION ---
   useEffect(() => {
     if (!isOpen) return;
 
+
+    // Load Keys
     if (defaultApiKey) setGeminiKey(defaultApiKey);
     else setGeminiKey(localStorage.getItem('craft_my_prompt_gemini_key') || '');
 
+
     if (defaultOpenAIKey) setOpenaiKey(defaultOpenAIKey);
     else setOpenaiKey(localStorage.getItem('craft_my_prompt_openai_key') || '');
-    
+   
   }, [isOpen, defaultApiKey, defaultOpenAIKey]);
 
+
+  // Auto-Fetch Gemini Models
   useEffect(() => {
       if (isOpen && geminiKey) fetchModels(geminiKey);
       // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, geminiKey]);
+
 
   // --- HELPERS ---
   const saveKey = (key, providerName) => {
@@ -108,6 +122,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
       if (key.trim() && key !== defaultKey) localStorage.setItem(storageKey, key.trim());
   };
 
+
   const clearKey = (providerName) => {
       const storageKey = `craft_my_prompt_${providerName}_key`;
       localStorage.removeItem(storageKey);
@@ -115,11 +130,13 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
       else setOpenaiKey('');
   };
 
+
   const copyToClipboard = (text, label) => {
       navigator.clipboard.writeText(text);
       setCopiedText(label);
       setTimeout(() => setCopiedText(null), 2000);
   };
+
 
   const handleSave = (text, label) => {
       if (onSaveSnippet) {
@@ -129,40 +146,72 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
       }
   };
 
+
   const handleShipCode = (code) => {
       setCodeToShip(code);
       setShowGithub(true);
   };
 
+
+  // --- FORMAT PARSER ---
   const renderResultContent = (text) => {
       if (!text) return null;
+
+
+      // Split text by code blocks (```...```)
       const parts = text.split(/(```[\s\S]*?```)/g);
+
 
       return (
           <div className="text-sm leading-relaxed text-slate-800 dark:text-slate-200">
               {parts.map((part, index) => {
                   if (part.startsWith('```')) {
+                      // Render Code Block Component
                       return <CodeBlock key={index} rawContent={part} onShip={handleShipCode} />;
                   }
+                  // Render regular text (with line breaks preserved)
                   if (!part.trim() && parts.length > 1) return null;
-                  return <div key={index} className="whitespace-pre-wrap mb-2">{part}</div>;
+                 
+                  return (
+                      <div key={index} className="whitespace-pre-wrap mb-2">
+                          {part}
+                      </div>
+                  );
               })}
           </div>
       );
   };
 
+
   const fetchModels = async (keyToUse = geminiKey) => {
       if (!keyToUse) return;
       try {
-          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${keyToUse}`);
+          const response = await fetch('/api/gemini', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  apiKey: keyToUse,
+                  endpoint: 'listModels'
+              })
+          });
+
+
           const data = await response.json();
+         
+          if (!response.ok) {
+              console.error("Model fetch error:", data.error);
+              return;
+          }
+
+
           if (data.models) {
               const validModels = data.models.filter(m => m.supportedGenerationMethods?.includes("generateContent"));
               setAvailableModels(validModels);
+              // Auto-Select Logic
               const currentExists = validModels.find(m => m.name === selectedModel);
               if (!selectedModel || !currentExists) {
-                  const bestModel = validModels.find(m => m.name.includes('2.0-flash')) 
-                                 || validModels.find(m => m.name.includes('flash')) 
+                  const bestModel = validModels.find(m => m.name.includes('2.0-flash'))
+                                 || validModels.find(m => m.name.includes('flash'))
                                  || validModels[0];
                   if (bestModel) setSelectedModel(bestModel.name);
               }
@@ -172,24 +221,35 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
       }
   };
 
+
   // --- API HANDLERS ---
   const callAIProvider = async (providerName, promptText, key) => {
       if (providerName === 'gemini') return await callGemini(promptText, key, selectedModel);
       else return await callOpenAI(promptText, key);
   };
 
+
   const callGemini = async (promptText, key, model) => {
       const targetModel = model || 'models/gemini-1.5-flash';
-      const modelPath = targetModel.startsWith('models/') ? targetModel : `models/${targetModel}`;
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/${modelPath}:generateContent?key=${key}`, {
+      const response = await fetch('/api/gemini', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
+          body: JSON.stringify({
+              apiKey: key,
+              prompt: promptText,
+              model: targetModel
+          })
       });
+
+
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error?.message || `Gemini Error (${response.status})`);
-      return data.candidates?.[0]?.content?.parts?.[0]?.text || "No text returned.";
+     
+      if (!response.ok) throw new Error(data.error || `Gemini Error (${response.status})`);
+     
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      return text || "No text returned from Gemini.";
   };
+
 
   const callOpenAI = async (promptText, key) => {
       const response = await fetch('/api/openai', {
@@ -202,6 +262,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
       return data.choices?.[0]?.message?.content || "No text returned.";
   };
 
+
   // --- MAIN RUN HANDLER ---
   const handleRun = async () => {
     setLoading(true);
@@ -211,29 +272,38 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
     setRefineSteps(null);
     setStatusMessage('');
 
+
     try {
         if (provider === 'refine') {
+            // Check keys for selected providers
             if (refineConfig.drafter === 'gemini' && !geminiKey) throw new Error("Gemini API Key missing for Drafter.");
             if (refineConfig.drafter === 'openai' && !openaiKey) throw new Error("OpenAI API Key missing for Drafter.");
             if (refineConfig.critiquer === 'gemini' && !geminiKey) throw new Error("Gemini API Key missing for Critiquer.");
             if (refineConfig.critiquer === 'openai' && !openaiKey) throw new Error("OpenAI API Key missing for Critiquer.");
 
+
+            // Save keys
             if (geminiKey) saveKey(geminiKey, 'gemini');
             if (openaiKey) saveKey(openaiKey, 'openai');
 
+
+            // --- STEP 1: DRAFT ---
             const drafterName = refineConfig.drafter === 'gemini' ? 'Gemini' : 'ChatGPT';
             setStatusMessage(`Step 1/3: ${drafterName} is drafting...`);
-            
+           
             const drafterKey = refineConfig.drafter === 'gemini' ? geminiKey : openaiKey;
             const draft = await callAIProvider(refineConfig.drafter, prompt, drafterKey);
-            
+           
             setRefineSteps({ draft, critique: null, final: null });
 
+
+            // --- STEP 2: CRITIQUE ---
             const critiquerName = refineConfig.critiquer === 'gemini' ? 'Gemini' : 'ChatGPT';
             setStatusMessage(`Step 2/3: ${critiquerName} is critiquing...`);
-            
+           
             const critiquerKey = refineConfig.critiquer === 'gemini' ? geminiKey : openaiKey;
-            
+           
+            // Construct Critique Prompt based on Focus
             const focusMap = {
                 'general': 'General Improvements & Clarity',
                 'security': 'Security Vulnerabilities & Safety',
@@ -242,19 +312,22 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                 'roast': 'Roast this code (Humorous but harsh logic check)'
             };
             const focusText = focusMap[refineConfig.focus] || 'General Improvements';
-            
+           
             const critiquePrompt = `Act as a Senior Technical Lead specialized in ${focusText}. Review the following text/code. List 3 specific, actionable improvements strictly focusing on ${refineConfig.focus}.\n\nINPUT:\n${draft}`;
-            
+           
             const critique = await callAIProvider(refineConfig.critiquer, critiquePrompt, critiquerKey);
-            
+           
             setRefineSteps({ draft, critique, final: null });
 
+
+            // --- STEP 3: POLISH (Back to Drafter) ---
             setStatusMessage(`Step 3/3: ${drafterName} is polishing...`);
             const polishPrompt = `Rewrite the original input below to address the critique points. Keep the tone professional but implement the fixes.\n\nORIGINAL:\n${draft}\n\nCRITIQUE:\n${critique}`;
             const final = await callAIProvider(refineConfig.drafter, polishPrompt, drafterKey);
-            
+           
             setRefineSteps({ draft, critique, final });
-            setResult(final); 
+            setResult(final); // Final result to display if needed
+
 
         } else if (provider === 'battle') {
             if (!geminiKey || !openaiKey) throw new Error("Both API Keys are required.");
@@ -269,12 +342,14 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                 openai: openaiRes.status === 'fulfilled' ? openaiRes.value : `Error: ${openaiRes.reason.message}`
             });
 
+
         } else if (provider === 'gemini') {
             if (!geminiKey) throw new Error("Gemini Key missing.");
             saveKey(geminiKey, 'gemini');
             setStatusMessage('Gemini is thinking...');
             const text = await callGemini(prompt, geminiKey, selectedModel);
             setResult(text);
+
 
         } else if (provider === 'openai') {
             if (!openaiKey) throw new Error("OpenAI Key missing.");
@@ -291,6 +366,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
     }
   };
 
+
   // --- UI HANDLERS ---
   const handleViewChange = (mode) => {
       setViewMode(mode);
@@ -298,15 +374,18 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
       if (mode === 'advanced') setProvider('battle');
   };
 
+
   if (!isOpen) return null;
+
 
   const isUsingGlobalGemini = defaultApiKey && geminiKey === defaultApiKey;
   const isUsingGlobalOpenAI = defaultOpenAIKey && openaiKey === defaultOpenAIKey;
 
+
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200">
       <div className={`bg-white dark:bg-slate-900 w-full rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 flex flex-col max-h-[90vh] overflow-hidden transition-all duration-300 ${provider === 'battle' || provider === 'refine' ? 'max-w-6xl' : 'max-w-2xl'}`}>
-        
+       
         {/* Header with Two-Tier Nav */}
         <div className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
             <div className="p-4 flex justify-between items-center">
@@ -315,17 +394,17 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                 </h3>
                 <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><X size={20} /></button>
             </div>
-            
+           
             {/* TIER 1: MODE SELECTOR */}
             <div className="flex px-4 gap-6 text-sm font-medium text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
-                <button 
-                    onClick={() => handleViewChange('simple')} 
+                <button
+                    onClick={() => handleViewChange('simple')}
                     className={`pb-3 border-b-2 transition-all flex items-center gap-2 ${viewMode === 'simple' ? 'text-indigo-600 dark:text-indigo-400 border-indigo-600 dark:border-indigo-400' : 'border-transparent hover:text-slate-700 dark:hover:text-slate-200'}`}
                 >
                     <MonitorPlay size={16} /> Individual Run
                 </button>
-                <button 
-                    onClick={() => handleViewChange('advanced')} 
+                <button
+                    onClick={() => handleViewChange('advanced')}
                     className={`pb-3 border-b-2 transition-all flex items-center gap-2 ${viewMode === 'advanced' ? 'text-amber-600 dark:text-amber-400 border-amber-600 dark:border-amber-400' : 'border-transparent hover:text-slate-700 dark:hover:text-slate-200'}`}
                 >
                     <Layers size={16} /> Orchestrator
@@ -333,9 +412,10 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
             </div>
         </div>
 
+
         {/* Content */}
         <div className="p-6 overflow-y-auto flex-1 space-y-6">
-            
+           
             {/* TIER 2: TOOL SELECTOR */}
             {viewMode === 'simple' ? (
                 <div className="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-lg">
@@ -348,7 +428,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                     <button onClick={() => setProvider('refine')} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-sm font-bold transition-all ${provider === 'refine' ? 'bg-white dark:bg-slate-800 shadow text-orange-600 dark:text-orange-400' : 'text-amber-700/50 dark:text-amber-500/50 hover:text-amber-700'}`}><GitCompare size={16} /> Refine (Loop)</button>
                 </div>
             )}
-            
+           
             {/* Refine Configuration Panel */}
             {provider === 'refine' && (
                 <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-100 dark:border-amber-800/50 animate-in fade-in space-y-4">
@@ -365,7 +445,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                          )}
                          <div className="flex items-center gap-2">
                             <Target size={14} className="text-amber-500" />
-                            <select 
+                            <select
                                 value={refineConfig.focus}
                                 onChange={(e) => setRefineConfig(prev => ({ ...prev, focus: e.target.value }))}
                                 className="text-xs p-1 rounded border border-amber-200 dark:border-amber-800 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-amber-500"
@@ -378,11 +458,11 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                             </select>
                          </div>
                     </div>
-                    
+                   
                     <div className="flex items-center gap-2">
                         <div className="flex-1">
                             <label className="text-[10px] text-amber-500 font-bold uppercase block mb-1">Drafter</label>
-                            <select 
+                            <select
                                 value={refineConfig.drafter}
                                 onChange={(e) => setRefineConfig(prev => ({ ...prev, drafter: e.target.value }))}
                                 className="w-full text-sm p-2 rounded-lg border border-amber-200 dark:border-amber-800 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-amber-500"
@@ -394,7 +474,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                         <ArrowRight size={20} className="text-amber-300 mt-5" />
                         <div className="flex-1">
                             <label className="text-[10px] text-amber-500 font-bold uppercase block mb-1">Critiquer</label>
-                            <select 
+                            <select
                                 value={refineConfig.critiquer}
                                 onChange={(e) => setRefineConfig(prev => ({ ...prev, critiquer: e.target.value }))}
                                 className="w-full text-sm p-2 rounded-lg border border-amber-200 dark:border-amber-800 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-amber-500"
@@ -413,6 +493,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                     </div>
                 </div>
             )}
+
 
             {/* API Keys (Context Aware) */}
             <div className="space-y-3 p-4 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800">
@@ -438,9 +519,10 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                         )}
                     </div>
                 )}
-                
+               
                 {/* Separator for Advanced Mode */}
                 {viewMode === 'advanced' && <div className="h-px bg-slate-200 dark:bg-slate-800 w-full my-1"></div>}
+
 
                 {/* OpenAI Input */}
                 {(provider === 'openai' || provider === 'battle' || (provider === 'refine' && (refineConfig.drafter === 'openai' || refineConfig.critiquer === 'openai'))) && (
@@ -458,6 +540,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                 )}
             </div>
 
+
             {/* Prompt Preview */}
             {(!battleResults && !refineSteps && !result) && (
                 <div className="space-y-1">
@@ -466,8 +549,9 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                 </div>
             )}
 
+
             {/* --- RESULTS DISPLAY --- */}
-            
+           
             {/* Single Result */}
             {(result || error || (loading && viewMode === 'simple')) && (
                 <div className={`rounded-xl border p-4 animate-in slide-in-from-bottom-2 fade-in ${error ? 'bg-red-50 border-red-100 dark:bg-red-900/10 dark:border-red-800' : 'bg-slate-50 border-slate-200 dark:bg-slate-800/50 dark:border-slate-700'}`}>
@@ -480,6 +564,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                             <div className={`flex items-center gap-2 text-xs font-bold uppercase mb-2 ${provider === 'openai' ? 'text-emerald-600' : 'text-indigo-600'}`}>
                                 <Check size={14} /> Result
                                 <div className="ml-auto flex items-center gap-2">
+                                     {/* SAVE BUTTON */}
                                      <button onClick={() => handleSave(result, 'Single Result')} className="text-[10px] bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors flex items-center gap-1">
                                         {savedText === 'Single Result' ? <Check size={10} className="text-emerald-500" /> : <Bookmark size={10} />} {savedText === 'Single Result' ? 'Saved' : 'Save'}
                                     </button>
@@ -493,6 +578,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                     )}
                 </div>
             )}
+
 
             {/* Battle Results (Parallel Display) */}
             {provider === 'battle' && (loading || battleResults) && (
@@ -520,11 +606,12 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                 </div>
             )}
 
+
             {/* Refine Results (Timeline OR Diff View) */}
             {provider === 'refine' && (loading || refineSteps) && (
                 <div className="space-y-4 animate-in slide-in-from-bottom-2 fade-in">
                     {loading && <div className="text-center text-sm font-bold text-amber-600 dark:text-amber-400 animate-pulse bg-amber-50 dark:bg-amber-900/20 py-2 rounded-lg">{statusMessage}</div>}
-                    
+                   
                     {refineView === 'timeline' ? (
                         <>
                             {/* TIMELINE MODE */}
@@ -539,7 +626,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                                     </div>
                                 </div>
                             )}
-                            
+                           
                             {refineSteps?.critique && (
                                 <div className="flex flex-col items-center">
                                     <div className="h-4 w-px bg-slate-300 dark:bg-slate-600 my-1"></div>
@@ -555,6 +642,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                                     <div className="h-4 w-px bg-slate-300 dark:bg-slate-600 my-1"></div>
                                 </div>
                             )}
+
 
                             {refineSteps?.final && (
                                 <div className="p-5 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-slate-800 dark:to-slate-800 rounded-xl border-2 border-amber-200 dark:border-amber-700 shadow-lg relative">
@@ -586,7 +674,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                                     {renderResultContent(refineSteps?.draft)}
                                 </div>
                             </div>
-                            
+                           
                             {/* After Panel */}
                             <div className="rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50/30 dark:bg-emerald-900/10 p-4 flex flex-col h-full overflow-hidden">
                                 <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold mb-3 border-b border-emerald-200 dark:border-emerald-800 pb-2">
@@ -606,30 +694,34 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
             )}
         </div>
 
+
         {/* Footer */}
         <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex justify-end gap-3">
             <button onClick={onClose} className="px-4 py-2 text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 font-medium transition-colors">
                 Cancel
             </button>
-            <button 
+            <button
                 onClick={handleRun}
                 disabled={loading || (viewMode === 'advanced' && (!geminiKey || !openaiKey)) || (viewMode === 'simple' && provider === 'gemini' && !geminiKey) || (viewMode === 'simple' && provider === 'openai' && !openaiKey) || ((provider === 'battle' || provider === 'refine') && (!geminiKey || !openaiKey))}
-                className={`px-6 py-2 text-white rounded-lg text-sm font-bold shadow-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95 ${provider === 'battle' ? 'bg-gradient-to-r from-indigo-600 to-emerald-600 hover:opacity-90' : (provider === 'refine' ? 'bg-gradient-to-r from-amber-500 to-orange-600' : (provider === 'openai' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-indigo-600 hover:bg-indigo-700'))}`}
-            >
-                {loading ? <Loader size={16} className="animate-spin" /> : (provider === 'battle' ? <Swords size={16} /> : (provider === 'refine' ? <GitCompare size={16} /> : <Play size={16} fill="currentColor" />))}
-                {provider === 'battle' ? 'Start Battle' : (provider === 'refine' ? 'Start Loop' : 'Run Test')}
-            </button>
-        </div>
-      </div>
-      
-      {/* --- CTO UPDATE: Render GitHub Modal at the top level --- */}
-      <GitHubModal 
-          isOpen={showGithub} 
-          onClose={() => setShowGithub(false)} 
-          codeToPush={codeToShip} 
-      />
+            className={`px-6 py-2 text-white rounded-lg text-sm font-bold shadow-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95 ${provider === 'battle' ? 'bg-gradient-to-r from-indigo-600 to-emerald-600 hover:opacity-90' : (provider === 'refine' ? 'bg-gradient-to-r from-amber-500 to-orange-600' : (provider === 'openai' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-indigo-600 hover:bg-indigo-700'))}`}
+        >
+            {loading ? <Loader size={16} className="animate-spin" /> : (provider === 'battle' ? <Swords size={16} /> : (provider === 'refine' ? <GitCompare size={16} /> : <Play size={16} fill="currentColor" />))}
+            {provider === 'battle' ? 'Start Battle' : (provider === 'refine' ? 'Start Loop' : 'Run Test')}
+        </button>
     </div>
-  );
-};
+  </div>
+  
+  {/* --- CTO UPDATE: Render GitHub Modal at the top level --- */}
+  <GitHubModal 
+      isOpen={showGithub} 
+      onClose={() => setShowGithub(false)} 
+      codeToPush={codeToShip} 
+  />
+</div>
 
+
+); };
 export default TestRunnerModal;
+
+
+
