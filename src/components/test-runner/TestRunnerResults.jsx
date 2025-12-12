@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
     Loader, AlertTriangle, Check, Copy, Sparkles, Bot, 
     MonitorPlay, Bookmark, Split, Layers, Users, PlayCircle, FileCode, Eye, Code 
@@ -7,18 +7,34 @@ import CodeBlock from './CodeBlock';
 
 // --- INTERNAL COMPONENT: LIVE PREVIEW IFRAME ---
 const LivePreview = ({ content }) => {
-    // Helper to extract code from markdown
-    const extractCode = (type) => {
-        const regex = new RegExp(`\`\`\`${type}([\\s\\S]*?)\`\`\``, 'i');
+    // Helper to extract code from markdown with regex
+    // Supports matching multiple types (e.g. "html|jsx")
+    const extractCode = (typeRegex) => {
+        // Match ```type ... ```
+        // capture group 1 is the type, group 2 is the content
+        const regex = new RegExp(`\`\`\`(${typeRegex})([\\s\\S]*?)\`\`\``, 'i');
         const match = content.match(regex);
-        return match ? match[1] : '';
+        return match ? match[2] : null;
     };
 
-    const html = extractCode('html');
+    let html = extractCode('html');
     const css = extractCode('css');
-    const js = extractCode('(?:js|javascript)');
+    const js = extractCode('js|javascript');
     
-    // If no markdown blocks, check if the whole content looks like HTML
+    // --- VIBE CODING FIX ---
+    // If no HTML block is found, check for React/JSX blocks.
+    // We attempt to render them as HTML by doing simple replacements (className -> class).
+    // This allows users to "Preview" React components instantly without a full build step.
+    if (!html) {
+        const jsx = extractCode('jsx|react|tsx');
+        if (jsx) {
+            // Very basic JSX-to-HTML conversion for preview purposes
+            // 1. Replace className with class
+            html = jsx.replace(/className=/g, 'class=');
+        }
+    }
+
+    // If still no code blocks found, check if the raw text looks like HTML (starts with <)
     const rawHtml = (!html && content.trim().startsWith('<')) ? content : html;
 
     const srcDoc = `
@@ -30,14 +46,14 @@ const LivePreview = ({ content }) => {
                 <!-- Auto-inject Tailwind for Vibe Coding -->
                 <script src="https://cdn.tailwindcss.com"></script>
                 <style>
-                    body { font-family: sans-serif; }
-                    ${css}
+                    body { font-family: sans-serif; padding: 20px; }
+                    ${css || ''}
                 </style>
             </head>
             <body>
-                ${rawHtml || '<div class="flex items-center justify-center h-screen text-gray-400">No HTML found to preview.</div>'}
+                ${rawHtml || '<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#9ca3af;font-size:14px;text-align:center;">No previewable code found (HTML/JSX).<br/>Try asking for a "landing page" or "component".</div>'}
                 <script>
-                    ${js}
+                    ${js || ''}
                 </script>
             </body>
         </html>
@@ -49,7 +65,7 @@ const LivePreview = ({ content }) => {
                 srcDoc={srcDoc}
                 title="Live Preview"
                 className="w-full h-full border-0"
-                sandbox="allow-scripts" // Security: Allow scripts but no external navigation/forms if possible
+                sandbox="allow-scripts" 
             />
         </div>
     );
@@ -103,6 +119,7 @@ const TestRunnerResults = ({
     // --- RENDER ---
     
     // 1. Loading / Error States
+    // Note: Swarm handles its own loading state inside the chat flow
     if (loading && provider !== 'battle' && provider !== 'refine' && provider !== 'swarm') {
         return (
             <div className="rounded-xl border p-4 bg-slate-50 border-slate-200 dark:bg-slate-800/50 dark:border-slate-700">
