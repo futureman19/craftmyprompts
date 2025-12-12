@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Terminal } from 'lucide-react';
 import { useTestRunner } from '../hooks/useTestRunner';
 import TestRunnerControls from './test-runner/TestRunnerControls';
@@ -7,19 +7,19 @@ import GitHubModal from './GitHubModal';
 
 const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippet }) => {
     
-    // 1. Initialize the "Brain" (Custom Hook)
+    // 1. Initialize the "Brain"
     const runner = useTestRunner(defaultApiKey, defaultOpenAIKey);
 
     if (!isOpen) return null;
 
-    // 2. Main Run Handler (Bridge between Hook and UI)
+    // 2. Main Run Handler
     const handleRunClick = () => {
         runner.runTest(prompt);
     };
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200">
-            <div className={`bg-white dark:bg-slate-900 w-full rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 flex flex-col max-h-[90vh] overflow-hidden transition-all duration-300 ${runner.provider === 'battle' || runner.provider === 'refine' ? 'max-w-6xl' : 'max-w-2xl'}`}>
+            <div className={`bg-white dark:bg-slate-900 w-full rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 flex flex-col max-h-[90vh] overflow-hidden transition-all duration-300 ${runner.provider === 'battle' || runner.provider === 'refine' || runner.provider === 'swarm' ? 'max-w-6xl' : 'max-w-2xl'}`}>
                 
                 {/* --- HEADER --- */}
                 <div className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
@@ -31,9 +31,6 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                             <X size={20} />
                         </button>
                     </div>
-                    
-                    {/* View Mode Tabs (Simple vs Orchestrator) */}
-                    {/* We pass this into Controls, or keep it here. Let's keep specific layout control here. */}
                 </div>
 
                 {/* --- CONTENT SCROLL AREA --- */}
@@ -46,6 +43,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                         geminiKey={runner.geminiKey}
                         openaiKey={runner.openaiKey}
                         refineConfig={runner.refineConfig}
+                        swarmConfig={runner.swarmConfig} // <--- Added Swarm Config
                         selectedModel={runner.selectedModel}
                         availableModels={runner.availableModels}
                         isUsingGlobalGemini={!!defaultApiKey && runner.geminiKey === defaultApiKey}
@@ -59,10 +57,11 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                         onFetchModels={runner.fetchModels}
                         onModelChange={runner.setSelectedModel}
                         onRefineConfigChange={(key, val) => runner.setRefineConfig(prev => ({ ...prev, [key]: val }))}
+                        onSwarmConfigChange={(key, val) => runner.setSwarmConfig(prev => ({ ...prev, [key]: val }))} // <--- Added Handler
                     />
 
                     {/* 2. PROMPT PREVIEW */}
-                    {(!runner.battleResults && !runner.refineSteps && !runner.result) && (
+                    {(!runner.battleResults && !runner.refineSteps && !runner.result && (!runner.swarmHistory || runner.swarmHistory.length === 0)) && (
                         <div className="space-y-1">
                             <label className="text-[10px] font-bold uppercase text-slate-400">Current Prompt</label>
                             <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs font-mono text-slate-600 dark:text-slate-300 max-h-32 overflow-y-auto border border-slate-200 dark:border-slate-700 whitespace-pre-wrap">
@@ -81,6 +80,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                         battleResults={runner.battleResults}
                         refineSteps={runner.refineSteps}
                         refineView={runner.refineView}
+                        swarmHistory={runner.swarmHistory} // <--- Added Swarm History
                         
                         onSaveSnippet={onSaveSnippet}
                         onShipCode={runner.handleShipCode}
@@ -104,15 +104,16 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                         className={`px-6 py-2 text-white rounded-lg text-sm font-bold shadow-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95 ${
                             runner.provider === 'battle' ? 'bg-gradient-to-r from-indigo-600 to-emerald-600 hover:opacity-90' : 
                             (runner.provider === 'refine' ? 'bg-gradient-to-r from-amber-500 to-orange-600' : 
-                            (runner.provider === 'openai' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-indigo-600 hover:bg-indigo-700'))
+                            (runner.provider === 'swarm' ? 'bg-gradient-to-r from-violet-600 to-indigo-600' :
+                            (runner.provider === 'openai' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-indigo-600 hover:bg-indigo-700')))
                         }`}
                     >
-                        {runner.provider === 'battle' ? 'Start Battle' : (runner.provider === 'refine' ? 'Start Loop' : 'Run Test')}
+                        {runner.provider === 'battle' ? 'Start Battle' : (runner.provider === 'refine' ? 'Start Loop' : (runner.provider === 'swarm' ? 'Start Meeting' : 'Run Test'))}
                     </button>
                 </div>
             </div>
 
-            {/* GitHub Modal (triggered by logic in useTestRunner) */}
+            {/* GitHub Modal */}
             <GitHubModal 
                 isOpen={runner.showGithub} 
                 onClose={() => runner.setShowGithub(false)} 
