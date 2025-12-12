@@ -17,7 +17,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         focus: 'general'
     });
 
-    // Swarm Config
+    // --- CTO UPDATE: Swarm Config ---
     const [swarmConfig, setSwarmConfig] = useState({
         agentA: 'gemini',
         roleA: 'Visionary CEO',
@@ -25,7 +25,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         roleB: 'Pragmatic Engineer',
         rounds: 3
     });
-    const [swarmHistory, setSwarmHistory] = useState([]);
+    const [swarmHistory, setSwarmHistory] = useState([]); // [{ speaker: 'A', text: '...' }, ...]
 
     // Keys
     const [geminiKey, setGeminiKey] = useState('');
@@ -45,6 +45,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
 
     // --- INITIALIZATION ---
     useEffect(() => {
+        // Load Keys (Prioritize Props, Fallback to LocalStorage)
         if (defaultApiKey) {
             setGeminiKey(defaultApiKey);
         } else {
@@ -116,6 +117,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
             if (data.models) {
                 const validModels = data.models.filter(m => m.supportedGenerationMethods?.includes("generateContent"));
                 setAvailableModels(validModels);
+                // Auto-Select Logic
                 const currentExists = validModels.find(m => m.name === selectedModel);
                 if (!selectedModel || !currentExists) {
                     const bestModel = validModels.find(m => m.name.includes('2.0-flash'))
@@ -175,6 +177,8 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
 
         try {
             if (provider === 'swarm') {
+                // --- CTO UPDATE: SWARM LOGIC ---
+                // Validate Keys
                 if (swarmConfig.agentA === 'gemini' && !geminiKey) throw new Error("Gemini Key missing for Agent A");
                 if (swarmConfig.agentA === 'openai' && !openaiKey) throw new Error("OpenAI Key missing for Agent A");
                 if (swarmConfig.agentB === 'gemini' && !geminiKey) throw new Error("Gemini Key missing for Agent B");
@@ -186,34 +190,51 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
                 let currentHistory = [];
 
                 for (let i = 0; i < swarmConfig.rounds; i++) {
+                    // --- AGENT A TURN ---
                     setStatusMessage(`Round ${i+1}: ${swarmConfig.roleA} is speaking...`);
+                    
                     const contextA = `
                         You are participating in a roundtable discussion.
-                        TOPIC: "${prompt}"
+                        TOPIC/PROBLEM: "${prompt}"
                         YOUR ROLE: ${swarmConfig.roleA}
                         OTHER ATTENDEE: ${swarmConfig.roleB}
-                        TRANSCRIPT: ${currentHistory.map(m => `${m.role}: ${m.text}`).join('\n')}
-                        INSTRUCTION: Provide your next response based on your role. Be concise.
+                        
+                        TRANSCRIPT SO FAR:
+                        ${currentHistory.map(m => `${m.role}: ${m.text}`).join('\n')}
+                        
+                        INSTRUCTION: Provide your next response, argument, or insight based on your role. Be concise (under 100 words).
                     `;
+
                     const keyA = swarmConfig.agentA === 'gemini' ? geminiKey : openaiKey;
                     const responseA = await callAIProvider(swarmConfig.agentA, contextA, keyA);
-                    currentHistory.push({ speaker: 'A', role: swarmConfig.roleA, text: responseA, provider: swarmConfig.agentA });
-                    setSwarmHistory([...currentHistory]);
 
+                    const msgA = { speaker: 'A', role: swarmConfig.roleA, text: responseA, provider: swarmConfig.agentA };
+                    currentHistory.push(msgA);
+                    setSwarmHistory([...currentHistory]); // Force UI update per step
+
+                    // --- AGENT B TURN ---
                     setStatusMessage(`Round ${i+1}: ${swarmConfig.roleB} is responding...`);
+
                     const contextB = `
                         You are participating in a roundtable discussion.
-                        TOPIC: "${prompt}"
+                        TOPIC/PROBLEM: "${prompt}"
                         YOUR ROLE: ${swarmConfig.roleB}
                         OTHER ATTENDEE: ${swarmConfig.roleA}
-                        TRANSCRIPT: ${currentHistory.map(m => `${m.role}: ${m.text}`).join('\n')}
-                        INSTRUCTION: Respond to the previous point based on your role. Be concise.
+                        
+                        TRANSCRIPT SO FAR:
+                        ${currentHistory.map(m => `${m.role}: ${m.text}`).join('\n')}
+                        
+                        INSTRUCTION: Respond to the previous point, offering a different perspective or refinement based on your role. Be concise (under 100 words).
                     `;
+
                     const keyB = swarmConfig.agentB === 'gemini' ? geminiKey : openaiKey;
                     const responseB = await callAIProvider(swarmConfig.agentB, contextB, keyB);
-                    currentHistory.push({ speaker: 'B', role: swarmConfig.roleB, text: responseB, provider: swarmConfig.agentB });
-                    setSwarmHistory([...currentHistory]);
+
+                    const msgB = { speaker: 'B', role: swarmConfig.roleB, text: responseB, provider: swarmConfig.agentB };
+                    currentHistory.push(msgB);
+                    setSwarmHistory([...currentHistory]); // Force UI update per step
                 }
+                
                 setStatusMessage('Meeting adjourned.');
 
             } else if (provider === 'refine') {
@@ -225,22 +246,36 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
                 if (geminiKey) saveKey(geminiKey, 'gemini');
                 if (openaiKey) saveKey(openaiKey, 'openai');
 
+                // Step 1
                 const drafterName = refineConfig.drafter === 'gemini' ? 'Gemini' : 'ChatGPT';
                 setStatusMessage(`Step 1/3: ${drafterName} is drafting...`);
                 const drafterKey = refineConfig.drafter === 'gemini' ? geminiKey : openaiKey;
                 const draft = await callAIProvider(refineConfig.drafter, prompt, drafterKey);
                 setRefineSteps({ draft, critique: null, final: null });
 
+                // Step 2
                 const critiquerName = refineConfig.critiquer === 'gemini' ? 'Gemini' : 'ChatGPT';
                 setStatusMessage(`Step 2/3: ${critiquerName} is critiquing...`);
                 const critiquerKey = refineConfig.critiquer === 'gemini' ? geminiKey : openaiKey;
-                const critiquePrompt = `Act as a Senior Technical Lead specialized in ${refineConfig.focus}. Review the following. List 3 improvements.\n\nINPUT:\n${draft}`;
+                
+                const focusMap = {
+                    'general': 'General Improvements & Clarity',
+                    'security': 'Security Vulnerabilities & Safety',
+                    'performance': 'Performance Optimization & Speed',
+                    'cleanliness': 'Code Cleanliness, DRY Principles & Best Practices',
+                    'roast': 'Roast this code (Humorous but harsh logic check)'
+                };
+                const focusText = focusMap[refineConfig.focus] || 'General Improvements';
+                const critiquePrompt = `Act as a Senior Technical Lead specialized in ${focusText}. Review the following text/code. List 3 specific, actionable improvements strictly focusing on ${refineConfig.focus}.\n\nINPUT:\n${draft}`;
+                
                 const critique = await callAIProvider(refineConfig.critiquer, critiquePrompt, critiquerKey);
                 setRefineSteps({ draft, critique, final: null });
 
+                // Step 3
                 setStatusMessage(`Step 3/3: ${drafterName} is polishing...`);
-                const polishPrompt = `Rewrite the original input to address the critique points.\n\nORIGINAL:\n${draft}\n\nCRITIQUE:\n${critique}`;
+                const polishPrompt = `Rewrite the original input below to address the critique points. Keep the tone professional but implement the fixes.\n\nORIGINAL:\n${draft}\n\nCRITIQUE:\n${critique}`;
                 const final = await callAIProvider(refineConfig.drafter, polishPrompt, drafterKey);
+                
                 setRefineSteps({ draft, critique, final });
                 setResult(final);
 
@@ -282,9 +317,18 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
     };
 
     return {
-        viewMode, provider, refineView, showGithub, codeToShip, refineConfig, swarmConfig, swarmHistory,
-        geminiKey, openaiKey, loading, result, battleResults, refineSteps, statusMessage, error, selectedModel, availableModels,
-        setGeminiKey, setOpenaiKey, setProvider, setRefineView, setShowGithub, setRefineConfig, setSwarmConfig, setSelectedModel,
+        // State
+        viewMode, provider, refineView, showGithub, codeToShip, refineConfig,
+        geminiKey, openaiKey, loading, result, battleResults, refineSteps,
+        statusMessage, error, selectedModel, availableModels,
+        swarmConfig, swarmHistory, // Exporting Swarm State
+        
+        // Setters (if needed directly)
+        setGeminiKey, setOpenaiKey, setProvider, setRefineView, 
+        setShowGithub, setRefineConfig, setSelectedModel,
+        setSwarmConfig, // Exporting Swarm Setter
+
+        // Actions
         runTest, fetchModels, clearKey, handleShipCode, handleViewChange
     };
 };
