@@ -24,30 +24,37 @@ const LivePreview = ({ content }) => {
     if (!html && (jsx || js)) {
         const code = jsx || js;
         
-        // 1. Try to find the return statement of the component
-        // Matches: return ( ... ); OR return <...>;
-        const returnMatch = code.match(/return\s*(?:\(|)([\s\S]*?)(?:\)|);?\s*}/);
+        // Strategy: Look for the UI markup.
+        // 1. Try to find the return statement: return ( ... );
+        // 2. Try to find direct usage: <div ...
+        
+        // Regex explanations:
+        // return\s*\(?  -> matches "return" followed by optional space and optional "("
+        // ([\s\S]*?)    -> capture the content (non-greedy)
+        // \)?;?         -> match optional closing ")" and optional ";"
+        // \s*}          -> match trailing space and closing brace "}" of the function
+        const returnMatch = code.match(/return\s*\(?([\s\S]*?)\)?;?\s*}/);
         
         if (returnMatch) {
-            // We found the JSX markup inside the function!
             html = returnMatch[1];
         } else if (code.trim().startsWith('<')) {
-            // The code block is JUST markup
+            // The code block might just be the raw markup
             html = code;
         }
 
-        // 2. Polyfill React attributes to HTML
+        // Polyfill React attributes to HTML for basic rendering
         if (html) {
             html = html
-                .replace(/className=/g, 'class=') // className -> class
-                .replace(/\{([^}]+)\}/g, '$1')     // {variable} -> variable (basic strip)
-                .replace(/onClick=\{.*?\}/g, '')   // Remove event handlers (they won't work in raw HTML)
-                .replace(/import .*?;/g, '')       // Remove imports if they leaked in
-                .replace(/export default .*?;/g, ''); // Remove exports
+                .replace(/className=/g, 'class=') 
+                .replace(/\{([^}]+)\}/g, '$1')     // Basic variable strip: {text} -> text
+                .replace(/onClick=\{.*?\}/g, '')   // Remove events
+                .replace(/style=\{\{([^}]+)\}\}/g, 'style="$1"') // Try to fix styles {{color:'red'}} -> style="color:'red'" (imperfect but helps)
+                .replace(/import .*?;/g, '')       
+                .replace(/export default .*?;/g, ''); 
         }
     }
 
-    // Final fallback: If raw content looks like HTML
+    // Final fallback
     const rawHtml = (!html && content.trim().startsWith('<')) ? content : html;
 
     const srcDoc = `
@@ -56,18 +63,25 @@ const LivePreview = ({ content }) => {
             <head>
                 <meta charset="utf-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1">
-                <!-- Auto-inject Tailwind for Vibe Coding -->
                 <script src="https://cdn.tailwindcss.com"></script>
                 <style>
-                    body { font-family: sans-serif; padding: 20px; }
-                    /* Inject any CSS found */
+                    body { 
+                        font-family: sans-serif; 
+                        padding: 20px; 
+                        display: flex; 
+                        justify-content: center; 
+                        align-items: center; 
+                        min-height: 100vh;
+                        background-color: #f9fafb;
+                        margin: 0;
+                    }
+                    /* Inject extracted CSS */
                     ${css || ''}
                 </style>
             </head>
             <body>
-                ${rawHtml || '<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#9ca3af;font-size:14px;text-align:center;">No visual preview available.<br/>(Try asking for "HTML" or a "Landing Page")</div>'}
+                ${rawHtml || '<div style="color:#9ca3af;font-size:14px;text-align:center;">No visual preview available.<br/>(Try asking for "HTML" or a "Landing Page")</div>'}
                 <script>
-                    /* Inject JS if it looks safe-ish (not React component definitions) */
                     ${js && !js.includes('import React') ? js : ''}
                 </script>
             </body>
