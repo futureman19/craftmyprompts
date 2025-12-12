@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
     Key, RefreshCw, Zap, Bot, Sparkles, Swords, GitCompare, 
-    Layers, MonitorPlay, ArrowRight, Target, ShieldCheck, Users, MessageSquare 
+    Layers, MonitorPlay, ArrowRight, Target, ShieldCheck, Users 
 } from 'lucide-react';
 
 const TestRunnerControls = ({
@@ -52,6 +52,7 @@ const TestRunnerControls = ({
                     <button onClick={() => onProviderChange('refine')} className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg border-2 transition-all text-sm font-bold whitespace-nowrap ${provider === 'refine' ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400' : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-500'}`}>
                         <GitCompare size={16} /> Refine
                     </button>
+                    {/* --- CTO UPDATE: Swarm Button Added Here --- */}
                     <button onClick={() => onProviderChange('swarm')} className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg border-2 transition-all text-sm font-bold whitespace-nowrap ${provider === 'swarm' ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400' : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-500'}`}>
                         <Users size={16} /> Swarm
                     </button>
@@ -108,7 +109,7 @@ const TestRunnerControls = ({
                 </div>
             )}
 
-            {/* 2. SWARM CONFIG (NEW) */}
+            {/* 2. SWARM CONFIG (Restored) */}
             {provider === 'swarm' && (
                 <div className="p-4 bg-violet-50 dark:bg-violet-900/10 rounded-xl border border-violet-100 dark:border-violet-800/50 animate-in fade-in space-y-4">
                     <div className="flex items-center justify-between border-b border-violet-200 dark:border-violet-800 pb-2 mb-2">
@@ -164,7 +165,7 @@ const TestRunnerControls = ({
 
             {/* API KEY INPUTS */}
             <div className="space-y-4 pt-2 border-t border-slate-100 dark:border-slate-800">
-                <div className="flex items-center gap-2 text-xs text-slate-400 mb-2"><ShieldCheck size={12} className="text-emerald-500" /><span>Keys are stored locally on your device.</span></div>
+                <div className="flex items-center gap-2 text-xs text-slate-400 mb-2"><ShieldCheck size={12} className="text-emerald-500" /><span>Keys are stored locally on your device for security.</span></div>
                 
                 {/* Gemini */}
                 {(provider === 'gemini' || provider === 'battle' || provider === 'swarm' || (provider === 'refine' && (refineConfig.drafter === 'gemini' || refineConfig.critiquer === 'gemini'))) && (
