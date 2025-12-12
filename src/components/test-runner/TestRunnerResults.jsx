@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
 import { 
     Loader, AlertTriangle, Check, Copy, Sparkles, Bot, 
-    MonitorPlay, Bookmark, Split, Layers, User, Users 
+    MonitorPlay, Bookmark, Split, Layers, Users, PlayCircle, FileCode 
 } from 'lucide-react';
 import CodeBlock from './CodeBlock';
 
 const TestRunnerResults = ({ 
     loading, result, error, statusMessage, 
-    provider, battleResults, refineSteps, refineView, swarmHistory, // <--- Added swarmHistory
+    provider, battleResults, refineSteps, refineView, swarmHistory, 
     // Actions
-    onSaveSnippet, onShipCode, setRefineView 
+    onSaveSnippet, onShipCode, setRefineView,
+    // CTO UPDATE: New Actions for Swarm Persistence
+    onContinueSwarm, onCompileSwarm
 }) => {
     const [copiedText, setCopiedText] = useState(null);
     const [savedText, setSavedText] = useState(null);
@@ -183,7 +185,7 @@ const TestRunnerResults = ({
                         )}
                     </>
                 ) : (
-                    /* DIFF VIEW */
+                    /* DIFF VIEW (Side by Side) */
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-[500px]">
                          <div className="rounded-xl border border-red-200 dark:border-red-900 bg-red-50/30 dark:bg-red-900/10 p-4 flex flex-col h-full overflow-hidden">
                             <div className="flex items-center gap-2 text-red-600 dark:text-red-400 font-bold mb-3 border-b border-red-200 dark:border-red-800 pb-2">
@@ -194,6 +196,8 @@ const TestRunnerResults = ({
                                 {renderResultContent(refineSteps?.draft)}
                             </div>
                         </div>
+                        
+                        {/* After Panel */}
                         <div className="rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50/30 dark:bg-emerald-900/10 p-4 flex flex-col h-full overflow-hidden">
                             <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold mb-3 border-b border-emerald-200 dark:border-emerald-800 pb-2">
                                  <Sparkles size={18} /> Final Polish
@@ -211,8 +215,8 @@ const TestRunnerResults = ({
             </div>
         );
     }
-
-    // --- CTO UPDATE: SWARM MODE RENDERER ---
+    
+    // --- SWARM MODE RENDERER ---
     if (provider === 'swarm' && (loading || (swarmHistory && swarmHistory.length > 0))) {
         return (
             <div className="space-y-6 animate-in slide-in-from-bottom-2 fade-in pb-4">
@@ -232,7 +236,7 @@ const TestRunnerResults = ({
                                     {/* Actions */}
                                     <div className="ml-auto flex items-center gap-1">
                                         <button onClick={() => handleSave(msg.text, `Swarm: ${msg.role}`)} className={`p-1 rounded transition-colors ${msg.provider === 'openai' ? 'hover:bg-emerald-200 dark:hover:bg-emerald-800' : 'hover:bg-indigo-200 dark:hover:bg-indigo-800'}`} title="Save Snippet">
-                                            <Bookmark size={12} />
+                                            {savedText === `Swarm: ${msg.role}` ? <Check size={12} /> : <Bookmark size={12} />}
                                         </button>
                                         <button onClick={() => copyToClipboard(msg.text, `swarm-${idx}`)} className={`p-1 rounded transition-colors ${msg.provider === 'openai' ? 'hover:bg-emerald-200 dark:hover:bg-emerald-800' : 'hover:bg-indigo-200 dark:hover:bg-indigo-800'}`} title="Copy Text">
                                             {copiedText === `swarm-${idx}` ? <Check size={12} /> : <Copy size={12} />}
@@ -248,11 +252,28 @@ const TestRunnerResults = ({
                         </div>
                     ))}
                  </div>
+
+                 {/* CTO UPDATE: Swarm Action Bar (Continue / Compile) */}
+                 {swarmHistory.length > 0 && !loading && (
+                     <div className="flex gap-2 pt-2 animate-in slide-in-from-bottom-2">
+                         <button 
+                            onClick={() => onContinueSwarm(prompt)} 
+                            className="flex-1 py-2 bg-violet-100 hover:bg-violet-200 dark:bg-violet-900/30 dark:hover:bg-violet-900/50 text-violet-700 dark:text-violet-300 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-2"
+                         >
+                             <PlayCircle size={16} /> Continue Discussion
+                         </button>
+                         <button 
+                            onClick={onCompileSwarm} 
+                            className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-2 shadow-sm"
+                         >
+                             <FileCode size={16} /> Compile Code
+                         </button>
+                     </div>
+                 )}
             </div>
         );
     }
 
     return null;
 };
-
 export default TestRunnerResults;
