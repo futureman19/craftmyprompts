@@ -11,6 +11,11 @@ export const useBuilderView = (user, initialData, clearInitialData, showToast, a
 
     // 2. View State (UI Controls)
     const [mobileTab, setMobileTab] = useState('edit'); // 'edit' | 'preview'
+    
+    // CTO UPDATE: Vibe Mode State
+    // false = Pro Mode (Full Control), true = Vibe Mode (Simple/Beginner)
+    const [isSimpleMode, setIsSimpleMode] = useState(false);
+
     const [activeCategory, setActiveCategory] = useState(null);
     const [expandedCategories, setExpandedCategories] = useState({});
     const [expandedSubcats, setExpandedSubcats] = useState({});
@@ -261,7 +266,8 @@ export const useBuilderView = (user, initialData, clearInitialData, showToast, a
         // Core Data
         state, dispatch, generatedPrompt, currentData, detectedVars,
         // UI State
-        mobileTab, setMobileTab, activeCategory, setActiveCategory, expandedCategories, toggleCategory,
+        mobileTab, setMobileTab, isSimpleMode, setIsSimpleMode, // <--- Exported Here
+        activeCategory, setActiveCategory, expandedCategories, toggleCategory,
         expandedSubcats, toggleSubcatExpansion, searchTerm, setSearchTerm,
         showTestModal, setShowTestModal, showWizard, setShowWizard,
         displayName, setDisplayName, saveVisibility, setSaveVisibility, isSaving, copied, copiedJson,

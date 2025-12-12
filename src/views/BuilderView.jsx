@@ -26,12 +26,15 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                 user={user}
                 customPresets={builder.customPresets}
                 currentData={builder.currentData}
+                isSimpleMode={builder.isSimpleMode} // <--- Pass Vibe Mode State
+                
                 dispatch={builder.dispatch}
                 setMobileTab={builder.setMobileTab}
                 setSearchTerm={builder.setSearchTerm}
                 setShowWizard={builder.setShowWizard}
                 applyPreset={builder.applyPreset}
                 showToast={showToast}
+                setIsSimpleMode={builder.setIsSimpleMode} // <--- Pass Toggle Handler
             />
 
             <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
@@ -43,6 +46,8 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                     filteredData={builder.filteredData}
                     contextUrl={builder.contextUrl}
                     isFetchingContext={builder.isFetchingContext}
+                    isSimpleMode={builder.isSimpleMode} // <--- Pass Vibe Mode State
+                    
                     dispatch={builder.dispatch}
                     setContextUrl={builder.setContextUrl}
                     handleFetchContext={builder.handleFetchContext}
