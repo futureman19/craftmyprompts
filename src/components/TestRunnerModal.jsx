@@ -8,6 +8,7 @@ import GitHubModal from './GitHubModal';
 const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippet }) => {
     
     // 1. Initialize the "Brain" (Custom Hook)
+    // This hook manages all API calls, state, and business logic
     const runner = useTestRunner(defaultApiKey, defaultOpenAIKey);
 
     if (!isOpen) return null;
@@ -19,7 +20,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200">
-            {/* Dynamic Width based on mode */}
+            {/* Dynamic Width: Wider for Battle/Refine/Swarm modes */}
             <div className={`bg-white dark:bg-slate-900 w-full rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 flex flex-col max-h-[90vh] overflow-hidden transition-all duration-300 ${runner.provider === 'battle' || runner.provider === 'refine' || runner.provider === 'swarm' ? 'max-w-6xl' : 'max-w-2xl'}`}>
                 
                 {/* --- HEADER --- */}
@@ -37,14 +38,15 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                 {/* --- CONTENT SCROLL AREA --- */}
                 <div className="p-6 overflow-y-auto flex-1 space-y-6">
                     
-                    {/* 1. CONTROLS (Inputs, Keys, Mode Selection) */}
+                    {/* 1. CONTROLS DASHBOARD */}
+                    {/* Passing all necessary props, including Swarm config */}
                     <TestRunnerControls 
                         viewMode={runner.viewMode}
                         provider={runner.provider}
                         geminiKey={runner.geminiKey}
                         openaiKey={runner.openaiKey}
                         refineConfig={runner.refineConfig}
-                        swarmConfig={runner.swarmConfig}
+                        swarmConfig={runner.swarmConfig} // <--- Critical for Swarm
                         selectedModel={runner.selectedModel}
                         availableModels={runner.availableModels}
                         isUsingGlobalGemini={!!defaultApiKey && runner.geminiKey === defaultApiKey}
@@ -58,7 +60,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                         onFetchModels={runner.fetchModels}
                         onModelChange={runner.setSelectedModel}
                         onRefineConfigChange={(key, val) => runner.setRefineConfig(prev => ({ ...prev, [key]: val }))}
-                        onSwarmConfigChange={(key, val) => runner.setSwarmConfig(prev => ({ ...prev, [key]: val }))}
+                        onSwarmConfigChange={(key, val) => runner.setSwarmConfig(prev => ({ ...prev, [key]: val }))} // <--- Critical Handler
                     />
 
                     {/* 2. PROMPT PREVIEW (Only show if no results yet) */}
