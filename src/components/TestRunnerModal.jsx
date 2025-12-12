@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { X, Terminal } from 'lucide-react';
 import { useTestRunner } from '../hooks/useTestRunner';
 import TestRunnerControls from './test-runner/TestRunnerControls';
@@ -7,18 +7,20 @@ import GitHubModal from './GitHubModal';
 
 const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippet }) => {
     
-    // 1. Initialize the "Brain"
+    // 1. Initialize the "Brain" (Custom Hook)
+    // This handles all the state, API calls, and logic we extracted
     const runner = useTestRunner(defaultApiKey, defaultOpenAIKey);
 
     if (!isOpen) return null;
 
-    // 2. Main Run Handler
+    // 2. Main Run Handler (Bridge between Hook and UI)
     const handleRunClick = () => {
         runner.runTest(prompt);
     };
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200">
+            {/* Dynamic Width based on mode */}
             <div className={`bg-white dark:bg-slate-900 w-full rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 flex flex-col max-h-[90vh] overflow-hidden transition-all duration-300 ${runner.provider === 'battle' || runner.provider === 'refine' || runner.provider === 'swarm' ? 'max-w-6xl' : 'max-w-2xl'}`}>
                 
                 {/* --- HEADER --- */}
@@ -43,7 +45,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                         geminiKey={runner.geminiKey}
                         openaiKey={runner.openaiKey}
                         refineConfig={runner.refineConfig}
-                        swarmConfig={runner.swarmConfig} // <--- Added Swarm Config
+                        swarmConfig={runner.swarmConfig}
                         selectedModel={runner.selectedModel}
                         availableModels={runner.availableModels}
                         isUsingGlobalGemini={!!defaultApiKey && runner.geminiKey === defaultApiKey}
@@ -57,10 +59,10 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                         onFetchModels={runner.fetchModels}
                         onModelChange={runner.setSelectedModel}
                         onRefineConfigChange={(key, val) => runner.setRefineConfig(prev => ({ ...prev, [key]: val }))}
-                        onSwarmConfigChange={(key, val) => runner.setSwarmConfig(prev => ({ ...prev, [key]: val }))} // <--- Added Handler
+                        onSwarmConfigChange={(key, val) => runner.setSwarmConfig(prev => ({ ...prev, [key]: val }))}
                     />
 
-                    {/* 2. PROMPT PREVIEW */}
+                    {/* 2. PROMPT PREVIEW (Only show if no results yet) */}
                     {(!runner.battleResults && !runner.refineSteps && !runner.result && (!runner.swarmHistory || runner.swarmHistory.length === 0)) && (
                         <div className="space-y-1">
                             <label className="text-[10px] font-bold uppercase text-slate-400">Current Prompt</label>
@@ -70,7 +72,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                         </div>
                     )}
 
-                    {/* 3. RESULTS DISPLAY */}
+                    {/* 3. RESULTS DISPLAY (Handles Text, Battle, Refine, Swarm) */}
                     <TestRunnerResults 
                         loading={runner.loading}
                         result={runner.result}
@@ -80,7 +82,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                         battleResults={runner.battleResults}
                         refineSteps={runner.refineSteps}
                         refineView={runner.refineView}
-                        swarmHistory={runner.swarmHistory} // <--- Added Swarm History
+                        swarmHistory={runner.swarmHistory}
                         
                         onSaveSnippet={onSaveSnippet}
                         onShipCode={runner.handleShipCode}
@@ -108,12 +110,16 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                             (runner.provider === 'openai' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-indigo-600 hover:bg-indigo-700')))
                         }`}
                     >
-                        {runner.provider === 'battle' ? 'Start Battle' : (runner.provider === 'refine' ? 'Start Loop' : (runner.provider === 'swarm' ? 'Start Meeting' : 'Run Test'))}
+                        {runner.loading ? 'Running...' : (
+                            runner.provider === 'battle' ? 'Start Battle' : 
+                            (runner.provider === 'refine' ? 'Start Loop' : 
+                            (runner.provider === 'swarm' ? 'Start Meeting' : 'Run Test'))
+                        )}
                     </button>
                 </div>
             </div>
 
-            {/* GitHub Modal */}
+            {/* GitHub Modal (Triggered by the hook logic) */}
             <GitHubModal 
                 isOpen={runner.showGithub} 
                 onClose={() => runner.setShowGithub(false)} 
