@@ -37,7 +37,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                 {/* --- CONTENT SCROLL AREA --- */}
                 <div className="p-6 overflow-y-auto flex-1 space-y-6">
                     
-                    {/* 1. CONTROLS (Inputs, Keys, Mode Selection) */}
+                    {/* 1. CONTROLS DASHBOARD */}
                     <TestRunnerControls 
                         viewMode={runner.viewMode}
                         provider={runner.provider}
@@ -71,7 +71,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                         </div>
                     )}
 
-                    {/* 3. RESULTS DISPLAY (Handles Text, Battle, Refine, Swarm) */}
+                    {/* 3. RESULTS DISPLAY */}
                     <TestRunnerResults 
                         loading={runner.loading}
                         result={runner.result}
@@ -86,6 +86,10 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                         onSaveSnippet={onSaveSnippet}
                         onShipCode={runner.handleShipCode}
                         setRefineView={runner.setRefineView}
+                        
+                        // --- CTO FIX: Passing the missing functions ---
+                        onContinueSwarm={runner.continueSwarm}
+                        onCompileSwarm={runner.compileSwarmCode}
                     />
                 </div>
 
@@ -118,7 +122,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                 </div>
             </div>
 
-            {/* GitHub Modal (Triggered by the hook logic) */}
+            {/* GitHub Modal */}
             <GitHubModal 
                 isOpen={runner.showGithub} 
                 onClose={() => runner.setShowGithub(false)} 
