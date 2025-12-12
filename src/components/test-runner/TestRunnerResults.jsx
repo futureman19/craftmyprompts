@@ -1,14 +1,63 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
     Loader, AlertTriangle, Check, Copy, Sparkles, Bot, 
-    MonitorPlay, Bookmark, Split, Layers, Users, PlayCircle, FileCode 
+    MonitorPlay, Bookmark, Split, Layers, Users, PlayCircle, FileCode, Eye, Code 
 } from 'lucide-react';
 import CodeBlock from './CodeBlock';
+
+// --- INTERNAL COMPONENT: LIVE PREVIEW IFRAME ---
+const LivePreview = ({ content }) => {
+    // Helper to extract code from markdown
+    const extractCode = (type) => {
+        const regex = new RegExp(`\`\`\`${type}([\\s\\S]*?)\`\`\``, 'i');
+        const match = content.match(regex);
+        return match ? match[1] : '';
+    };
+
+    const html = extractCode('html');
+    const css = extractCode('css');
+    const js = extractCode('(?:js|javascript)');
+    
+    // If no markdown blocks, check if the whole content looks like HTML
+    const rawHtml = (!html && content.trim().startsWith('<')) ? content : html;
+
+    const srcDoc = `
+        <!DOCTYPE html>
+        <html>
+            <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1">
+                <!-- Auto-inject Tailwind for Vibe Coding -->
+                <script src="https://cdn.tailwindcss.com"></script>
+                <style>
+                    body { font-family: sans-serif; }
+                    ${css}
+                </style>
+            </head>
+            <body>
+                ${rawHtml || '<div class="flex items-center justify-center h-screen text-gray-400">No HTML found to preview.</div>'}
+                <script>
+                    ${js}
+                </script>
+            </body>
+        </html>
+    `;
+
+    return (
+        <div className="w-full h-[500px] bg-white rounded-lg overflow-hidden border border-slate-200 shadow-inner">
+            <iframe 
+                srcDoc={srcDoc}
+                title="Live Preview"
+                className="w-full h-full border-0"
+                sandbox="allow-scripts" // Security: Allow scripts but no external navigation/forms if possible
+            />
+        </div>
+    );
+};
 
 const TestRunnerResults = ({ 
     loading, result, error, statusMessage, 
     provider, battleResults, refineSteps, refineView, swarmHistory, 
-    prompt, // Current prompt for continuing swarm
     // Actions
     onSaveSnippet, onShipCode, setRefineView,
     // CTO UPDATE: New Actions for Swarm Persistence
@@ -16,6 +65,7 @@ const TestRunnerResults = ({
 }) => {
     const [copiedText, setCopiedText] = useState(null);
     const [savedText, setSavedText] = useState(null);
+    const [previewMode, setPreviewMode] = useState(false); // Toggle for Live Preview
 
     // --- HELPERS ---
     const copyToClipboard = (text, label) => {
@@ -53,7 +103,6 @@ const TestRunnerResults = ({
     // --- RENDER ---
     
     // 1. Loading / Error States
-    // Note: Swarm handles its own loading state inside the chat flow
     if (loading && provider !== 'battle' && provider !== 'refine' && provider !== 'swarm') {
         return (
             <div className="rounded-xl border p-4 bg-slate-50 border-slate-200 dark:bg-slate-800/50 dark:border-slate-700">
@@ -83,18 +132,44 @@ const TestRunnerResults = ({
         return (
             <div className={`rounded-xl border p-4 animate-in slide-in-from-bottom-2 fade-in ${provider === 'openai' ? 'bg-emerald-50 border-emerald-100 dark:bg-emerald-900/10 dark:border-emerald-800' : 'bg-slate-50 border-slate-200 dark:bg-slate-800/50 dark:border-slate-700'}`}>
                 <div className="relative">
-                    <div className={`flex items-center gap-2 text-xs font-bold uppercase mb-2 ${provider === 'openai' ? 'text-emerald-600' : 'text-indigo-600'}`}>
-                        <Check size={14} /> Result
-                        <div className="ml-auto flex items-center gap-2">
-                             <button onClick={() => handleSave(result, 'Single Result')} className="text-[10px] bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors flex items-center gap-1">
-                                {savedText === 'Single Result' ? <Check size={10} className="text-emerald-500" /> : <Bookmark size={10} />} {savedText === 'Single Result' ? 'Saved' : 'Save'}
+                    <div className={`flex items-center justify-between text-xs font-bold uppercase mb-2 ${provider === 'openai' ? 'text-emerald-600' : 'text-indigo-600'}`}>
+                        <div className="flex items-center gap-2">
+                             <Check size={14} /> Result
+                        </div>
+
+                        {/* Actions & Toggles */}
+                        <div className="flex items-center gap-2">
+                             {/* Preview Toggle */}
+                             <div className="flex bg-white dark:bg-slate-900 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 mr-2">
+                                <button 
+                                    onClick={() => setPreviewMode(false)}
+                                    className={`px-2 py-1 rounded-md flex items-center gap-1 transition-all ${!previewMode ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300' : 'text-slate-400 hover:text-slate-600'}`}
+                                >
+                                    <Code size={12} /> Code
+                                </button>
+                                <button 
+                                    onClick={() => setPreviewMode(true)}
+                                    className={`px-2 py-1 rounded-md flex items-center gap-1 transition-all ${previewMode ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300' : 'text-slate-400 hover:text-slate-600'}`}
+                                >
+                                    <Eye size={12} /> Preview
+                                </button>
+                             </div>
+
+                             <button onClick={() => handleSave(result, 'Single Result')} className="text-[10px] bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 px-2 py-1.5 rounded hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors flex items-center gap-1">
+                                {savedText === 'Single Result' ? <Check size={12} className="text-emerald-500" /> : <Bookmark size={12} />}
                             </button>
-                            <button onClick={() => copyToClipboard(result, 'result')} className="text-[10px] bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors flex items-center gap-1">
-                                {copiedText === 'result' ? <Check size={10} /> : <Copy size={10} />} {copiedText === 'result' ? 'Copied' : 'Copy'}
+                            <button onClick={() => copyToClipboard(result, 'result')} className="text-[10px] bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 px-2 py-1.5 rounded hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors flex items-center gap-1">
+                                {copiedText === 'result' ? <Check size={12} /> : <Copy size={12} />}
                             </button>
                         </div>
                     </div>
-                    {renderResultContent(result)}
+                    
+                    {/* Content Area */}
+                    {previewMode ? (
+                        <LivePreview content={result} />
+                    ) : (
+                        renderResultContent(result)
+                    )}
                 </div>
             </div>
         );
@@ -170,23 +245,40 @@ const TestRunnerResults = ({
 
                         {refineSteps?.final && (
                             <div className="p-5 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-slate-800 dark:to-slate-800 rounded-xl border-2 border-amber-200 dark:border-amber-700 shadow-lg relative">
-                                <div className="flex items-center gap-2 text-sm font-bold uppercase text-amber-600 dark:text-amber-500 mb-3 border-b border-amber-200 dark:border-slate-700 pb-2">
-                                    <Sparkles size={16} /> Final Polish
-                                    <div className="ml-auto flex gap-1">
+                                <div className="flex items-center justify-between mb-3 border-b border-amber-200 dark:border-slate-700 pb-2">
+                                    <div className="flex items-center gap-2 text-sm font-bold uppercase text-amber-600 dark:text-amber-500">
+                                        <Sparkles size={16} /> Final Polish
+                                    </div>
+                                    
+                                    <div className="flex items-center gap-2">
+                                        {/* PREVIEW TOGGLE FOR REFINE */}
+                                        <div className="flex bg-white dark:bg-slate-900 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
+                                            <button 
+                                                onClick={() => setPreviewMode(false)}
+                                                className={`px-2 py-0.5 rounded flex items-center gap-1 transition-all text-[10px] ${!previewMode ? 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300' : 'text-slate-400'}`}
+                                            >
+                                                <Code size={10} /> Code
+                                            </button>
+                                            <button 
+                                                onClick={() => setPreviewMode(true)}
+                                                className={`px-2 py-0.5 rounded flex items-center gap-1 transition-all text-[10px] ${previewMode ? 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300' : 'text-slate-400'}`}
+                                            >
+                                                <Eye size={10} /> Preview
+                                            </button>
+                                        </div>
+
                                         <button onClick={() => handleSave(refineSteps.final, 'Refine Final')} className="text-[10px] bg-white dark:bg-slate-700 border border-amber-200 dark:border-slate-600 px-2 py-1 rounded hover:bg-amber-50 transition-colors flex items-center gap-1">
-                                            {savedText === 'Refine Final' ? <Check size={12} /> : <Bookmark size={12} />} {savedText === 'Refine Final' ? 'Saved' : 'Save'}
-                                        </button>
-                                        <button onClick={() => copyToClipboard(refineSteps.final, 'final')} className="text-[10px] bg-white dark:bg-slate-700 border border-amber-200 dark:border-slate-600 px-2 py-1 rounded hover:bg-amber-50 transition-colors flex items-center gap-1">
-                                            {copiedText === 'final' ? <Check size={12} /> : <Copy size={12} />} {copiedText === 'final' ? 'Copied' : 'Copy'}
+                                            {savedText === 'Refine Final' ? <Check size={12} /> : <Bookmark size={12} />}
                                         </button>
                                     </div>
                                 </div>
-                                {renderResultContent(refineSteps.final)}
+                                
+                                {previewMode ? <LivePreview content={refineSteps.final} /> : renderResultContent(refineSteps.final)}
                             </div>
                         )}
                     </>
                 ) : (
-                    /* DIFF VIEW (Side by Side) */
+                    /* DIFF VIEW */
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-[500px]">
                          <div className="rounded-xl border border-red-200 dark:border-red-900 bg-red-50/30 dark:bg-red-900/10 p-4 flex flex-col h-full overflow-hidden">
                             <div className="flex items-center gap-2 text-red-600 dark:text-red-400 font-bold mb-3 border-b border-red-200 dark:border-red-800 pb-2">
@@ -197,8 +289,6 @@ const TestRunnerResults = ({
                                 {renderResultContent(refineSteps?.draft)}
                             </div>
                         </div>
-                        
-                        {/* After Panel */}
                         <div className="rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50/30 dark:bg-emerald-900/10 p-4 flex flex-col h-full overflow-hidden">
                             <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold mb-3 border-b border-emerald-200 dark:border-emerald-800 pb-2">
                                  <Sparkles size={18} /> Final Polish
@@ -254,7 +344,7 @@ const TestRunnerResults = ({
                     ))}
                  </div>
 
-                 {/* CTO UPDATE: Swarm Action Bar (Continue / Compile) */}
+                 {/* Swarm Action Bar (Continue / Compile) */}
                  {swarmHistory.length > 0 && !loading && (
                      <div className="flex gap-2 pt-2 animate-in slide-in-from-bottom-2">
                          <button 
