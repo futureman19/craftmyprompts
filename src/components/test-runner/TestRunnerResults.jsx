@@ -19,31 +19,70 @@ const LivePreview = ({ content, onClose }) => {
     let js = extractCode('js|javascript');
     let jsx = extractCode('jsx|react|tsx');
 
-    // --- SMART EXTRACTOR ---
-    if (!html && (jsx || js)) {
-        const code = jsx || js;
+    // --- SMART RUNTIME ENGINE ---
+    let scriptType = 'text/javascript';
+    let processedScript = js || '';
+    let isReact = false;
+
+    // Detect React/JSX content
+    if (!html && (jsx || (js && (js.includes('import React') || js.includes('export default') || js.includes('return <'))))) {
+        isReact = true;
+        scriptType = 'text/babel';
         
-        // Try to find the return statement or direct markup
-        const returnMatch = code.match(/return\s*\(?([\s\S]*?)\)?;?\s*}/);
+        let reactCode = jsx || js;
+
+        // 1. Sanitize Imports (Babel Standalone doesn't handle ESM imports easily)
+        // We assume React is globally available via CDN
+        reactCode = reactCode.replace(/import\s+.*?from\s+['"].*?['"];?/g, '');
+
+        // 2. Handle Component Mounting
+        // We need to find the component name to render it
+        let componentName = 'App'; // Default guess
         
-        if (returnMatch) {
-            html = returnMatch[1];
-        } else if (code.trim().startsWith('<')) {
-            html = code;
+        // Check for "export default function ComponentName"
+        const exportDefaultFunction = reactCode.match(/export\s+default\s+function\s+(\w+)/);
+        if (exportDefaultFunction) {
+            componentName = exportDefaultFunction[1];
+            reactCode = reactCode.replace(/export\s+default\s+function/, 'function');
+        } else {
+            // Check for "export default ComponentName" at bottom
+            const exportDefaultBottom = reactCode.match(/export\s+default\s+(\w+);?/);
+            if (exportDefaultBottom) {
+                componentName = exportDefaultBottom[1];
+                reactCode = reactCode.replace(/export\s+default\s+\w+;?/, '');
+            } else {
+                // Heuristic: Find the first function that looks like a component (Capitalized)
+                const firstComponent = reactCode.match(/function\s+([A-Z]\w+)/);
+                if (firstComponent) {
+                    componentName = firstComponent[1];
+                }
+            }
         }
 
-        if (html) {
-            html = html
-                .replace(/className=/g, 'class=') 
-                .replace(/\{([^}]+)\}/g, '$1')
-                .replace(/onClick=\{.*?\}/g, '')
-                .replace(/style=\{\{([^}]+)\}\}/g, 'style="$1"')
-                .replace(/import .*?;/g, '')       
-                .replace(/export default .*?;/g, ''); 
-        }
+        // 3. Wrap in Error Boundary / Mount Logic
+        processedScript = `
+            ${reactCode}
+
+            // Auto-generated mount logic
+            try {
+                const rootElement = document.getElementById('root');
+                if (typeof ReactDOM !== 'undefined' && typeof React !== 'undefined') {
+                    const root = ReactDOM.createRoot(rootElement);
+                    // Check if component exists
+                    if (typeof ${componentName} !== 'undefined') {
+                        root.render(React.createElement(${componentName}));
+                    } else {
+                        rootElement.innerHTML = '<div style="color:red;padding:20px;">Could not find component "${componentName}" to render.</div>';
+                    }
+                }
+            } catch (err) {
+                document.body.innerHTML += '<div style="color:red;padding:20px;border-top:1px solid #ccc;">Runtime Error: ' + err.message + '</div>';
+            }
+        `;
     }
 
-    const rawHtml = (!html && content.trim().startsWith('<')) ? content : html;
+    // Fallback HTML if raw text looks like markup
+    const rawHtml = (!html && !isReact && content.trim().startsWith('<')) ? content : html;
 
     const srcDoc = `
         <!DOCTYPE html>
@@ -51,10 +90,17 @@ const LivePreview = ({ content, onClose }) => {
             <head>
                 <meta charset="utf-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1">
+                
+                <!-- 1. Tailwind CSS -->
                 <script src="https://cdn.tailwindcss.com"></script>
+                
+                <!-- 2. React & ReactDOM (UMD) -->
                 <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
                 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+                
+                <!-- 3. Babel for JSX -->
                 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
                 <style>
                     body { 
                         font-family: sans-serif; 
@@ -63,15 +109,18 @@ const LivePreview = ({ content, onClose }) => {
                         background-color: #ffffff;
                         min-height: 100vh;
                     }
+                    /* Custom CSS */
                     ${css || ''}
                 </style>
             </head>
             <body>
                 <div id="root">
-                    ${rawHtml || '<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#9ca3af;font-size:14px;text-align:center;">No visual preview available.<br/>(Try asking for "HTML" or a "Landing Page")</div>'}
+                    ${rawHtml || (isReact ? '' : '<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#9ca3af;font-size:14px;text-align:center;">Preview Loading...<br/>(If blank, code may require compilation)</div>')}
                 </div>
-                <script type="text/javascript">
-                    ${js && !js.includes('import React') ? js : ''}
+                
+                <!-- Inject Script -->
+                <script type="${scriptType}" data-presets="react">
+                    ${processedScript}
                 </script>
             </body>
         </html>
@@ -90,7 +139,7 @@ const LivePreview = ({ content, onClose }) => {
                     srcDoc={srcDoc}
                     title="Live Preview"
                     className="w-full h-full border-0 bg-white"
-                    sandbox="allow-scripts allow-modals" 
+                    sandbox="allow-scripts allow-modals allow-same-origin" 
                 />
             </div>
         </div>
@@ -205,9 +254,12 @@ const TestRunnerResults = ({
                         </div>
                     </div>
                     
-                    {/* Content Area - Now Code is always visible behind, Preview is a popup */}
-                    {renderResultContent(result)}
-                    {previewMode && <LivePreview content={result} onClose={() => setPreviewMode(false)} />}
+                    {/* Content Area */}
+                    {previewMode ? (
+                        <LivePreview content={result} onClose={() => setPreviewMode(false)} />
+                    ) : (
+                        renderResultContent(result)
+                    )}
                 </div>
             </div>
         );
@@ -311,8 +363,7 @@ const TestRunnerResults = ({
                                     </div>
                                 </div>
                                 
-                                {renderResultContent(refineSteps.final)}
-                                {previewMode && <LivePreview content={refineSteps.final} onClose={() => setPreviewMode(false)} />}
+                                {previewMode ? <LivePreview content={refineSteps.final} onClose={() => setPreviewMode(false)} /> : renderResultContent(refineSteps.final)}
                             </div>
                         )}
                     </>
