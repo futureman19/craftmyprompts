@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
     // --- STATE ---
     const [viewMode, setViewMode] = useState('simple'); // 'simple' | 'advanced'
-    const [provider, setProvider] = useState('gemini'); // 'gemini' | 'openai' | 'battle' | 'refine'
+    const [provider, setProvider] = useState('gemini'); // 'gemini' | 'openai' | 'battle' | 'refine' | 'swarm'
     const [refineView, setRefineView] = useState('timeline'); // 'timeline' | 'diff'
 
     // GitHub State
@@ -16,6 +16,16 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         critiquer: 'openai',
         focus: 'general'
     });
+
+    // --- CTO UPDATE: Swarm Config ---
+    const [swarmConfig, setSwarmConfig] = useState({
+        agentA: 'gemini',
+        roleA: 'Visionary CEO',
+        agentB: 'openai',
+        roleB: 'Pragmatic Engineer',
+        rounds: 3
+    });
+    const [swarmHistory, setSwarmHistory] = useState([]); // [{ speaker: 'A', text: '...' }, ...]
 
     // Keys
     const [geminiKey, setGeminiKey] = useState('');
@@ -162,10 +172,72 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         setResult(null);
         setBattleResults(null);
         setRefineSteps(null);
+        setSwarmHistory([]);
         setStatusMessage('');
 
         try {
-            if (provider === 'refine') {
+            if (provider === 'swarm') {
+                // --- CTO UPDATE: SWARM LOGIC ---
+                // Validate Keys
+                if (swarmConfig.agentA === 'gemini' && !geminiKey) throw new Error("Gemini Key missing for Agent A");
+                if (swarmConfig.agentA === 'openai' && !openaiKey) throw new Error("OpenAI Key missing for Agent A");
+                if (swarmConfig.agentB === 'gemini' && !geminiKey) throw new Error("Gemini Key missing for Agent B");
+                if (swarmConfig.agentB === 'openai' && !openaiKey) throw new Error("OpenAI Key missing for Agent B");
+
+                if (geminiKey) saveKey(geminiKey, 'gemini');
+                if (openaiKey) saveKey(openaiKey, 'openai');
+
+                let currentHistory = [];
+
+                for (let i = 0; i < swarmConfig.rounds; i++) {
+                    // --- AGENT A TURN ---
+                    setStatusMessage(`Round ${i+1}: ${swarmConfig.roleA} is speaking...`);
+                    
+                    const contextA = `
+                        You are participating in a roundtable discussion.
+                        TOPIC/PROBLEM: "${prompt}"
+                        YOUR ROLE: ${swarmConfig.roleA}
+                        OTHER ATTENDEE: ${swarmConfig.roleB}
+                        
+                        TRANSCRIPT SO FAR:
+                        ${currentHistory.map(m => `${m.role}: ${m.text}`).join('\n')}
+                        
+                        INSTRUCTION: Provide your next response, argument, or insight based on your role. Be concise (under 100 words).
+                    `;
+
+                    const keyA = swarmConfig.agentA === 'gemini' ? geminiKey : openaiKey;
+                    const responseA = await callAIProvider(swarmConfig.agentA, contextA, keyA);
+
+                    const msgA = { speaker: 'A', role: swarmConfig.roleA, text: responseA, provider: swarmConfig.agentA };
+                    currentHistory.push(msgA);
+                    setSwarmHistory([...currentHistory]); // Force UI update per step
+
+                    // --- AGENT B TURN ---
+                    setStatusMessage(`Round ${i+1}: ${swarmConfig.roleB} is responding...`);
+
+                    const contextB = `
+                        You are participating in a roundtable discussion.
+                        TOPIC/PROBLEM: "${prompt}"
+                        YOUR ROLE: ${swarmConfig.roleB}
+                        OTHER ATTENDEE: ${swarmConfig.roleA}
+                        
+                        TRANSCRIPT SO FAR:
+                        ${currentHistory.map(m => `${m.role}: ${m.text}`).join('\n')}
+                        
+                        INSTRUCTION: Respond to the previous point, offering a different perspective or refinement based on your role. Be concise (under 100 words).
+                    `;
+
+                    const keyB = swarmConfig.agentB === 'gemini' ? geminiKey : openaiKey;
+                    const responseB = await callAIProvider(swarmConfig.agentB, contextB, keyB);
+
+                    const msgB = { speaker: 'B', role: swarmConfig.roleB, text: responseB, provider: swarmConfig.agentB };
+                    currentHistory.push(msgB);
+                    setSwarmHistory([...currentHistory]); // Force UI update per step
+                }
+                
+                setStatusMessage('Meeting adjourned.');
+
+            } else if (provider === 'refine') {
                 if (refineConfig.drafter === 'gemini' && !geminiKey) throw new Error("Gemini API Key missing for Drafter.");
                 if (refineConfig.drafter === 'openai' && !openaiKey) throw new Error("OpenAI API Key missing for Drafter.");
                 if (refineConfig.critiquer === 'gemini' && !geminiKey) throw new Error("Gemini API Key missing for Critiquer.");
@@ -249,10 +321,12 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         viewMode, provider, refineView, showGithub, codeToShip, refineConfig,
         geminiKey, openaiKey, loading, result, battleResults, refineSteps,
         statusMessage, error, selectedModel, availableModels,
+        swarmConfig, swarmHistory, // Exporting Swarm State
         
         // Setters (if needed directly)
         setGeminiKey, setOpenaiKey, setProvider, setRefineView, 
         setShowGithub, setRefineConfig, setSelectedModel,
+        setSwarmConfig, // Exporting Swarm Setter
 
         // Actions
         runTest, fetchModels, clearKey, handleShipCode, handleViewChange

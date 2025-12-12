@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { 
     Loader, AlertTriangle, Check, Copy, Sparkles, Bot, 
-    MonitorPlay, Bookmark, Split, Layers 
+    MonitorPlay, Bookmark, Split, Layers, User, Users 
 } from 'lucide-react';
 import CodeBlock from './CodeBlock';
 
 const TestRunnerResults = ({ 
     loading, result, error, statusMessage, 
-    provider, battleResults, refineSteps, refineView, 
+    provider, battleResults, refineSteps, refineView, swarmHistory, // <--- Added swarmHistory
     // Actions
     onSaveSnippet, onShipCode, setRefineView 
 }) => {
@@ -50,7 +50,8 @@ const TestRunnerResults = ({
     // --- RENDER ---
     
     // 1. Loading / Error States
-    if (loading && provider !== 'battle' && provider !== 'refine') {
+    // Note: Swarm handles its own loading state inside the chat flow
+    if (loading && provider !== 'battle' && provider !== 'refine' && provider !== 'swarm') {
         return (
             <div className="rounded-xl border p-4 bg-slate-50 border-slate-200 dark:bg-slate-800/50 dark:border-slate-700">
                  <div className="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-400">
@@ -75,7 +76,7 @@ const TestRunnerResults = ({
     }
 
     // 2. Single Result (Gemini/OpenAI)
-    if (result && provider !== 'battle' && provider !== 'refine') {
+    if (result && provider !== 'battle' && provider !== 'refine' && provider !== 'swarm') {
         return (
             <div className={`rounded-xl border p-4 animate-in slide-in-from-bottom-2 fade-in ${provider === 'openai' ? 'bg-emerald-50 border-emerald-100 dark:bg-emerald-900/10 dark:border-emerald-800' : 'bg-slate-50 border-slate-200 dark:bg-slate-800/50 dark:border-slate-700'}`}>
                 <div className="relative">
@@ -207,6 +208,46 @@ const TestRunnerResults = ({
                         </div>
                     </div>
                 )}
+            </div>
+        );
+    }
+
+    // --- CTO UPDATE: SWARM MODE RENDERER ---
+    if (provider === 'swarm' && (loading || (swarmHistory && swarmHistory.length > 0))) {
+        return (
+            <div className="space-y-6 animate-in slide-in-from-bottom-2 fade-in pb-4">
+                 {/* Loading Indicator */}
+                 {loading && <div className="text-center text-sm font-bold text-violet-600 dark:text-violet-400 animate-pulse bg-violet-50 dark:bg-violet-900/20 py-2 rounded-lg">{statusMessage}</div>}
+
+                 {/* Chat History */}
+                 <div className="space-y-4">
+                    {swarmHistory && swarmHistory.map((msg, idx) => (
+                        <div key={idx} className={`flex ${msg.provider === 'openai' ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`max-w-[85%] rounded-2xl p-4 border shadow-sm ${msg.provider === 'openai' ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-800/50' : 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-100 dark:border-indigo-800/50'}`}>
+                                {/* Header */}
+                                <div className={`flex items-center gap-2 text-xs font-bold uppercase mb-2 border-b pb-2 ${msg.provider === 'openai' ? 'text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800' : 'text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800'}`}>
+                                    {msg.provider === 'openai' ? <Bot size={14} /> : <Sparkles size={14} />}
+                                    <span>{msg.role}</span>
+                                    
+                                    {/* Actions */}
+                                    <div className="ml-auto flex items-center gap-1">
+                                        <button onClick={() => handleSave(msg.text, `Swarm: ${msg.role}`)} className={`p-1 rounded transition-colors ${msg.provider === 'openai' ? 'hover:bg-emerald-200 dark:hover:bg-emerald-800' : 'hover:bg-indigo-200 dark:hover:bg-indigo-800'}`} title="Save Snippet">
+                                            <Bookmark size={12} />
+                                        </button>
+                                        <button onClick={() => copyToClipboard(msg.text, `swarm-${idx}`)} className={`p-1 rounded transition-colors ${msg.provider === 'openai' ? 'hover:bg-emerald-200 dark:hover:bg-emerald-800' : 'hover:bg-indigo-200 dark:hover:bg-indigo-800'}`} title="Copy Text">
+                                            {copiedText === `swarm-${idx}` ? <Check size={12} /> : <Copy size={12} />}
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                {/* Body */}
+                                <div className="text-sm text-slate-800 dark:text-slate-200 leading-relaxed whitespace-pre-wrap">
+                                    {renderResultContent(msg.text)}
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                 </div>
             </div>
         );
     }
