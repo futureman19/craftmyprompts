@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { 
     Loader, AlertTriangle, Check, Copy, Sparkles, Bot, 
-    MonitorPlay, Bookmark, Split, Layers, Users, PlayCircle, FileCode, Eye, Code 
+    MonitorPlay, Bookmark, Split, Layers, Users, PlayCircle, FileCode, Eye, Code, X 
 } from 'lucide-react';
 import CodeBlock from './CodeBlock';
 
-// --- INTERNAL COMPONENT: LIVE PREVIEW IFRAME ---
-const LivePreview = ({ content }) => {
+// --- INTERNAL COMPONENT: LIVE PREVIEW IFRAME (POPUP) ---
+const LivePreview = ({ content, onClose }) => {
     // Helper to extract code from markdown
     const extractCode = (typeRegex) => {
         const regex = new RegExp(`\`\`\`(${typeRegex})([\\s\\S]*?)\`\`\``, 'i');
@@ -19,62 +19,31 @@ const LivePreview = ({ content }) => {
     let js = extractCode('js|javascript');
     let jsx = extractCode('jsx|react|tsx');
 
-    // --- REACT/JSX PROCESSING ---
-    let scriptType = 'text/javascript';
-    let processedJs = js || '';
-    let isReact = false;
-
-    if (!html && (jsx || (js && (js.includes('import React') || js.includes('export default'))))) {
-        isReact = true;
-        scriptType = 'text/babel';
+    // --- SMART EXTRACTOR ---
+    if (!html && (jsx || js)) {
+        const code = jsx || js;
         
-        // Use the JSX or JS content
-        let reactCode = jsx || js;
-
-        // 1. Strip imports (Babel Standalone doesn't handle ESM imports easily without setup)
-        // We assume React/ReactDOM are globally available via CDN
-        reactCode = reactCode.replace(/import\s+.*?from\s+['"].*?['"];?/g, '');
-
-        // 2. Handle Export Default
-        // We need to find the component name to mount it
-        // Case A: export default function MyComponent...
-        const exportMatch = reactCode.match(/export\s+default\s+function\s+(\w+)/);
-        let componentName = 'App';
-
-        if (exportMatch) {
-            componentName = exportMatch[1];
-            reactCode = reactCode.replace(/export\s+default\s+function/, 'function');
-        } else {
-            // Case B: export default MyComponent; at the bottom
-            const bottomExportMatch = reactCode.match(/export\s+default\s+(\w+);?/);
-            if (bottomExportMatch) {
-                componentName = bottomExportMatch[1];
-                reactCode = reactCode.replace(/export\s+default\s+\w+;?/, '');
-            } else {
-                // Case C: Implicit return or just a class/function
-                // Try to find the first function or class name
-                const nameMatch = reactCode.match(/(?:function|class|const)\s+(\w+)/);
-                if (nameMatch) {
-                    componentName = nameMatch[1];
-                }
-            }
+        // Try to find the return statement or direct markup
+        const returnMatch = code.match(/return\s*\(?([\s\S]*?)\)?;?\s*}/);
+        
+        if (returnMatch) {
+            html = returnMatch[1];
+        } else if (code.trim().startsWith('<')) {
+            html = code;
         }
 
-        // 3. Prepare the mounting code
-        processedJs = `
-            ${reactCode}
-            
-            // Auto-Mount Logic
-            try {
-                const rootElement = document.getElementById('root');
-                const root = ReactDOM.createRoot(rootElement);
-                root.render(React.createElement(${componentName}));
-            } catch (err) {
-                document.body.innerHTML = '<div style="color:red; padding:20px;">Runtime Error: ' + err.message + '</div>';
-                console.error(err);
-            }
-        `;
+        if (html) {
+            html = html
+                .replace(/className=/g, 'class=') 
+                .replace(/\{([^}]+)\}/g, '$1')
+                .replace(/onClick=\{.*?\}/g, '')
+                .replace(/style=\{\{([^}]+)\}\}/g, 'style="$1"')
+                .replace(/import .*?;/g, '')       
+                .replace(/export default .*?;/g, ''); 
+        }
     }
+
+    const rawHtml = (!html && content.trim().startsWith('<')) ? content : html;
 
     const srcDoc = `
         <!DOCTYPE html>
@@ -82,48 +51,48 @@ const LivePreview = ({ content }) => {
             <head>
                 <meta charset="utf-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1">
-                
-                <!-- 1. Tailwind CSS -->
                 <script src="https://cdn.tailwindcss.com"></script>
-                
-                <!-- 2. React & ReactDOM (UMD) -->
                 <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
                 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-                
-                <!-- 3. Babel Standalone (for JSX) -->
                 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
                 <style>
                     body { 
                         font-family: sans-serif; 
                         padding: 0;
                         margin: 0;
                         background-color: #ffffff;
+                        min-height: 100vh;
                     }
-                    /* Custom CSS from Prompt */
                     ${css || ''}
                 </style>
             </head>
             <body>
                 <div id="root">
-                    ${html || (isReact ? '' : '<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#9ca3af;font-size:14px;text-align:center;">Preview Loading...</div>')}
+                    ${rawHtml || '<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#9ca3af;font-size:14px;text-align:center;">No visual preview available.<br/>(Try asking for "HTML" or a "Landing Page")</div>'}
                 </div>
-                
-                <script type="${scriptType}" data-presets="react">
-                    ${processedJs}
+                <script type="text/javascript">
+                    ${js && !js.includes('import React') ? js : ''}
                 </script>
             </body>
         </html>
     `;
 
     return (
-        <div className="w-full h-[500px] bg-white rounded-lg overflow-hidden border border-slate-200 shadow-inner">
-            <iframe 
-                srcDoc={srcDoc}
-                title="Live Preview"
-                className="w-full h-full border-0"
-                sandbox="allow-scripts allow-modals" 
-            />
+        <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 md:p-8 animate-in fade-in duration-200">
+            <div className="bg-white w-full h-full max-w-6xl rounded-xl overflow-hidden shadow-2xl flex flex-col relative">
+                {/* Modal Header */}
+                <div className="flex justify-between items-center p-3 border-b bg-slate-50">
+                    <span className="font-bold text-slate-700 text-sm flex items-center gap-2"><Eye size={16}/> Live Preview</span>
+                    <button onClick={onClose} className="p-1 hover:bg-slate-200 rounded-full transition-colors"><X size={20} className="text-slate-500"/></button>
+                </div>
+                {/* Iframe */}
+                <iframe 
+                    srcDoc={srcDoc}
+                    title="Live Preview"
+                    className="w-full h-full border-0 bg-white"
+                    sandbox="allow-scripts allow-modals" 
+                />
+            </div>
         </div>
     );
 };
@@ -133,12 +102,11 @@ const TestRunnerResults = ({
     provider, battleResults, refineSteps, refineView, swarmHistory, 
     // Actions
     onSaveSnippet, onShipCode, setRefineView,
-    // CTO UPDATE: New Actions for Swarm Persistence
     onContinueSwarm, onCompileSwarm
 }) => {
     const [copiedText, setCopiedText] = useState(null);
     const [savedText, setSavedText] = useState(null);
-    const [previewMode, setPreviewMode] = useState(false); // Toggle for Live Preview
+    const [previewMode, setPreviewMode] = useState(false);
 
     // --- HELPERS ---
     const copyToClipboard = (text, label) => {
@@ -237,12 +205,9 @@ const TestRunnerResults = ({
                         </div>
                     </div>
                     
-                    {/* Content Area */}
-                    {previewMode ? (
-                        <LivePreview content={result} />
-                    ) : (
-                        renderResultContent(result)
-                    )}
+                    {/* Content Area - Now Code is always visible behind, Preview is a popup */}
+                    {renderResultContent(result)}
+                    {previewMode && <LivePreview content={result} onClose={() => setPreviewMode(false)} />}
                 </div>
             </div>
         );
@@ -346,7 +311,8 @@ const TestRunnerResults = ({
                                     </div>
                                 </div>
                                 
-                                {previewMode ? <LivePreview content={refineSteps.final} /> : renderResultContent(refineSteps.final)}
+                                {renderResultContent(refineSteps.final)}
+                                {previewMode && <LivePreview content={refineSteps.final} onClose={() => setPreviewMode(false)} />}
                             </div>
                         )}
                     </>
