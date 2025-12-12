@@ -17,7 +17,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         focus: 'general'
     });
 
-    // Swarm Config
+    // --- SWARM CONFIG (Critical for Swarm Feature) ---
     const [swarmConfig, setSwarmConfig] = useState({
         agentA: 'gemini',
         roleA: 'Visionary CEO',
@@ -45,6 +45,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
 
     // --- INITIALIZATION ---
     useEffect(() => {
+        // Load Keys (Prioritize Props, Fallback to LocalStorage)
         if (defaultApiKey) {
             setGeminiKey(defaultApiKey);
         } else {
@@ -116,6 +117,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
             if (data.models) {
                 const validModels = data.models.filter(m => m.supportedGenerationMethods?.includes("generateContent"));
                 setAvailableModels(validModels);
+                // Auto-Select Logic
                 const currentExists = validModels.find(m => m.name === selectedModel);
                 if (!selectedModel || !currentExists) {
                     const bestModel = validModels.find(m => m.name.includes('2.0-flash'))
@@ -187,13 +189,17 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
 
                 for (let i = 0; i < swarmConfig.rounds; i++) {
                     setStatusMessage(`Round ${i+1}: ${swarmConfig.roleA} is speaking...`);
+                    
                     const contextA = `
                         You are participating in a roundtable discussion.
-                        TOPIC: "${prompt}"
+                        TOPIC/PROBLEM: "${prompt}"
                         YOUR ROLE: ${swarmConfig.roleA}
                         OTHER ATTENDEE: ${swarmConfig.roleB}
-                        TRANSCRIPT: ${currentHistory.map(m => `${m.role}: ${m.text}`).join('\n')}
-                        INSTRUCTION: Provide your next response based on your role. Be concise.
+                        
+                        TRANSCRIPT SO FAR:
+                        ${currentHistory.map(m => `${m.role}: ${m.text}`).join('\n')}
+                        
+                        INSTRUCTION: Provide your next response, argument, or insight based on your role. Be concise (under 100 words).
                     `;
                     const keyA = swarmConfig.agentA === 'gemini' ? geminiKey : openaiKey;
                     const responseA = await callAIProvider(swarmConfig.agentA, contextA, keyA);
@@ -203,11 +209,14 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
                     setStatusMessage(`Round ${i+1}: ${swarmConfig.roleB} is responding...`);
                     const contextB = `
                         You are participating in a roundtable discussion.
-                        TOPIC: "${prompt}"
+                        TOPIC/PROBLEM: "${prompt}"
                         YOUR ROLE: ${swarmConfig.roleB}
                         OTHER ATTENDEE: ${swarmConfig.roleA}
-                        TRANSCRIPT: ${currentHistory.map(m => `${m.role}: ${m.text}`).join('\n')}
-                        INSTRUCTION: Respond to the previous point based on your role. Be concise.
+                        
+                        TRANSCRIPT SO FAR:
+                        ${currentHistory.map(m => `${m.role}: ${m.text}`).join('\n')}
+                        
+                        INSTRUCTION: Respond to the previous point, offering a different perspective or refinement based on your role. Be concise (under 100 words).
                     `;
                     const keyB = swarmConfig.agentB === 'gemini' ? geminiKey : openaiKey;
                     const responseB = await callAIProvider(swarmConfig.agentB, contextB, keyB);
