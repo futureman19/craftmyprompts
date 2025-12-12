@@ -8,12 +8,11 @@ import GitHubModal from './GitHubModal';
 const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippet }) => {
     
     // 1. Initialize the "Brain" (Custom Hook)
-    // This handles all the state, API calls, and logic we extracted
     const runner = useTestRunner(defaultApiKey, defaultOpenAIKey);
 
     if (!isOpen) return null;
 
-    // 2. Main Run Handler (Bridge between Hook and UI)
+    // 2. Main Run Handler
     const handleRunClick = () => {
         runner.runTest(prompt);
     };
