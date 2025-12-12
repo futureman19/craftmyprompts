@@ -2,12 +2,12 @@
 // It aggregates data from multiple smaller files and re-exports them.
 // This keeps your imports clean in the rest of the app.
 
-export { GENERAL_DATA } from './categories/general';
-export { CODING_DATA } from './categories/coding';
-export { WRITING_DATA } from './categories/writing';
-export { ART_DATA } from './categories/art';
-export { AVATAR_DATA } from './categories/avatar';
-export { VIDEO_DATA } from './categories/video';
+export { GENERAL_DATA } from './categories/general.jsx';
+export { CODING_DATA } from './categories/coding.jsx';
+export { WRITING_DATA } from './categories/writing.jsx';
+export { ART_DATA } from './categories/art.jsx';
+export { AVATAR_DATA } from './categories/avatar.jsx';
+export { VIDEO_DATA } from './categories/video.jsx';
 export { PRESETS } from './presets';
 
 // Random topics for the "Surprise Me" feature
