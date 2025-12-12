@@ -7,34 +7,47 @@ import CodeBlock from './CodeBlock';
 
 // --- INTERNAL COMPONENT: LIVE PREVIEW IFRAME ---
 const LivePreview = ({ content }) => {
-    // Helper to extract code from markdown with regex
-    // Supports matching multiple types (e.g. "html|jsx")
+    // Helper to extract code from markdown
     const extractCode = (typeRegex) => {
-        // Match ```type ... ```
-        // capture group 1 is the type, group 2 is the content
         const regex = new RegExp(`\`\`\`(${typeRegex})([\\s\\S]*?)\`\`\``, 'i');
         const match = content.match(regex);
         return match ? match[2] : null;
     };
 
     let html = extractCode('html');
-    const css = extractCode('css');
-    const js = extractCode('js|javascript');
-    
-    // --- VIBE CODING FIX ---
-    // If no HTML block is found, check for React/JSX blocks.
-    // We attempt to render them as HTML by doing simple replacements (className -> class).
-    // This allows users to "Preview" React components instantly without a full build step.
-    if (!html) {
-        const jsx = extractCode('jsx|react|tsx');
-        if (jsx) {
-            // Very basic JSX-to-HTML conversion for preview purposes
-            // 1. Replace className with class
-            html = jsx.replace(/className=/g, 'class=');
+    let css = extractCode('css');
+    let js = extractCode('js|javascript');
+    let jsx = extractCode('jsx|react|tsx');
+
+    // --- SMART EXTRACTOR ---
+    // If we didn't find explicit HTML, but we found JSX/JS that looks like a component...
+    if (!html && (jsx || js)) {
+        const code = jsx || js;
+        
+        // 1. Try to find the return statement of the component
+        // Matches: return ( ... ); OR return <...>;
+        const returnMatch = code.match(/return\s*(?:\(|)([\s\S]*?)(?:\)|);?\s*}/);
+        
+        if (returnMatch) {
+            // We found the JSX markup inside the function!
+            html = returnMatch[1];
+        } else if (code.trim().startsWith('<')) {
+            // The code block is JUST markup
+            html = code;
+        }
+
+        // 2. Polyfill React attributes to HTML
+        if (html) {
+            html = html
+                .replace(/className=/g, 'class=') // className -> class
+                .replace(/\{([^}]+)\}/g, '$1')     // {variable} -> variable (basic strip)
+                .replace(/onClick=\{.*?\}/g, '')   // Remove event handlers (they won't work in raw HTML)
+                .replace(/import .*?;/g, '')       // Remove imports if they leaked in
+                .replace(/export default .*?;/g, ''); // Remove exports
         }
     }
 
-    // If still no code blocks found, check if the raw text looks like HTML (starts with <)
+    // Final fallback: If raw content looks like HTML
     const rawHtml = (!html && content.trim().startsWith('<')) ? content : html;
 
     const srcDoc = `
@@ -47,13 +60,15 @@ const LivePreview = ({ content }) => {
                 <script src="https://cdn.tailwindcss.com"></script>
                 <style>
                     body { font-family: sans-serif; padding: 20px; }
+                    /* Inject any CSS found */
                     ${css || ''}
                 </style>
             </head>
             <body>
-                ${rawHtml || '<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#9ca3af;font-size:14px;text-align:center;">No previewable code found (HTML/JSX).<br/>Try asking for a "landing page" or "component".</div>'}
+                ${rawHtml || '<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#9ca3af;font-size:14px;text-align:center;">No visual preview available.<br/>(Try asking for "HTML" or a "Landing Page")</div>'}
                 <script>
-                    ${js || ''}
+                    /* Inject JS if it looks safe-ish (not React component definitions) */
+                    ${js && !js.includes('import React') ? js : ''}
                 </script>
             </body>
         </html>
@@ -119,7 +134,6 @@ const TestRunnerResults = ({
     // --- RENDER ---
     
     // 1. Loading / Error States
-    // Note: Swarm handles its own loading state inside the chat flow
     if (loading && provider !== 'battle' && provider !== 'refine' && provider !== 'swarm') {
         return (
             <div className="rounded-xl border p-4 bg-slate-50 border-slate-200 dark:bg-slate-800/50 dark:border-slate-700">
