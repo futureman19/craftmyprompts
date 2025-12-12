@@ -1,5 +1,8 @@
 import { useReducer, useMemo } from 'react';
-import { GENERAL_DATA, CODING_DATA, WRITING_DATA, ART_DATA, AVATAR_DATA, VIDEO_DATA } from '../data/constants.jsx';
+import { 
+  GENERAL_DATA, CODING_DATA, WRITING_DATA, ART_DATA, AVATAR_DATA, VIDEO_DATA, 
+  RANDOM_TOPICS // <--- IMPORT ADDED
+} from '../data/constants.jsx';
 
 // --- INITIAL STATE ---
 const initialState = {
@@ -113,6 +116,7 @@ function builderReducer(state, action) {
         const rand = (arr) => arr[Math.floor(Math.random() * arr.length)];
         const randomSels = {};
         
+        // 1. Randomize Dropdowns
         dataSrc.forEach(cat => {
             if (cat.subcategories.length) {
                 const sub = rand(cat.subcategories);
@@ -120,7 +124,15 @@ function builderReducer(state, action) {
                 randomSels[cat.id] = [{ value: opt, weight: 1 }];
             }
         });
-        return { ...state, selections: randomSels };
+
+        // 2. Randomize Topic (CTO UPDATE)
+        const randomTopic = rand(RANDOM_TOPICS);
+
+        return { 
+            ...state, 
+            selections: randomSels,
+            customTopic: randomTopic // <--- Inject random topic
+        };
     }
     case 'MAGIC_EXPAND': {
         const powerWords = ['masterpiece', 'best quality', 'highly detailed', '8k resolution', 'ray tracing', 'volumetric lighting'];
@@ -200,7 +212,7 @@ export const usePromptBuilder = (initialData) => {
   const [state, dispatch] = useReducer(builderReducer, initialState);
 
   const currentData = useMemo(() => {
-      // --- CTO UPDATE: VIDEO DATA LOGIC ---
+      // --- VIDEO DATA LOGIC ---
       if (state.mode === 'video') return VIDEO_DATA;
       
       if (state.mode === 'art') {
