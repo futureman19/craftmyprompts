@@ -68,10 +68,13 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
                     refineSteps={runner.refineSteps}
                     refineView={runner.refineView}
                     swarmHistory={runner.swarmHistory}
+                    prompt={prompt}
                     
                     onSaveSnippet={onSaveSnippet}
                     onShipCode={runner.handleShipCode}
                     setRefineView={runner.setRefineView}
+                    onContinueSwarm={runner.continueSwarm}
+                    onCompileSwarm={runner.compileSwarmCode}
                 />
             </div>
 

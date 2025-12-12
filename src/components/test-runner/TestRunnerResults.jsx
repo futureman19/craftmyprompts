@@ -8,6 +8,7 @@ import CodeBlock from './CodeBlock';
 const TestRunnerResults = ({ 
     loading, result, error, statusMessage, 
     provider, battleResults, refineSteps, refineView, swarmHistory, 
+    prompt, // Current prompt for continuing swarm
     // Actions
     onSaveSnippet, onShipCode, setRefineView,
     // CTO UPDATE: New Actions for Swarm Persistence

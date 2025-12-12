@@ -82,6 +82,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                         refineSteps={runner.refineSteps}
                         refineView={runner.refineView}
                         swarmHistory={runner.swarmHistory}
+                        prompt={prompt}
                         
                         onSaveSnippet={onSaveSnippet}
                         onShipCode={runner.handleShipCode}
