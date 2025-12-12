@@ -19,43 +19,62 @@ const LivePreview = ({ content }) => {
     let js = extractCode('js|javascript');
     let jsx = extractCode('jsx|react|tsx');
 
-    // --- SMART EXTRACTOR ---
-    // If we didn't find explicit HTML, but we found JSX/JS that looks like a component...
-    if (!html && (jsx || js)) {
-        const code = jsx || js;
+    // --- REACT/JSX PROCESSING ---
+    let scriptType = 'text/javascript';
+    let processedJs = js || '';
+    let isReact = false;
+
+    if (!html && (jsx || (js && (js.includes('import React') || js.includes('export default'))))) {
+        isReact = true;
+        scriptType = 'text/babel';
         
-        // Strategy: Look for the UI markup.
-        // 1. Try to find the return statement: return ( ... );
-        // 2. Try to find direct usage: <div ...
-        
-        // Regex explanations:
-        // return\s*\(?  -> matches "return" followed by optional space and optional "("
-        // ([\s\S]*?)    -> capture the content (non-greedy)
-        // \)?;?         -> match optional closing ")" and optional ";"
-        // \s*}          -> match trailing space and closing brace "}" of the function
-        const returnMatch = code.match(/return\s*\(?([\s\S]*?)\)?;?\s*}/);
-        
-        if (returnMatch) {
-            html = returnMatch[1];
-        } else if (code.trim().startsWith('<')) {
-            // The code block might just be the raw markup
-            html = code;
+        // Use the JSX or JS content
+        let reactCode = jsx || js;
+
+        // 1. Strip imports (Babel Standalone doesn't handle ESM imports easily without setup)
+        // We assume React/ReactDOM are globally available via CDN
+        reactCode = reactCode.replace(/import\s+.*?from\s+['"].*?['"];?/g, '');
+
+        // 2. Handle Export Default
+        // We need to find the component name to mount it
+        // Case A: export default function MyComponent...
+        const exportMatch = reactCode.match(/export\s+default\s+function\s+(\w+)/);
+        let componentName = 'App';
+
+        if (exportMatch) {
+            componentName = exportMatch[1];
+            reactCode = reactCode.replace(/export\s+default\s+function/, 'function');
+        } else {
+            // Case B: export default MyComponent; at the bottom
+            const bottomExportMatch = reactCode.match(/export\s+default\s+(\w+);?/);
+            if (bottomExportMatch) {
+                componentName = bottomExportMatch[1];
+                reactCode = reactCode.replace(/export\s+default\s+\w+;?/, '');
+            } else {
+                // Case C: Implicit return or just a class/function
+                // Try to find the first function or class name
+                const nameMatch = reactCode.match(/(?:function|class|const)\s+(\w+)/);
+                if (nameMatch) {
+                    componentName = nameMatch[1];
+                }
+            }
         }
 
-        // Polyfill React attributes to HTML for basic rendering
-        if (html) {
-            html = html
-                .replace(/className=/g, 'class=') 
-                .replace(/\{([^}]+)\}/g, '$1')     // Basic variable strip: {text} -> text
-                .replace(/onClick=\{.*?\}/g, '')   // Remove events
-                .replace(/style=\{\{([^}]+)\}\}/g, 'style="$1"') // Try to fix styles {{color:'red'}} -> style="color:'red'" (imperfect but helps)
-                .replace(/import .*?;/g, '')       
-                .replace(/export default .*?;/g, ''); 
-        }
+        // 3. Prepare the mounting code
+        processedJs = `
+            ${reactCode}
+            
+            // Auto-Mount Logic
+            try {
+                const rootElement = document.getElementById('root');
+                const root = ReactDOM.createRoot(rootElement);
+                root.render(React.createElement(${componentName}));
+            } catch (err) {
+                document.body.innerHTML = '<div style="color:red; padding:20px;">Runtime Error: ' + err.message + '</div>';
+                console.error(err);
+            }
+        `;
     }
-
-    // Final fallback
-    const rawHtml = (!html && content.trim().startsWith('<')) ? content : html;
 
     const srcDoc = `
         <!DOCTYPE html>
@@ -63,26 +82,35 @@ const LivePreview = ({ content }) => {
             <head>
                 <meta charset="utf-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1">
+                
+                <!-- 1. Tailwind CSS -->
                 <script src="https://cdn.tailwindcss.com"></script>
+                
+                <!-- 2. React & ReactDOM (UMD) -->
+                <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+                <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+                
+                <!-- 3. Babel Standalone (for JSX) -->
+                <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
                 <style>
                     body { 
                         font-family: sans-serif; 
-                        padding: 20px; 
-                        display: flex; 
-                        justify-content: center; 
-                        align-items: center; 
-                        min-height: 100vh;
-                        background-color: #f9fafb;
+                        padding: 0;
                         margin: 0;
+                        background-color: #ffffff;
                     }
-                    /* Inject extracted CSS */
+                    /* Custom CSS from Prompt */
                     ${css || ''}
                 </style>
             </head>
             <body>
-                ${rawHtml || '<div style="color:#9ca3af;font-size:14px;text-align:center;">No visual preview available.<br/>(Try asking for "HTML" or a "Landing Page")</div>'}
-                <script>
-                    ${js && !js.includes('import React') ? js : ''}
+                <div id="root">
+                    ${html || (isReact ? '' : '<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#9ca3af;font-size:14px;text-align:center;">Preview Loading...</div>')}
+                </div>
+                
+                <script type="${scriptType}" data-presets="react">
+                    ${processedJs}
                 </script>
             </body>
         </html>
@@ -94,7 +122,7 @@ const LivePreview = ({ content }) => {
                 srcDoc={srcDoc}
                 title="Live Preview"
                 className="w-full h-full border-0"
-                sandbox="allow-scripts" 
+                sandbox="allow-scripts allow-modals" 
             />
         </div>
     );
