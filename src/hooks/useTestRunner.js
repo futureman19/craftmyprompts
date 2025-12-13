@@ -120,12 +120,26 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
             if (!response.ok) { console.error("Model fetch error:", data.error); return; }
 
             if (data.models) {
-                const validModels = data.models.filter(m => m.supportedGenerationMethods?.includes("generateContent"));
+                // CTO UPDATE: Curated Model List
+                const PREFERRED_KEYWORDS = ['1.5', '2.0', 'flash', 'pro'];
+                
+                const validModels = data.models
+                    .filter(m => m.supportedGenerationMethods?.includes("generateContent"))
+                    .filter(m => {
+                         const name = m.name.toLowerCase();
+                         return PREFERRED_KEYWORDS.some(k => name.includes(k)) && !name.includes('vision');
+                    })
+                    .sort((a, b) => {
+                        const verA = a.name.includes('2.0') ? 2 : 1;
+                        const verB = b.name.includes('2.0') ? 2 : 1;
+                        return verB - verA;
+                    });
+
                 setAvailableModels(validModels);
+                
                 const currentExists = validModels.find(m => m.name === selectedModel);
                 if (!selectedModel || !currentExists) {
-                    const bestModel = validModels.find(m => m.name.includes('2.0-flash')) || validModels.find(m => m.name.includes('flash')) || validModels[0];
-                    if (bestModel) setSelectedModel(bestModel.name);
+                    if (validModels.length > 0) setSelectedModel(validModels[0].name);
                 }
             }
         } catch (err) { console.error("Failed to fetch models", err); }
@@ -273,10 +287,12 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
     const continueSwarm = async (currentPrompt) => {
         if (!getKeyForProvider(swarmConfig.agentA) || !getKeyForProvider(swarmConfig.agentB)) return;
         setLoading(true);
+        setStatusMessage('Continuing the meeting...');
+
         try {
             let updatedHistory = [...swarmHistory];
-            setStatusMessage(`Extra Round...`);
-            // Simpler implementation for continuity: Just 1 round of A then B
+            // Agent A
+            setStatusMessage(`Extra Round: ${swarmConfig.roleA} is speaking...`);
             const contextA = `CONTINUING DISCUSSION.\nTOPIC: "${currentPrompt}"\nYOUR ROLE: ${swarmConfig.roleA}\nTRANSCRIPT:\n${updatedHistory.map(m => `${m.role}: ${m.text}`).join('\n')}\nINSTRUCTION: Continue.`;
             const resA = await callAIProvider(swarmConfig.agentA, contextA, getKeyForProvider(swarmConfig.agentA));
             updatedHistory.push({ speaker: 'A', role: swarmConfig.roleA, text: resA, provider: swarmConfig.agentA });

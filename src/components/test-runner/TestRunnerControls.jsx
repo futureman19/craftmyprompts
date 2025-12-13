@@ -2,22 +2,34 @@ import React from 'react';
 import { 
     Key, RefreshCw, Zap, Bot, Sparkles, Swords, GitCompare, 
     Layers, MonitorPlay, ArrowRight, Target, ShieldCheck, Users, 
-    Brain, Activity 
+    Activity, Brain, Lock 
 } from 'lucide-react';
 
 const TestRunnerControls = ({
     // State
     viewMode, provider, 
-    geminiKey, openaiKey, groqKey, anthropicKey, // <--- New Keys
+    geminiKey, openaiKey, groqKey, anthropicKey,
     refineConfig, swarmConfig,
     selectedModel, availableModels, 
     // Derived State
-    isUsingGlobalGemini, isUsingGlobalOpenAI,
+    isUsingGlobalGemini, isUsingGlobalOpenAI, isLoggedIn, // <--- New Prop
     // Actions
     onViewChange, onProviderChange, 
-    onGeminiKeyChange, onOpenaiKeyChange, onGroqKeyChange, onAnthropicKeyChange, // <--- New Handlers
+    onGeminiKeyChange, onOpenaiKeyChange, onGroqKeyChange, onAnthropicKeyChange,
     onClearKey, onFetchModels, onModelChange, onRefineConfigChange, onSwarmConfigChange
 }) => {
+
+    const renderLockedButton = (label, icon) => (
+        <button disabled className="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg border-2 border-slate-100 dark:border-slate-800 text-slate-300 dark:text-slate-600 cursor-not-allowed relative group">
+            {icon} {label}
+            <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
+                Login to unlock
+            </div>
+            <div className="absolute -top-1 -right-1 bg-slate-100 dark:bg-slate-800 rounded-full p-0.5">
+                 <Lock size={10} className="text-slate-400" />
+            </div>
+        </button>
+    );
 
     return (
         <div className="space-y-6">
@@ -30,33 +42,56 @@ const TestRunnerControls = ({
                 >
                     <MonitorPlay size={16} /> Individual Run
                 </button>
-                <button 
-                    onClick={() => onViewChange('advanced')} 
-                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-sm font-bold transition-all ${viewMode === 'advanced' ? 'bg-white dark:bg-slate-700 shadow text-amber-600 dark:text-amber-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
-                >
-                    <Layers size={16} /> Orchestrator
-                </button>
+                
+                {/* Lock Orchestrator for Guests */}
+                {isLoggedIn ? (
+                    <button 
+                        onClick={() => onViewChange('advanced')} 
+                        className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-sm font-bold transition-all ${viewMode === 'advanced' ? 'bg-white dark:bg-slate-700 shadow text-amber-600 dark:text-amber-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
+                    >
+                        <Layers size={16} /> Orchestrator
+                    </button>
+                ) : (
+                    <button disabled className="flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-sm font-bold text-slate-300 dark:text-slate-600 cursor-not-allowed relative group">
+                        <Layers size={16} /> Orchestrator <Lock size={12} />
+                        <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
+                            Login to unlock advanced modes
+                        </div>
+                    </button>
+                )}
             </div>
 
             {/* TIER 2: PROVIDER SELECTOR */}
             {viewMode === 'simple' ? (
-                <div className="flex gap-2 overflow-x-auto pb-1">
+                <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                    {/* Free/Standard Providers (Always Available) */}
                     <button onClick={() => onProviderChange('gemini')} className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg border-2 transition-all text-sm font-bold whitespace-nowrap ${provider === 'gemini' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-300' : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-500'}`}>
                         <Sparkles size={16} /> Gemini
                     </button>
                     <button onClick={() => onProviderChange('openai')} className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg border-2 transition-all text-sm font-bold whitespace-nowrap ${provider === 'openai' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-300' : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-500'}`}>
                         <Bot size={16} /> OpenAI
                     </button>
-                    {/* --- NEW PROVIDERS --- */}
-                    <button onClick={() => onProviderChange('groq')} className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg border-2 transition-all text-sm font-bold whitespace-nowrap ${provider === 'groq' ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-300' : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-500'}`}>
-                        <Activity size={16} /> Groq
-                    </button>
-                    <button onClick={() => onProviderChange('anthropic')} className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg border-2 transition-all text-sm font-bold whitespace-nowrap ${provider === 'anthropic' ? 'border-rose-500 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-300' : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-500'}`}>
-                        <Brain size={16} /> Anthropic
-                    </button>
+
+                    {/* Pro Providers (Locked for Guests) */}
+                    {isLoggedIn ? (
+                        <>
+                            <button onClick={() => onProviderChange('groq')} className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg border-2 transition-all text-sm font-bold whitespace-nowrap ${provider === 'groq' ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-300' : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-500'}`}>
+                                <Activity size={16} /> Groq
+                            </button>
+                            <button onClick={() => onProviderChange('anthropic')} className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg border-2 transition-all text-sm font-bold whitespace-nowrap ${provider === 'anthropic' ? 'border-rose-500 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-300' : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-500'}`}>
+                                <Brain size={16} /> Anthropic
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            {renderLockedButton("Groq", <Activity size={16} />)}
+                            {renderLockedButton("Anthropic", <Brain size={16} />)}
+                        </>
+                    )}
                 </div>
             ) : (
-                <div className="flex gap-2 overflow-x-auto pb-1">
+                /* Advanced Modes (Only rendered if isLoggedIn based on Tier 1 logic, but good to be safe) */
+                <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
                     <button onClick={() => onProviderChange('battle')} className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg border-2 transition-all text-sm font-bold whitespace-nowrap ${provider === 'battle' ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400' : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-500'}`}>
                         <Swords size={16} /> Battle
                     </button>
@@ -142,6 +177,7 @@ const TestRunnerControls = ({
                     </div>
                     
                     <div className="grid grid-cols-2 gap-4">
+                        {/* Agent A */}
                         <div className="space-y-2">
                             <div className="flex justify-between">
                                 <span className="text-[10px] font-bold text-violet-500 uppercase">Agent A</span>
@@ -156,6 +192,7 @@ const TestRunnerControls = ({
                             />
                         </div>
 
+                        {/* Agent B */}
                         <div className="space-y-2">
                             <div className="flex justify-between">
                                 <span className="text-[10px] font-bold text-violet-500 uppercase">Agent B</span>
@@ -197,8 +234,8 @@ const TestRunnerControls = ({
                     </div>
                 )}
 
-                {/* Groq Input */}
-                {(provider === 'groq' || (provider === 'refine' && (refineConfig.drafter === 'groq' || refineConfig.critiquer === 'groq'))) && (
+                {/* Groq Input - Only show if logged in */}
+                {isLoggedIn && (provider === 'groq' || (provider === 'refine' && (refineConfig.drafter === 'groq' || refineConfig.critiquer === 'groq'))) && (
                     <div className="space-y-2">
                         <label className="text-[10px] font-bold uppercase text-orange-500 flex items-center gap-1"><Key size={12} /> Groq Key (Llama 4)</label>
                         <div className="flex gap-2">
@@ -208,8 +245,8 @@ const TestRunnerControls = ({
                     </div>
                 )}
 
-                {/* Anthropic Input */}
-                {(provider === 'anthropic' || (provider === 'refine' && (refineConfig.drafter === 'anthropic' || refineConfig.critiquer === 'anthropic'))) && (
+                {/* Anthropic Input - Only show if logged in */}
+                {isLoggedIn && (provider === 'anthropic' || (provider === 'refine' && (refineConfig.drafter === 'anthropic' || refineConfig.critiquer === 'anthropic'))) && (
                     <div className="space-y-2">
                         <label className="text-[10px] font-bold uppercase text-rose-500 flex items-center gap-1"><Key size={12} /> Anthropic Key (Claude)</label>
                         <div className="flex gap-2">
