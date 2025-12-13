@@ -202,7 +202,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         const response = await fetch('/api/anthropic', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ apiKey: key, prompt: promptText, model: "claude-3-5-sonnet-20240620" }) // Default Sonnet 3.5
+            body: JSON.stringify({ apiKey: key, prompt: promptText, model: "claude-3-5-sonnet-latest" }) // Default Sonnet 3.5
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || `Anthropic Error (${response.status})`);
