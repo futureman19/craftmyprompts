@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react';
+import { auth } from '../lib/firebase'; // <--- Import Auth
 
 export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
     // --- STATE ---
     const [viewMode, setViewMode] = useState('simple'); // 'simple' | 'advanced'
     const [provider, setProvider] = useState('gemini'); // 'gemini' | 'openai' | 'groq' | 'anthropic' | 'battle' | 'refine' | 'swarm'
     const [refineView, setRefineView] = useState('timeline'); // 'timeline' | 'diff'
+    
+    // Auth State (Self-Aware)
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
 
     // GitHub State
     const [showGithub, setShowGithub] = useState(false);
@@ -47,7 +51,12 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
 
     // --- INITIALIZATION ---
     useEffect(() => {
-        // Load Keys (Prioritize Props for Gemini/OpenAI, others from LocalStorage)
+        // 1. Check Auth Status
+        const unsubscribe = auth.onAuthStateChanged((user) => {
+            setIsLoggedIn(!!user && user.uid !== 'demo');
+        });
+
+        // 2. Load Keys
         if (defaultApiKey) setGeminiKey(defaultApiKey);
         else setGeminiKey(localStorage.getItem('craft_my_prompt_gemini_key') || '');
 
@@ -56,6 +65,8 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
 
         setGroqKey(localStorage.getItem('craft_my_prompt_groq_key') || '');
         setAnthropicKey(localStorage.getItem('craft_my_prompt_anthropic_key') || '');
+        
+        return () => unsubscribe();
     }, [defaultApiKey, defaultOpenAIKey]);
 
     // Auto-Fetch Gemini Models
@@ -329,6 +340,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         setGeminiKey, setOpenaiKey, setGroqKey, setAnthropicKey, // Export new setters
         setProvider, setRefineView, setShowGithub, setRefineConfig, setSwarmConfig, setSelectedModel,
         
-        runTest, fetchModels, clearKey, handleShipCode, handleViewChange, continueSwarm, compileSwarmCode
+        runTest, fetchModels, clearKey, handleShipCode, handleViewChange, continueSwarm, compileSwarmCode,
+        isLoggedIn // <--- EXPORTED AUTH STATE
     };
 };

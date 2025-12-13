@@ -5,9 +5,10 @@ import TestRunnerControls from './test-runner/TestRunnerControls';
 import TestRunnerResults from './test-runner/TestRunnerResults';
 import GitHubModal from './GitHubModal';
 
-const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippet, isLoggedIn }) => {
+const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippet }) => {
     
     // 1. Initialize the "Brain" (Custom Hook)
+    // This hook manages all API calls, state, auth, and business logic
     const runner = useTestRunner(defaultApiKey, defaultOpenAIKey);
 
     if (!isOpen) return null;
@@ -45,9 +46,9 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                         // Keys & Auth
                         geminiKey={runner.geminiKey}
                         openaiKey={runner.openaiKey}
-                        groqKey={runner.groqKey}           // <--- Wired Up
-                        anthropicKey={runner.anthropicKey} // <--- Wired Up
-                        isLoggedIn={isLoggedIn}            // <--- Wired Up
+                        groqKey={runner.groqKey}           
+                        anthropicKey={runner.anthropicKey} 
+                        isLoggedIn={runner.isLoggedIn}     // <--- Connected Auth State
                         
                         // Configs
                         refineConfig={runner.refineConfig}
@@ -62,8 +63,8 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                         onProviderChange={runner.setProvider}
                         onGeminiKeyChange={runner.setGeminiKey}
                         onOpenaiKeyChange={runner.setOpenaiKey}
-                        onGroqKeyChange={runner.setGroqKey}           // <--- Wired Up
-                        onAnthropicKeyChange={runner.setAnthropicKey} // <--- Wired Up
+                        onGroqKeyChange={runner.setGroqKey}           
+                        onAnthropicKeyChange={runner.setAnthropicKey} 
                         
                         onClearKey={runner.clearKey}
                         onFetchModels={runner.fetchModels}
@@ -117,7 +118,7 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                             (runner.viewMode === 'simple' && runner.provider === 'openai' && !runner.openaiKey) ||
                             (runner.viewMode === 'simple' && runner.provider === 'groq' && !runner.groqKey) ||       
                             (runner.viewMode === 'simple' && runner.provider === 'anthropic' && !runner.anthropicKey) || 
-                            (runner.viewMode === 'advanced' && (!runner.geminiKey || !runner.openaiKey)) // Note: Advanced modes still default to Gem/OpenAI for now, can be expanded later
+                            (runner.viewMode === 'advanced' && (!runner.geminiKey || !runner.openaiKey)) // Advanced modes currently default to Gem/OpenAI base requirements
                         }
                         className={`px-6 py-2 text-white rounded-lg text-sm font-bold shadow-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95 ${
                             runner.provider === 'battle' ? 'bg-gradient-to-r from-indigo-600 to-emerald-600 hover:opacity-90' : 
