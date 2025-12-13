@@ -1,27 +1,32 @@
 import { useState, useEffect } from 'react';
-import { auth } from '../lib/firebase'; // <--- Import Auth
+import { auth } from '../lib/firebase';
 
 export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
     // --- STATE ---
-    const [viewMode, setViewMode] = useState('simple'); // 'simple' | 'advanced'
-    const [provider, setProvider] = useState('gemini'); // 'gemini' | 'openai' | 'groq' | 'anthropic' | 'battle' | 'refine' | 'swarm'
-    const [refineView, setRefineView] = useState('timeline'); // 'timeline' | 'diff'
+    const [viewMode, setViewMode] = useState('simple'); 
+    const [provider, setProvider] = useState('gemini'); 
+    const [refineView, setRefineView] = useState('timeline'); 
     
-    // Auth State (Self-Aware)
+    // Auth State
     const [isLoggedIn, setIsLoggedIn] = useState(false);
 
     // GitHub State
     const [showGithub, setShowGithub] = useState(false);
     const [codeToShip, setCodeToShip] = useState('');
 
-    // Refine Config
+    // --- CTO UPDATE: CONFIGURATIONS ---
+    
+    const [battleConfig, setBattleConfig] = useState({
+        fighterA: 'gemini',
+        fighterB: 'openai'
+    });
+
     const [refineConfig, setRefineConfig] = useState({
         drafter: 'gemini',
         critiquer: 'openai',
         focus: 'general'
     });
 
-    // Swarm Config
     const [swarmConfig, setSwarmConfig] = useState({
         agentA: 'gemini',
         roleA: 'Visionary CEO',
@@ -29,6 +34,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         roleB: 'Pragmatic Engineer',
         rounds: 3
     });
+    
     const [swarmHistory, setSwarmHistory] = useState([]);
 
     // Keys
@@ -51,12 +57,10 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
 
     // --- INITIALIZATION ---
     useEffect(() => {
-        // 1. Check Auth Status
         const unsubscribe = auth.onAuthStateChanged((user) => {
             setIsLoggedIn(!!user && user.uid !== 'demo');
         });
 
-        // 2. Load Keys
         if (defaultApiKey) setGeminiKey(defaultApiKey);
         else setGeminiKey(localStorage.getItem('craft_my_prompt_gemini_key') || '');
 
@@ -65,7 +69,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
 
         setGroqKey(localStorage.getItem('craft_my_prompt_groq_key') || '');
         setAnthropicKey(localStorage.getItem('craft_my_prompt_anthropic_key') || '');
-        
+
         return () => unsubscribe();
     }, [defaultApiKey, defaultOpenAIKey]);
 
@@ -78,12 +82,8 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
     // --- HELPERS ---
     const saveKey = (key, providerName) => {
         const storageKey = `craft_my_prompt_${providerName}_key`;
-        // Don't save empty keys
         if (key && key.trim()) {
-            // For Gemini/OpenAI, check against defaults if needed, but simple overwrite is usually fine for local storage
-            if ((providerName === 'gemini' && key === defaultApiKey) || (providerName === 'openai' && key === defaultOpenAIKey)) {
-                return;
-            }
+             if ((providerName === 'gemini' && key === defaultApiKey) || (providerName === 'openai' && key === defaultOpenAIKey)) return;
             localStorage.setItem(storageKey, key.trim());
         }
     };
@@ -131,9 +131,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
             if (!response.ok) { console.error("Model fetch error:", data.error); return; }
 
             if (data.models) {
-                // CTO UPDATE: Curated Model List
                 const PREFERRED_KEYWORDS = ['1.5', '2.0', 'flash', 'pro'];
-                
                 const validModels = data.models
                     .filter(m => m.supportedGenerationMethods?.includes("generateContent"))
                     .filter(m => {
@@ -147,7 +145,6 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
                     });
 
                 setAvailableModels(validModels);
-                
                 const currentExists = validModels.find(m => m.name === selectedModel);
                 if (!selectedModel || !currentExists) {
                     if (validModels.length > 0) setSelectedModel(validModels[0].name);
@@ -191,7 +188,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         const response = await fetch('/api/groq', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ apiKey: key, prompt: promptText, model: "llama-3.3-70b-versatile" }) // Default high-perf model
+            body: JSON.stringify({ apiKey: key, prompt: promptText, model: "llama-3.3-70b-versatile" }) 
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || `Groq Error (${response.status})`);
@@ -202,10 +199,13 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         const response = await fetch('/api/anthropic', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ apiKey: key, prompt: promptText, model: "claude-sonnet-4-5-20250929" }) // Default Sonnet 3.5
+            body: JSON.stringify({ apiKey: key, prompt: promptText, model: "claude-3-5-sonnet-latest" })
         });
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error || `Anthropic Error (${response.status})`);
+        if (!response.ok) {
+             const errorMessage = data.error?.message || data.error || `Anthropic Error (${response.status})`;
+             throw new Error(errorMessage);
+        }
         return data.content?.[0]?.text || "No text returned.";
     };
 
@@ -220,12 +220,13 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         setStatusMessage('');
 
         try {
-            // Save keys first
+            // Save keys dynamically
             if (geminiKey) saveKey(geminiKey, 'gemini');
             if (openaiKey) saveKey(openaiKey, 'openai');
             if (groqKey) saveKey(groqKey, 'groq');
             if (anthropicKey) saveKey(anthropicKey, 'anthropic');
 
+            // --- SWARM ---
             if (provider === 'swarm') {
                 if (!getKeyForProvider(swarmConfig.agentA)) throw new Error(`API Key missing for ${swarmConfig.agentA}`);
                 if (!getKeyForProvider(swarmConfig.agentB)) throw new Error(`API Key missing for ${swarmConfig.agentB}`);
@@ -246,9 +247,10 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
                 }
                 setStatusMessage('Meeting adjourned.');
 
+            // --- REFINE ---
             } else if (provider === 'refine') {
-                if (!getKeyForProvider(refineConfig.drafter)) throw new Error(`API Key missing for Drafter (${refineConfig.drafter})`);
-                if (!getKeyForProvider(refineConfig.critiquer)) throw new Error(`API Key missing for Critiquer (${refineConfig.critiquer})`);
+                if (!getKeyForProvider(refineConfig.drafter)) throw new Error(`Key missing for Drafter (${refineConfig.drafter})`);
+                if (!getKeyForProvider(refineConfig.critiquer)) throw new Error(`Key missing for Critiquer (${refineConfig.critiquer})`);
 
                 setStatusMessage(`Drafting with ${refineConfig.drafter}...`);
                 const draft = await callAIProvider(refineConfig.drafter, prompt, getKeyForProvider(refineConfig.drafter));
@@ -265,23 +267,27 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
                 setRefineSteps({ draft, critique, final });
                 setResult(final);
 
+            // --- BATTLE (CTO UPDATE: DYNAMIC FIGHTERS) ---
             } else if (provider === 'battle') {
-                if (!geminiKey || !openaiKey) throw new Error("Gemini & OpenAI Keys required for Battle.");
-                setStatusMessage('Fighting...');
-                const [geminiRes, openaiRes] = await Promise.allSettled([
-                    callGemini(prompt, geminiKey, selectedModel),
-                    callOpenAI(prompt, openaiKey)
+                if (!getKeyForProvider(battleConfig.fighterA)) throw new Error(`Key missing for ${battleConfig.fighterA}`);
+                if (!getKeyForProvider(battleConfig.fighterB)) throw new Error(`Key missing for ${battleConfig.fighterB}`);
+                
+                setStatusMessage(`Battle: ${battleConfig.fighterA} vs ${battleConfig.fighterB}...`);
+                
+                const [resA, resB] = await Promise.allSettled([
+                    callAIProvider(battleConfig.fighterA, prompt, getKeyForProvider(battleConfig.fighterA)),
+                    callAIProvider(battleConfig.fighterB, prompt, getKeyForProvider(battleConfig.fighterB))
                 ]);
+                
                 setBattleResults({
-                    gemini: geminiRes.status === 'fulfilled' ? geminiRes.value : `Error: ${geminiRes.reason.message}`,
-                    openai: openaiRes.status === 'fulfilled' ? openaiRes.value : `Error: ${openaiRes.reason.message}`
+                    fighterA: { name: battleConfig.fighterA, text: resA.status === 'fulfilled' ? resA.value : `Error: ${resA.reason.message}` },
+                    fighterB: { name: battleConfig.fighterB, text: resB.status === 'fulfilled' ? resB.value : `Error: ${resB.reason.message}` }
                 });
 
             } else {
                 // Single Provider Run
                 const key = getKeyForProvider(provider);
                 if (!key) throw new Error(`${provider} API Key is missing.`);
-                
                 setStatusMessage(`${provider} is thinking...`);
                 const text = await callAIProvider(provider, prompt, key);
                 setResult(text);
@@ -317,7 +323,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
     };
 
     const compileSwarmCode = async () => {
-        const compilerKey = openaiKey || geminiKey; // Prefer OpenAI for compilation, fallback to Gemini
+        const compilerKey = openaiKey || geminiKey; 
         const compilerProvider = openaiKey ? 'openai' : 'gemini';
         
         if (!compilerKey) { setError("No API Key available for compilation."); return; }
@@ -334,13 +340,14 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
 
     return {
         viewMode, provider, refineView, showGithub, codeToShip, refineConfig, swarmConfig, swarmHistory,
-        geminiKey, openaiKey, groqKey, anthropicKey, // Export new keys
+        geminiKey, openaiKey, groqKey, anthropicKey, battleConfig, // Export Battle Config
         loading, result, battleResults, refineSteps, statusMessage, error, selectedModel, availableModels,
+        isLoggedIn,
         
-        setGeminiKey, setOpenaiKey, setGroqKey, setAnthropicKey, // Export new setters
-        setProvider, setRefineView, setShowGithub, setRefineConfig, setSwarmConfig, setSelectedModel,
+        setGeminiKey, setOpenaiKey, setGroqKey, setAnthropicKey,
+        setProvider, setRefineView, setShowGithub, setRefineConfig, setSwarmConfig, setBattleConfig, // Export Battle Setter
+        setSelectedModel,
         
-        runTest, fetchModels, clearKey, handleShipCode, handleViewChange, continueSwarm, compileSwarmCode,
-        isLoggedIn // <--- EXPORTED AUTH STATE
+        runTest, fetchModels, clearKey, handleShipCode, handleViewChange, continueSwarm, compileSwarmCode
     };
 };
