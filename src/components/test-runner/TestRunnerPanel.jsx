@@ -35,8 +35,15 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
                 <TestRunnerControls 
                     viewMode={runner.viewMode}
                     provider={runner.provider}
+                    
+                    // Keys & Auth
                     geminiKey={runner.geminiKey}
                     openaiKey={runner.openaiKey}
+                    groqKey={runner.groqKey}
+                    anthropicKey={runner.anthropicKey}
+                    isLoggedIn={runner.isLoggedIn}
+                    
+                    // Configs
                     refineConfig={runner.refineConfig}
                     swarmConfig={runner.swarmConfig}
                     selectedModel={runner.selectedModel}
@@ -44,10 +51,13 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
                     isUsingGlobalGemini={!!defaultApiKey && runner.geminiKey === defaultApiKey}
                     isUsingGlobalOpenAI={!!defaultOpenAIKey && runner.openaiKey === defaultOpenAIKey}
                     
+                    // Handlers
                     onViewChange={runner.handleViewChange}
                     onProviderChange={runner.setProvider}
                     onGeminiKeyChange={runner.setGeminiKey}
                     onOpenaiKeyChange={runner.setOpenaiKey}
+                    onGroqKeyChange={runner.setGroqKey}
+                    onAnthropicKeyChange={runner.setAnthropicKey}
                     onClearKey={runner.clearKey}
                     onFetchModels={runner.fetchModels}
                     onModelChange={runner.setSelectedModel}
