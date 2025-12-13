@@ -27,7 +27,7 @@ export default async function handler(req, res) {
         'content-type': 'application/json'
       },
       body: JSON.stringify({
-        model: model || "claude-3-5-sonnet-latest", // Default to Sonnet 3.5
+        model: model || "claude-3-5-sonnet-20241022", // Default to Sonnet 3.5 (latest stable version)
         max_tokens: 1024,
         messages: [
             { role: "user", content: prompt }
