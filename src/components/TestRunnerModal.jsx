@@ -8,6 +8,7 @@ import GitHubModal from './GitHubModal';
 const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippet }) => {
     
     // 1. Initialize the "Brain" (Custom Hook)
+    // This hook manages all API calls, state, and business logic
     const runner = useTestRunner(defaultApiKey, defaultOpenAIKey);
 
     if (!isOpen) return null;
@@ -41,8 +42,14 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                     <TestRunnerControls 
                         viewMode={runner.viewMode}
                         provider={runner.provider}
+                        
+                        // Keys
                         geminiKey={runner.geminiKey}
                         openaiKey={runner.openaiKey}
+                        groqKey={runner.groqKey}           // <--- New Prop
+                        anthropicKey={runner.anthropicKey} // <--- New Prop
+                        
+                        // Configs
                         refineConfig={runner.refineConfig}
                         swarmConfig={runner.swarmConfig}
                         selectedModel={runner.selectedModel}
@@ -50,10 +57,14 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                         isUsingGlobalGemini={!!defaultApiKey && runner.geminiKey === defaultApiKey}
                         isUsingGlobalOpenAI={!!defaultOpenAIKey && runner.openaiKey === defaultOpenAIKey}
                         
+                        // Handlers
                         onViewChange={runner.handleViewChange}
                         onProviderChange={runner.setProvider}
                         onGeminiKeyChange={runner.setGeminiKey}
                         onOpenaiKeyChange={runner.setOpenaiKey}
+                        onGroqKeyChange={runner.setGroqKey}           // <--- New Handler
+                        onAnthropicKeyChange={runner.setAnthropicKey} // <--- New Handler
+                        
                         onClearKey={runner.clearKey}
                         onFetchModels={runner.fetchModels}
                         onModelChange={runner.setSelectedModel}
@@ -82,13 +93,11 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                         refineSteps={runner.refineSteps}
                         refineView={runner.refineView}
                         swarmHistory={runner.swarmHistory}
-                        prompt={prompt}
                         
                         onSaveSnippet={onSaveSnippet}
                         onShipCode={runner.handleShipCode}
                         setRefineView={runner.setRefineView}
                         
-                        // --- CTO FIX: Passing the missing functions ---
                         onContinueSwarm={runner.continueSwarm}
                         onCompileSwarm={runner.compileSwarmCode}
                     />
@@ -103,15 +112,20 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                         onClick={handleRunClick}
                         disabled={
                             runner.loading || 
-                            (runner.viewMode === 'advanced' && (!runner.geminiKey || !runner.openaiKey)) || 
+                            // Disable if keys are missing based on selected provider
                             (runner.viewMode === 'simple' && runner.provider === 'gemini' && !runner.geminiKey) || 
-                            (runner.viewMode === 'simple' && runner.provider === 'openai' && !runner.openaiKey)
+                            (runner.viewMode === 'simple' && runner.provider === 'openai' && !runner.openaiKey) ||
+                            (runner.viewMode === 'simple' && runner.provider === 'groq' && !runner.groqKey) ||       // <--- New Check
+                            (runner.viewMode === 'simple' && runner.provider === 'anthropic' && !runner.anthropicKey) || // <--- New Check
+                            (runner.viewMode === 'advanced' && (!runner.geminiKey || !runner.openaiKey)) // Advanced modes (Battle/Refine/Swarm) still mostly rely on Gem/OpenAI for now, but we'll expand this later.
                         }
                         className={`px-6 py-2 text-white rounded-lg text-sm font-bold shadow-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95 ${
                             runner.provider === 'battle' ? 'bg-gradient-to-r from-indigo-600 to-emerald-600 hover:opacity-90' : 
                             (runner.provider === 'refine' ? 'bg-gradient-to-r from-amber-500 to-orange-600' : 
                             (runner.provider === 'swarm' ? 'bg-gradient-to-r from-violet-600 to-indigo-600' :
-                            (runner.provider === 'openai' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-indigo-600 hover:bg-indigo-700')))
+                            (runner.provider === 'openai' ? 'bg-emerald-600 hover:bg-emerald-700' : 
+                            (runner.provider === 'groq' ? 'bg-orange-600 hover:bg-orange-700' :
+                            (runner.provider === 'anthropic' ? 'bg-rose-600 hover:bg-rose-700' : 'bg-indigo-600 hover:bg-indigo-700')))))
                         }`}
                     >
                         {runner.loading ? 'Running...' : (

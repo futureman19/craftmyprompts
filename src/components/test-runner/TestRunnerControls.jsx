@@ -1,17 +1,21 @@
 import React from 'react';
 import { 
     Key, RefreshCw, Zap, Bot, Sparkles, Swords, GitCompare, 
-    Layers, MonitorPlay, ArrowRight, Target, ShieldCheck, Users 
+    Layers, MonitorPlay, ArrowRight, Target, ShieldCheck, Users, 
+    Brain, Activity 
 } from 'lucide-react';
 
 const TestRunnerControls = ({
     // State
-    viewMode, provider, geminiKey, openaiKey, refineConfig, swarmConfig,
+    viewMode, provider, 
+    geminiKey, openaiKey, groqKey, anthropicKey, // <--- New Keys
+    refineConfig, swarmConfig,
     selectedModel, availableModels, 
     // Derived State
     isUsingGlobalGemini, isUsingGlobalOpenAI,
     // Actions
-    onViewChange, onProviderChange, onGeminiKeyChange, onOpenaiKeyChange,
+    onViewChange, onProviderChange, 
+    onGeminiKeyChange, onOpenaiKeyChange, onGroqKeyChange, onAnthropicKeyChange, // <--- New Handlers
     onClearKey, onFetchModels, onModelChange, onRefineConfigChange, onSwarmConfigChange
 }) => {
 
@@ -36,12 +40,19 @@ const TestRunnerControls = ({
 
             {/* TIER 2: PROVIDER SELECTOR */}
             {viewMode === 'simple' ? (
-                <div className="flex gap-2">
-                    <button onClick={() => onProviderChange('gemini')} className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg border-2 transition-all text-sm font-bold ${provider === 'gemini' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-300' : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-500'}`}>
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                    <button onClick={() => onProviderChange('gemini')} className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg border-2 transition-all text-sm font-bold whitespace-nowrap ${provider === 'gemini' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-300' : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-500'}`}>
                         <Sparkles size={16} /> Gemini
                     </button>
-                    <button onClick={() => onProviderChange('openai')} className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg border-2 transition-all text-sm font-bold ${provider === 'openai' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-300' : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-500'}`}>
+                    <button onClick={() => onProviderChange('openai')} className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg border-2 transition-all text-sm font-bold whitespace-nowrap ${provider === 'openai' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-300' : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-500'}`}>
                         <Bot size={16} /> OpenAI
+                    </button>
+                    {/* --- NEW PROVIDERS --- */}
+                    <button onClick={() => onProviderChange('groq')} className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg border-2 transition-all text-sm font-bold whitespace-nowrap ${provider === 'groq' ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-300' : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-500'}`}>
+                        <Activity size={16} /> Groq
+                    </button>
+                    <button onClick={() => onProviderChange('anthropic')} className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg border-2 transition-all text-sm font-bold whitespace-nowrap ${provider === 'anthropic' ? 'border-rose-500 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-300' : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-500'}`}>
+                        <Brain size={16} /> Anthropic
                     </button>
                 </div>
             ) : (
@@ -52,16 +63,13 @@ const TestRunnerControls = ({
                     <button onClick={() => onProviderChange('refine')} className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg border-2 transition-all text-sm font-bold whitespace-nowrap ${provider === 'refine' ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400' : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-500'}`}>
                         <GitCompare size={16} /> Refine
                     </button>
-                    {/* SWARM BUTTON */}
                     <button onClick={() => onProviderChange('swarm')} className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg border-2 transition-all text-sm font-bold whitespace-nowrap ${provider === 'swarm' ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400' : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-500'}`}>
                         <Users size={16} /> Swarm
                     </button>
                 </div>
             )}
             
-            {/* CONFIGURATION PANELS */}
-
-            {/* 1. REFINE CONFIG */}
+            {/* REFINE CONFIGURATION PANEL */}
             {provider === 'refine' && (
                 <div className="p-4 bg-orange-50 dark:bg-orange-900/10 rounded-xl border border-orange-100 dark:border-orange-800/50 animate-in fade-in space-y-4">
                     <div className="flex items-center justify-between">
@@ -91,6 +99,8 @@ const TestRunnerControls = ({
                             >
                                 <option value="gemini">Gemini</option>
                                 <option value="openai">OpenAI</option>
+                                <option value="groq">Groq</option>
+                                <option value="anthropic">Anthropic</option>
                             </select>
                         </div>
                         <ArrowRight size={16} className="text-orange-300 mt-5" />
@@ -103,13 +113,15 @@ const TestRunnerControls = ({
                             >
                                 <option value="openai">OpenAI</option>
                                 <option value="gemini">Gemini</option>
+                                <option value="groq">Groq</option>
+                                <option value="anthropic">Anthropic</option>
                             </select>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* 2. SWARM CONFIG */}
+            {/* SWARM CONFIGURATION PANEL */}
             {provider === 'swarm' && (
                 <div className="p-4 bg-violet-50 dark:bg-violet-900/10 rounded-xl border border-violet-100 dark:border-violet-800/50 animate-in fade-in space-y-4">
                     <div className="flex items-center justify-between border-b border-violet-200 dark:border-violet-800 pb-2 mb-2">
@@ -130,11 +142,10 @@ const TestRunnerControls = ({
                     </div>
                     
                     <div className="grid grid-cols-2 gap-4">
-                        {/* Agent A */}
                         <div className="space-y-2">
                             <div className="flex justify-between">
                                 <span className="text-[10px] font-bold text-violet-500 uppercase">Agent A</span>
-                                <span className="text-[10px] text-slate-400">Gemini</span>
+                                <span className="text-[10px] text-slate-400 capitalize">{swarmConfig.agentA}</span>
                             </div>
                             <input 
                                 type="text" 
@@ -145,11 +156,10 @@ const TestRunnerControls = ({
                             />
                         </div>
 
-                        {/* Agent B */}
                         <div className="space-y-2">
                             <div className="flex justify-between">
                                 <span className="text-[10px] font-bold text-violet-500 uppercase">Agent B</span>
-                                <span className="text-[10px] text-slate-400">OpenAI</span>
+                                <span className="text-[10px] text-slate-400 capitalize">{swarmConfig.agentB}</span>
                             </div>
                             <input 
                                 type="text" 
@@ -170,41 +180,42 @@ const TestRunnerControls = ({
                     <span>Keys are stored locally on your device for security.</span>
                 </div>
                 
-                {/* Gemini */}
+                {/* Gemini Input */}
                 {(provider === 'gemini' || provider === 'battle' || provider === 'swarm' || (provider === 'refine' && (refineConfig.drafter === 'gemini' || refineConfig.critiquer === 'gemini'))) && (
                     <div className="space-y-2">
-                        <div className="flex justify-between items-center">
-                            <label className="text-[10px] font-bold uppercase text-indigo-500 flex items-center gap-1"><Key size={12} /> Gemini Key</label>
-                            {provider === 'gemini' && <button onClick={onFetchModels} disabled={!geminiKey} className="text-[10px] flex items-center gap-1 text-slate-400 hover:text-indigo-500 hover:underline disabled:opacity-30"><RefreshCw size={10} /> Refresh Models</button>}
-                        </div>
-                        {isUsingGlobalGemini ? (
-                             <div className="flex items-center gap-2 p-2 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg text-indigo-700 dark:text-indigo-400 text-sm font-medium"><Zap size={16} fill="currentColor" /> <span>Connected via App Key (Free)</span></div>
-                        ) : (
-                            <div className="flex gap-2">
-                                <input type="password" value={geminiKey} onChange={(e) => onGeminiKeyChange(e.target.value)} placeholder="Paste Google API Key..." className="flex-1 px-3 py-2 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-1 focus:ring-indigo-500 outline-none" />
-                                {geminiKey && <button onClick={() => onClearKey('gemini')} className="text-xs text-red-400 hover:underline px-1">Clear</button>}
-                            </div>
-                        )}
-                        {provider === 'gemini' && availableModels.length > 0 && (
-                             <select value={selectedModel} onChange={(e) => onModelChange(e.target.value)} className="w-full px-2 py-1.5 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs outline-none">
-                                {availableModels.map(m => <option key={m.name} value={m.name}>{m.displayName}</option>)}
-                            </select>
-                        )}
+                        <div className="flex justify-between items-center"><label className="text-[10px] font-bold uppercase text-indigo-500 flex items-center gap-1"><Key size={12} /> Gemini Key</label>{provider === 'gemini' && <button onClick={onFetchModels} disabled={!geminiKey} className="text-[10px] flex items-center gap-1 text-slate-400 hover:text-indigo-500 hover:underline disabled:opacity-30"><RefreshCw size={10} /> Refresh Models</button>}</div>
+                        {isUsingGlobalGemini ? <div className="flex items-center gap-2 p-2 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg text-indigo-700 dark:text-indigo-400 text-sm font-medium"><Zap size={16} fill="currentColor" /> <span>Connected via App Key (Free)</span></div> : <div className="flex gap-2"><input type="password" value={geminiKey} onChange={(e) => onGeminiKeyChange(e.target.value)} placeholder="Paste Google API Key..." className="flex-1 px-3 py-2 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-1 focus:ring-indigo-500 outline-none" />{geminiKey && <button onClick={() => onClearKey('gemini')} className="text-xs text-red-400 hover:underline px-1">Clear</button>}</div>}
+                        {provider === 'gemini' && availableModels.length > 0 && <select value={selectedModel} onChange={(e) => onModelChange(e.target.value)} className="w-full px-2 py-1.5 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs outline-none">{availableModels.map(m => <option key={m.name} value={m.name}>{m.displayName}</option>)}</select>}
                     </div>
                 )}
                 
-                {/* OpenAI */}
+                {/* OpenAI Input */}
                 {(provider === 'openai' || provider === 'battle' || provider === 'swarm' || (provider === 'refine' && (refineConfig.drafter === 'openai' || refineConfig.critiquer === 'openai'))) && (
                     <div className="space-y-2">
                         <label className="text-[10px] font-bold uppercase text-emerald-500 flex items-center gap-1"><Key size={12} /> OpenAI Key</label>
-                        {isUsingGlobalOpenAI ? (
-                            <div className="flex items-center gap-2 p-2 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg text-emerald-700 dark:text-emerald-400 text-sm font-medium"><Zap size={16} fill="currentColor" /> <span>Connected via App Key</span></div>
-                        ) : (
-                            <div className="flex gap-2">
-                                <input type="password" value={openaiKey} onChange={(e) => onOpenaiKeyChange(e.target.value)} placeholder="sk-..." className="flex-1 px-3 py-2 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-1 focus:ring-emerald-500 outline-none" />
-                                {openaiKey && <button onClick={() => onClearKey('openai')} className="text-xs text-red-400 hover:underline px-1">Clear</button>}
-                            </div>
-                        )}
+                        {isUsingGlobalOpenAI ? <div className="flex items-center gap-2 p-2 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg text-emerald-700 dark:text-emerald-400 text-sm font-medium"><Zap size={16} fill="currentColor" /> <span>Connected via App Key</span></div> : <div className="flex gap-2"><input type="password" value={openaiKey} onChange={(e) => onOpenaiKeyChange(e.target.value)} placeholder="sk-..." className="flex-1 px-3 py-2 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-1 focus:ring-emerald-500 outline-none" />{openaiKey && <button onClick={() => onClearKey('openai')} className="text-xs text-red-400 hover:underline px-1">Clear</button>}</div>}
+                    </div>
+                )}
+
+                {/* Groq Input */}
+                {(provider === 'groq' || (provider === 'refine' && (refineConfig.drafter === 'groq' || refineConfig.critiquer === 'groq'))) && (
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-bold uppercase text-orange-500 flex items-center gap-1"><Key size={12} /> Groq Key (Llama 4)</label>
+                        <div className="flex gap-2">
+                            <input type="password" value={groqKey || ''} onChange={(e) => onGroqKeyChange(e.target.value)} placeholder="gsk_..." className="flex-1 px-3 py-2 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-1 focus:ring-orange-500 outline-none" />
+                            {groqKey && <button onClick={() => onClearKey('groq')} className="text-xs text-red-400 hover:underline px-1">Clear</button>}
+                        </div>
+                    </div>
+                )}
+
+                {/* Anthropic Input */}
+                {(provider === 'anthropic' || (provider === 'refine' && (refineConfig.drafter === 'anthropic' || refineConfig.critiquer === 'anthropic'))) && (
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-bold uppercase text-rose-500 flex items-center gap-1"><Key size={12} /> Anthropic Key (Claude)</label>
+                        <div className="flex gap-2">
+                            <input type="password" value={anthropicKey || ''} onChange={(e) => onAnthropicKeyChange(e.target.value)} placeholder="sk-ant-..." className="flex-1 px-3 py-2 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-1 focus:ring-rose-500 outline-none" />
+                            {anthropicKey && <button onClick={() => onClearKey('anthropic')} className="text-xs text-red-400 hover:underline px-1">Clear</button>}
+                        </div>
                     </div>
                 )}
             </div>
