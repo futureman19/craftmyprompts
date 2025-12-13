@@ -1,8 +1,9 @@
 import { useReducer, useMemo } from 'react';
 import { 
   GENERAL_DATA, CODING_DATA, WRITING_DATA, ART_DATA, AVATAR_DATA, VIDEO_DATA, 
-  RANDOM_TOPICS // <--- IMPORT ADDED
+  RANDOM_TOPICS 
 } from '../data/constants.jsx';
+import { KNOWLEDGE_BASE } from '../data/knowledgeBase.js'; // <--- NEW IMPORT
 
 // --- INITIAL STATE ---
 const initialState = {
@@ -125,13 +126,14 @@ function builderReducer(state, action) {
             }
         });
 
-        // 2. Randomize Topic (CTO UPDATE)
-        const randomTopic = rand(RANDOM_TOPICS);
+        // 2. Randomize Topic
+        const topicList = RANDOM_TOPICS && RANDOM_TOPICS.length > 0 ? RANDOM_TOPICS : ["A futuristic city"];
+        const randomTopic = rand(topicList);
 
         return { 
             ...state, 
             selections: randomSels,
-            customTopic: randomTopic // <--- Inject random topic
+            customTopic: randomTopic
         };
     }
     case 'MAGIC_EXPAND': {
@@ -212,7 +214,6 @@ export const usePromptBuilder = (initialData) => {
   const [state, dispatch] = useReducer(builderReducer, initialState);
 
   const currentData = useMemo(() => {
-      // --- VIDEO DATA LOGIC ---
       if (state.mode === 'video') return VIDEO_DATA;
       
       if (state.mode === 'art') {
@@ -232,43 +233,56 @@ export const usePromptBuilder = (initialData) => {
     const parts = [];
     const getVals = (catId) => state.selections[catId]?.map(i => i.value) || [];
 
+    // --- CONTEXT & KNOWLEDGE INJECTION (CTO UPDATE) ---
+    const contextDocs = [];
+    
+    // 1. Coding Knowledge
+    if (state.textSubMode === 'coding') {
+        const langs = getVals('language');
+        const frameworks = getVals('framework_version'); // Check for specific versions too
+        
+        // sCrypt Detection
+        if (langs.some(l => l.includes('sCrypt')) || frameworks.some(f => f.includes('sCrypt'))) {
+            contextDocs.push(KNOWLEDGE_BASE.scrypt);
+        }
+        
+        // React/Tailwind Detection
+        if (langs.includes('React') || langs.includes('Tailwind CSS') || frameworks.some(f => f.includes('React'))) {
+            contextDocs.push(KNOWLEDGE_BASE.tailwind);
+        }
+    }
+    
+    // 2. Writing Knowledge
+    if (state.textSubMode === 'writing') {
+        const styles = getVals('style');
+        if (styles.includes('TechCrunch Style') || styles.includes('BuzzFeed Style')) {
+            contextDocs.push(KNOWLEDGE_BASE.viral_hooks);
+        }
+    }
+    
+    // Always inject meta-guide for better quality? Optional, but good for "Pro" feel.
+    // contextDocs.push(KNOWLEDGE_BASE.prompt_engineering); 
+
     // --- VIDEO MODE ---
     if (state.mode === 'video') {
-        // Recipe: [Topic]. [Camera Move], [Motion Strength], [Aesthetics]. [Negative]
-        
-        // 1. Topic
         if (processedTopic?.trim()) parts.push(`${processedTopic}`);
-        
-        // 2. Camera & Motion
         const camera = getVals('camera_move').join(', ');
         const motion = getVals('motion_strength').join(', ');
-        
         if (camera) parts.push(`Camera Movement: ${camera}`);
         if (motion) parts.push(`Motion: ${motion}`);
-        
-        // 3. Aesthetics
         const aesthetics = getVals('aesthetics').join(', ');
         if (aesthetics) parts.push(`Style/Look: ${aesthetics}`);
-        
-        // 4. Negative Prompt (Video specific)
         const videoNegs = getVals('video_negative');
         let promptString = parts.join('. ');
-        
-        // Add manual negative prompt + selected negative tags
         const allNegatives = [];
         if (state.negativePrompt) allNegatives.push(state.negativePrompt);
         if (videoNegs.length > 0) allNegatives.push(...videoNegs);
-        
-        if (allNegatives.length > 0) {
-            promptString += ` --no ${allNegatives.join(', ')}`;
-        }
-        
+        if (allNegatives.length > 0) promptString += ` --no ${allNegatives.join(', ')}`;
         return promptString;
     }
 
     // --- TEXT MODE ---
     if (state.mode === 'text') {
-      
       if (state.textSubMode === 'coding') {
           const langs = getVals('language').join(', ');
           const tasks = getVals('task').join(' and ');
@@ -303,8 +317,14 @@ export const usePromptBuilder = (initialData) => {
           parts.push(`\n${label}\n"${processedTopic}"\n`);
       }
 
+      // Inject Static Knowledge Base
+      if (contextDocs.length > 0) {
+          parts.push(`\nDOCUMENTATION / KNOWLEDGE BASE:\n${contextDocs.join('\n\n')}\n`);
+      }
+
+      // Inject User Code Context (from Fetch URL or Copy Paste)
       if (state.textSubMode === 'coding' && state.codeContext?.trim()) {
-          parts.push(`\nCODE CONTEXT:\n\`\`\`\n${state.codeContext}\n\`\`\`\n`);
+          parts.push(`\nUSER PROVIDED CODE CONTEXT:\n\`\`\`\n${state.codeContext}\n\`\`\`\n`);
       }
 
       if (state.chainOfThought) parts.push("Take a deep breath and think step-by-step to ensure the highest quality response.");
@@ -313,8 +333,6 @@ export const usePromptBuilder = (initialData) => {
       return parts.join('\n');
     } else {
       // --- ART MODE ---
-      
-      // Conversational Models (DALLE / Gemini)
       if (state.targetModel === 'dalle' || state.targetModel === 'gemini') {
           parts.push("Create an image of");
           
@@ -351,7 +369,6 @@ export const usePromptBuilder = (initialData) => {
       const coreParts = [];
       
       if (state.textSubMode === 'avatar') {
-          // --- AVATAR RECIPE ---
           const framings = state.selections.framing?.map(i => formatOption(i, true, state.targetModel)) || [];
           const styles = state.selections.avatar_style?.map(i => formatOption(i, true, state.targetModel)) || [];
           
@@ -372,7 +389,6 @@ export const usePromptBuilder = (initialData) => {
           const bgs = state.selections.background?.map(i => formatOption(i, true, state.targetModel)) || [];
           if (bgs.length) parts.push(bgs.join(', '));
       } else {
-          // --- GENERAL ART RECIPE ---
           const genres = state.selections.genre?.map(i => formatOption(i, true, state.targetModel)) || [];
           if (genres.length) coreParts.push(genres.join(' '));
           if (processedTopic?.trim()) coreParts.push(processedTopic);
