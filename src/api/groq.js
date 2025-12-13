@@ -35,6 +35,8 @@ export default async function handler(req, res) {
     const data = await response.json();
 
     if (!response.ok) {
+        // Log the error for debugging
+        console.error("Groq API Error Details:", JSON.stringify(data));
         throw new Error(data.error?.message || `Groq API Error (${response.status})`);
     }
 
