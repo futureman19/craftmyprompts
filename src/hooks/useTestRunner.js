@@ -191,7 +191,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         const response = await fetch('/api/groq', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ apiKey: key, prompt: promptText, model: "llama3-70b-8192" }) // Default high-perf model
+            body: JSON.stringify({ apiKey: key, prompt: promptText, model: "llama-3.3-70b-versatile" }) // Default high-perf model
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || `Groq Error (${response.status})`);
