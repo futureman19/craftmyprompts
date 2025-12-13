@@ -1,20 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, doc, deleteDoc, query, where, orderBy } from 'firebase/firestore';
-import { RefreshCw, Save, Trash2, Copy, Check, Terminal, Layout, FileText, Zap, Bookmark, Sparkles, Code, Play } from 'lucide-react';
+import { collection, onSnapshot, doc, deleteDoc, addDoc, query, orderBy, serverTimestamp } from 'firebase/firestore';
+import { RefreshCw, Save, Trash2, Copy, Check, Terminal, FileText, Bookmark, Play, Lock, Code, Zap, BookOpen, Plus } from 'lucide-react';
 import { db, APP_ID } from '../lib/firebase.js';
 import { formatTimestamp } from '../utils/index.js';
 
 const SavedView = ({ user, loadPrompt, showToast }) => {
-  const [activeTab, setActiveTab] = useState('prompts'); // 'prompts' | 'snippets' | 'presets'
+  const [activeTab, setActiveTab] = useState('prompts'); // 'prompts' | 'snippets' | 'presets' | 'knowledge'
   
   // Data State
   const [prompts, setPrompts] = useState([]);
   const [snippets, setSnippets] = useState([]);
   const [presets, setPresets] = useState([]);
+  const [knowledge, setKnowledge] = useState([]);
   
   // UI State
   const [loading, setLoading] = useState(true);
   const [copiedId, setCopiedId] = useState(null);
+  
+  // Knowledge Form State
+  const [showAddKnowledge, setShowAddKnowledge] = useState(false);
+  const [newKnowledgeTitle, setNewKnowledgeTitle] = useState('');
+  const [newKnowledgeContent, setNewKnowledgeContent] = useState('');
 
   // --- FETCH DATA ---
   useEffect(() => {
@@ -50,6 +56,15 @@ const SavedView = ({ user, loadPrompt, showToast }) => {
     );
     const unsubPresets = onSnapshot(presetsQuery, (snapshot) => {
         setPresets(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+
+    // 4. Fetch Knowledge (User Library)
+    const knowledgeQuery = query(
+        collection(db, 'artifacts', APP_ID, 'users', user.uid, 'knowledge'),
+        orderBy('createdAt', 'desc')
+    );
+    const unsubKnowledge = onSnapshot(knowledgeQuery, (snapshot) => {
+        setKnowledge(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
         setLoading(false);
     });
 
@@ -57,6 +72,7 @@ const SavedView = ({ user, loadPrompt, showToast }) => {
         unsubPrompts();
         unsubSnippets();
         unsubPresets();
+        unsubKnowledge();
     };
   }, [user]);
 
@@ -77,6 +93,27 @@ const SavedView = ({ user, loadPrompt, showToast }) => {
       setCopiedId(id);
       setTimeout(() => setCopiedId(null), 2000);
       showToast("Copied to clipboard");
+  };
+
+  const handleAddKnowledge = async () => {
+      if (!newKnowledgeTitle || !newKnowledgeContent) {
+          showToast("Title and Content are required", "error");
+          return;
+      }
+      try {
+          await addDoc(collection(db, 'artifacts', APP_ID, 'users', user.uid, 'knowledge'), {
+              title: newKnowledgeTitle,
+              content: newKnowledgeContent,
+              createdAt: serverTimestamp()
+          });
+          showToast("Knowledge added!");
+          setNewKnowledgeTitle('');
+          setNewKnowledgeContent('');
+          setShowAddKnowledge(false);
+      } catch (error) {
+          console.error(error);
+          showToast("Failed to save knowledge", "error");
+      }
   };
 
   // Helper to load a preset into the builder (maps 'mode' to 'type' for compatibility)
@@ -109,15 +146,19 @@ const SavedView = ({ user, loadPrompt, showToast }) => {
           </div>
           
           {/* Tab Switcher */}
-          <div className="flex bg-white dark:bg-slate-800 p-1 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-              <button onClick={() => setActiveTab('prompts')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'prompts' ? 'bg-indigo-600 text-white shadow' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
+          <div className="flex bg-white dark:bg-slate-800 p-1 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-x-auto">
+              <button onClick={() => setActiveTab('prompts')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'prompts' ? 'bg-indigo-600 text-white shadow' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
                   <FileText size={16} /> Prompts <span className="opacity-60 text-xs ml-1">{prompts.length}</span>
               </button>
-              <button onClick={() => setActiveTab('snippets')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'snippets' ? 'bg-emerald-600 text-white shadow' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
+              <button onClick={() => setActiveTab('snippets')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'snippets' ? 'bg-emerald-600 text-white shadow' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
                   <Code size={16} /> Snippets <span className="opacity-60 text-xs ml-1">{snippets.length}</span>
               </button>
-              <button onClick={() => setActiveTab('presets')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'presets' ? 'bg-amber-600 text-white shadow' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
+              <button onClick={() => setActiveTab('presets')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'presets' ? 'bg-amber-600 text-white shadow' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
                   <Bookmark size={16} /> Presets <span className="opacity-60 text-xs ml-1">{presets.length}</span>
+              </button>
+              {/* NEW TAB: Knowledge */}
+              <button onClick={() => setActiveTab('knowledge')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'knowledge' ? 'bg-violet-600 text-white shadow' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
+                  <BookOpen size={16} /> Knowledge <span className="opacity-60 text-xs ml-1">{knowledge.length}</span>
               </button>
           </div>
       </div>
@@ -233,6 +274,60 @@ const SavedView = ({ user, loadPrompt, showToast }) => {
                       </div>
                   </div>
               ))}
+          </div>
+      )}
+
+      {/* 4. KNOWLEDGE LIST (New) */}
+      {activeTab === 'knowledge' && (
+          <div className="space-y-6">
+              {/* Add New Knowledge Bar */}
+              <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                  {showAddKnowledge ? (
+                      <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
+                          <input 
+                              placeholder="Title (e.g. 'My Brand Voice')" 
+                              className="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm outline-none focus:ring-2 focus:ring-violet-500 dark:text-white"
+                              value={newKnowledgeTitle}
+                              onChange={(e) => setNewKnowledgeTitle(e.target.value)}
+                          />
+                          <textarea 
+                              placeholder="Content (Paste your guidelines, docs, or code snippet here...)" 
+                              className="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm h-32 outline-none focus:ring-2 focus:ring-violet-500 dark:text-white font-mono"
+                              value={newKnowledgeContent}
+                              onChange={(e) => setNewKnowledgeContent(e.target.value)}
+                          />
+                          <div className="flex justify-end gap-2">
+                              <button onClick={() => setShowAddKnowledge(false)} className="px-3 py-1.5 text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">Cancel</button>
+                              <button onClick={handleAddKnowledge} className="px-4 py-1.5 text-xs bg-violet-600 hover:bg-violet-700 text-white rounded-lg font-bold">Save Knowledge</button>
+                          </div>
+                      </div>
+                  ) : (
+                      <button onClick={() => setShowAddKnowledge(true)} className="w-full py-3 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg text-slate-400 hover:text-violet-500 hover:border-violet-200 dark:hover:border-violet-900 flex items-center justify-center gap-2 transition-all group">
+                          <Plus size={20} className="group-hover:scale-110 transition-transform"/> Add New Knowledge Snippet
+                      </button>
+                  )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {knowledge.length === 0 && !showAddKnowledge && <EmptyState icon={<BookOpen size={48} />} text="Your knowledge library is empty." />}
+                  {knowledge.map(item => (
+                      <div key={item.id} className="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:border-violet-300 dark:hover:border-violet-700 transition-colors group relative">
+                           <div className="flex justify-between items-start mb-2">
+                                <h3 className="font-bold text-slate-800 dark:text-slate-100 text-sm flex items-center gap-2"><BookOpen size={14} className="text-violet-500"/> {item.title}</h3>
+                                <div className="flex gap-1">
+                                    <button onClick={() => handleCopy(item.content, item.id)} className="p-1.5 text-slate-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded transition-colors">{copiedId === item.id ? <Check size={14}/> : <Copy size={14}/>}</button>
+                                    <button onClick={() => handleDelete('knowledge', item.id)} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"><Trash2 size={14}/></button>
+                                </div>
+                           </div>
+                           <div className="text-xs text-slate-500 dark:text-slate-400 font-mono bg-slate-50 dark:bg-slate-900/50 p-2 rounded border border-slate-100 dark:border-slate-700 line-clamp-3">
+                               {item.content}
+                           </div>
+                           <div className="mt-2 flex items-center gap-2">
+                               <span className="text-[10px] text-slate-300 dark:text-slate-600 bg-slate-100 dark:bg-slate-900 px-1.5 py-0.5 rounded">@{item.title.replace(/\s+/g, '')}</span>
+                           </div>
+                      </div>
+                  ))}
+              </div>
           </div>
       )}
     </div>
