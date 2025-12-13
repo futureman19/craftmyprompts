@@ -12,7 +12,9 @@ const TestRunnerControls = ({
     refineConfig, swarmConfig,
     selectedModel, availableModels, 
     // Derived State
-    isUsingGlobalGemini, isUsingGlobalOpenAI, isLoggedIn, // <--- New Prop
+    isUsingGlobalGemini, isUsingGlobalOpenAI, 
+    isUsingGlobalGroq, isUsingGlobalAnthropic, // <--- New Props
+    isLoggedIn, 
     // Actions
     onViewChange, onProviderChange, 
     onGeminiKeyChange, onOpenaiKeyChange, onGroqKeyChange, onAnthropicKeyChange,
@@ -90,7 +92,7 @@ const TestRunnerControls = ({
                     )}
                 </div>
             ) : (
-                /* Advanced Modes (Only rendered if isLoggedIn based on Tier 1 logic, but good to be safe) */
+                /* Advanced Modes (Only rendered if isLoggedIn based on Tier 1 logic) */
                 <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
                     <button onClick={() => onProviderChange('battle')} className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg border-2 transition-all text-sm font-bold whitespace-nowrap ${provider === 'battle' ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400' : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-500'}`}>
                         <Swords size={16} /> Battle
@@ -234,25 +236,35 @@ const TestRunnerControls = ({
                     </div>
                 )}
 
-                {/* Groq Input - Only show if logged in */}
+                {/* Groq Input */}
                 {isLoggedIn && (provider === 'groq' || (provider === 'refine' && (refineConfig.drafter === 'groq' || refineConfig.critiquer === 'groq'))) && (
                     <div className="space-y-2">
                         <label className="text-[10px] font-bold uppercase text-orange-500 flex items-center gap-1"><Key size={12} /> Groq Key (Llama 4)</label>
-                        <div className="flex gap-2">
-                            <input type="password" value={groqKey || ''} onChange={(e) => onGroqKeyChange(e.target.value)} placeholder="gsk_..." className="flex-1 px-3 py-2 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-1 focus:ring-orange-500 outline-none" />
-                            {groqKey && <button onClick={() => onClearKey('groq')} className="text-xs text-red-400 hover:underline px-1">Clear</button>}
-                        </div>
+                        {/* CTO FIX: Global Key State for Groq */}
+                        {isUsingGlobalGroq ? (
+                             <div className="flex items-center gap-2 p-2 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg text-orange-700 dark:text-orange-400 text-sm font-medium"><Zap size={16} fill="currentColor" /> <span>Connected via App Key</span></div>
+                        ) : (
+                            <div className="flex gap-2">
+                                <input type="password" value={groqKey || ''} onChange={(e) => onGroqKeyChange(e.target.value)} placeholder="gsk_..." className="flex-1 px-3 py-2 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-1 focus:ring-orange-500 outline-none" />
+                                {groqKey && <button onClick={() => onClearKey('groq')} className="text-xs text-red-400 hover:underline px-1">Clear</button>}
+                            </div>
+                        )}
                     </div>
                 )}
 
-                {/* Anthropic Input - Only show if logged in */}
+                {/* Anthropic Input */}
                 {isLoggedIn && (provider === 'anthropic' || (provider === 'refine' && (refineConfig.drafter === 'anthropic' || refineConfig.critiquer === 'anthropic'))) && (
                     <div className="space-y-2">
                         <label className="text-[10px] font-bold uppercase text-rose-500 flex items-center gap-1"><Key size={12} /> Anthropic Key (Claude)</label>
-                        <div className="flex gap-2">
-                            <input type="password" value={anthropicKey || ''} onChange={(e) => onAnthropicKeyChange(e.target.value)} placeholder="sk-ant-..." className="flex-1 px-3 py-2 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-1 focus:ring-rose-500 outline-none" />
-                            {anthropicKey && <button onClick={() => onClearKey('anthropic')} className="text-xs text-red-400 hover:underline px-1">Clear</button>}
-                        </div>
+                        {/* CTO FIX: Global Key State for Anthropic */}
+                        {isUsingGlobalAnthropic ? (
+                             <div className="flex items-center gap-2 p-2 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-lg text-rose-700 dark:text-rose-400 text-sm font-medium"><Zap size={16} fill="currentColor" /> <span>Connected via App Key</span></div>
+                        ) : (
+                            <div className="flex gap-2">
+                                <input type="password" value={anthropicKey || ''} onChange={(e) => onAnthropicKeyChange(e.target.value)} placeholder="sk-ant-..." className="flex-1 px-3 py-2 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-1 focus:ring-rose-500 outline-none" />
+                                {anthropicKey && <button onClick={() => onClearKey('anthropic')} className="text-xs text-red-400 hover:underline px-1">Clear</button>}
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
