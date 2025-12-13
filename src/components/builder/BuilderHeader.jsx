@@ -1,15 +1,15 @@
 import React from 'react';
 import { 
   Sparkles, MessageSquare, Palette, Video, Command, Search, Dices, 
-  Wand2, Bookmark, Settings
+  Wand2, Bookmark
 } from 'lucide-react';
 import { PRESETS } from '../../data/constants.jsx';
 
 const BuilderHeader = ({ 
     // State
-    state, mobileTab, searchTerm, user, customPresets, currentData, isSimpleMode,
+    state, mobileTab, searchTerm, user, customPresets, currentData,
     // Actions
-    dispatch, setMobileTab, setSearchTerm, setShowWizard, applyPreset, showToast, setIsSimpleMode
+    dispatch, setMobileTab, setSearchTerm, setShowWizard, applyPreset, showToast
 }) => {
 
     const handleRandomize = () => {
@@ -33,41 +33,23 @@ const BuilderHeader = ({
                         <h1 className="text-lg font-bold text-slate-800 dark:text-slate-100 hidden md:block">CraftMyPrompt</h1>
                     </div>
                     
-                    <div className="flex gap-2">
-                        {/* --- CTO UPDATE: VIBE / PRO TOGGLE --- */}
-                        <div className="flex items-center bg-slate-100 dark:bg-slate-700 p-0.5 rounded-lg">
-                            <button 
-                                onClick={() => setIsSimpleMode(true)}
-                                className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all flex items-center gap-1 ${isSimpleMode ? 'bg-white dark:bg-slate-600 shadow text-indigo-600 dark:text-indigo-300' : 'text-slate-400 hover:text-slate-500'}`}
-                            >
-                                <Sparkles size={12} /> Vibe
-                            </button>
-                            <button 
-                                onClick={() => setIsSimpleMode(false)}
-                                className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all flex items-center gap-1 ${!isSimpleMode ? 'bg-white dark:bg-slate-600 shadow text-indigo-600 dark:text-indigo-300' : 'text-slate-400 hover:text-slate-500'}`}
-                            >
-                                <Settings size={12} /> Pro
-                            </button>
-                        </div>
-
-                        {/* Mode Switcher (Hidden in Vibe Mode to reduce noise?) - keeping visible for now but compacted */}
-                        <div className="flex bg-slate-100 dark:bg-slate-700 p-0.5 rounded-lg">
-                            <button onClick={() => dispatch({ type: 'SET_MODE', payload: 'text' })} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${state.mode === 'text' ? 'bg-white dark:bg-slate-600 text-indigo-600 dark:text-indigo-300 shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}><MessageSquare size={12} /> Text</button>
-                            <button onClick={() => dispatch({ type: 'SET_MODE', payload: 'art' })} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${state.mode === 'art' ? 'bg-white dark:bg-slate-600 text-pink-600 dark:text-pink-300 shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}><Palette size={12} /> Art</button>
-                            <button onClick={() => dispatch({ type: 'SET_MODE', payload: 'video' })} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${state.mode === 'video' ? 'bg-white dark:bg-slate-600 text-purple-600 dark:text-purple-300 shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}><Video size={12} /> Video</button>
-                        </div>
+                    {/* Mode Switcher */}
+                    <div className="flex bg-slate-100 dark:bg-slate-700 p-0.5 rounded-lg">
+                        <button onClick={() => dispatch({ type: 'SET_MODE', payload: 'text' })} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${state.mode === 'text' ? 'bg-white dark:bg-slate-600 text-indigo-600 dark:text-indigo-300 shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}><MessageSquare size={12} /> Text</button>
+                        <button onClick={() => dispatch({ type: 'SET_MODE', payload: 'art' })} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${state.mode === 'art' ? 'bg-white dark:bg-slate-600 text-pink-600 dark:text-pink-300 shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}><Palette size={12} /> Art</button>
+                        <button onClick={() => dispatch({ type: 'SET_MODE', payload: 'video' })} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${state.mode === 'video' ? 'bg-white dark:bg-slate-600 text-purple-600 dark:text-purple-300 shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}><Video size={12} /> Video</button>
                     </div>
                 </div>
 
-                {/* Sub-Mode Selectors - ONLY SHOW IN PRO MODE */}
-                {!isSimpleMode && state.mode === 'text' && (
+                {/* Sub-Mode / Target Selectors */}
+                {state.mode === 'text' && (
                         <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
                         {['general', 'coding', 'writing'].map(m => (
                             <button key={m} onClick={() => dispatch({ type: 'SET_SUBMODE', payload: m })} className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] border whitespace-nowrap transition-colors capitalize ${state.textSubMode === m ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:border-slate-300'}`}>{m}</button>
                         ))}
                         </div>
                 )}
-                {!isSimpleMode && state.mode === 'art' && (
+                {state.mode === 'art' && (
                         <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
                         {['general', 'avatar'].map(m => (
                             <button key={m} onClick={() => dispatch({ type: 'SET_SUBMODE', payload: m })} className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] border whitespace-nowrap transition-colors capitalize ${state.textSubMode === m || (m === 'general' && state.textSubMode !== 'avatar') ? 'bg-pink-600 text-white border-pink-600' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:border-slate-300'}`}>{m}</button>
@@ -114,15 +96,11 @@ const BuilderHeader = ({
                         </div>
                     </div>
 
-                    {/* HIDE SEARCH IN SIMPLE MODE */}
-                    {!isSimpleMode && (
-                        <div className="relative flex-1">
-                            <Search className="absolute left-2.5 top-2 text-slate-400" size={14} />
-                            <input type="text" placeholder="Search..." className="w-full pl-8 pr-3 py-1.5 bg-slate-100 dark:bg-slate-700 border-none rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none dark:text-slate-200 dark:placeholder-slate-400" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-                        </div>
-                    )}
-                    
-                    <button onClick={handleRandomize} className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-lg transition-colors shadow-sm flex items-center gap-2" title="Randomize"><Dices size={16} /></button>
+                    <div className="relative flex-1">
+                        <Search className="absolute left-2.5 top-2 text-slate-400" size={14} />
+                        <input type="text" placeholder="Search..." className="w-full pl-8 pr-3 py-1.5 bg-slate-100 dark:bg-slate-700 border-none rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none dark:text-slate-200 dark:placeholder-slate-400" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                </div>
+                <button onClick={handleRandomize} className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-lg transition-colors shadow-sm flex items-center gap-2" title="Randomize"><Dices size={16} /></button>
             </div>
         </header>
     );
