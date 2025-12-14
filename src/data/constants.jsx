@@ -8,6 +8,7 @@ export { WRITING_DATA } from './categories/writing.jsx';
 export { ART_DATA } from './categories/art.jsx';
 export { AVATAR_DATA } from './categories/avatar.jsx';
 export { VIDEO_DATA } from './categories/video.jsx';
+export { SOCIAL_DATA } from './categories/social.jsx';
 export { PRESETS } from './presets';
 
 // Random topics for the "Surprise Me" feature
