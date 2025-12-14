@@ -15,8 +15,17 @@ export default async function handler(req, res) {
   const apiKey = userKey || process.env.VITE_GROQ_API_KEY;
 
   if (!apiKey) {
-    return res.status(500).json({ error: "Groq API Key is missing on the server." });
+    return res.status(500).json({ error: "Groq API Key is missing. Please enter one in settings." });
   }
+
+  // HELPER: Sanitize logs to remove API keys (Bearer tokens)
+  const sanitizeLog = (msg) => {
+    if (typeof msg === 'string') {
+        // Groq keys usually start with gsk_
+        return msg.replace(/Bearer\s+gsk_[a-zA-Z0-9]+/g, 'Bearer gsk_***');
+    }
+    return msg;
+  };
 
   try {
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -43,7 +52,7 @@ export default async function handler(req, res) {
     return res.status(200).json(data);
 
   } catch (error) {
-    console.error("Groq Proxy Error:", error);
-    return res.status(500).json({ error: error.message });
+    console.error("Groq Proxy Error:", sanitizeLog(error.message));
+    return res.status(500).json({ error: sanitizeLog(error.message) });
   }
 }

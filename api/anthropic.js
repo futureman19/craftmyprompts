@@ -15,8 +15,17 @@ export default async function handler(req, res) {
   const apiKey = userKey || process.env.VITE_ANTHROPIC_API_KEY;
 
   if (!apiKey) {
-    return res.status(500).json({ error: "Anthropic API Key is missing on the server." });
+    return res.status(500).json({ error: "Anthropic API Key is missing. Please enter one in settings." });
   }
+
+  // HELPER: Sanitize logs to remove API keys
+  const sanitizeLog = (msg) => {
+    if (typeof msg === 'string') {
+        // Remove standard API key formats or x-api-key headers
+        return msg.replace(/x-api-key=[^&]*/g, 'x-api-key=***').replace(/sk-ant-[a-zA-Z0-9\-\._]+/g, 'sk-ant-***');
+    }
+    return msg;
+  };
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -27,7 +36,7 @@ export default async function handler(req, res) {
         'content-type': 'application/json'
       },
       body: JSON.stringify({
-        model: model || "claude-sonnet-4-5-20250929", // Default to Sonnet 3.5 (latest stable version)
+        model: model || "claude-3-5-sonnet-latest", 
         max_tokens: 1024,
         messages: [
             { role: "user", content: prompt }
@@ -38,6 +47,8 @@ export default async function handler(req, res) {
     const data = await response.json();
 
     if (!response.ok) {
+        // Log secure error details
+        console.error("Anthropic API Error:", JSON.stringify(data.error || {}));
         throw new Error(data.error?.message || `Anthropic API Error (${response.status})`);
     }
 
@@ -45,7 +56,7 @@ export default async function handler(req, res) {
     return res.status(200).json(data);
 
   } catch (error) {
-    console.error("Anthropic Proxy Error:", error);
-    return res.status(500).json({ error: error.message });
+    console.error("Anthropic Proxy Error:", sanitizeLog(error.message));
+    return res.status(500).json({ error: sanitizeLog(error.message) });
   }
 }

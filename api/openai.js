@@ -12,8 +12,17 @@ export default async function handler(req, res) {
   const apiKey = req.body.apiKey || process.env.VITE_OPENAI_API_KEY;
 
   if (!apiKey) {
-    return res.status(500).json({ error: "OpenAI API Key is missing on the server." });
+    return res.status(500).json({ error: "OpenAI API Key is missing. Please enter one in settings." });
   }
+
+  // HELPER: Sanitize logs to remove API keys (Bearer tokens)
+  const sanitizeLog = (msg) => {
+    if (typeof msg === 'string') {
+        // Replace "Bearer sk-..." with "Bearer ***"
+        return msg.replace(/Bearer\s+[a-zA-Z0-9\-\._]+/g, 'Bearer ***');
+    }
+    return msg;
+  };
 
   // 3. Extract prompt from request
   const { prompt, model } = req.body;
@@ -36,6 +45,8 @@ export default async function handler(req, res) {
     const data = await response.json();
 
     if (!response.ok) {
+        // Log secure error details
+        console.error("OpenAI API Error:", JSON.stringify(data.error || {}));
         throw new Error(data.error?.message || "OpenAI API Error");
     }
 
@@ -43,7 +54,7 @@ export default async function handler(req, res) {
     return res.status(200).json(data);
 
   } catch (error) {
-    console.error("OpenAI Proxy Error:", error);
-    return res.status(500).json({ error: error.message });
+    console.error("OpenAI Proxy Error:", sanitizeLog(error.message));
+    return res.status(500).json({ error: sanitizeLog(error.message) });
   }
 }
