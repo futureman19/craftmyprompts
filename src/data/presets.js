@@ -13,7 +13,7 @@ export const PRESETS = {
             label: "Bitcoin Smart Contract", 
             lang: "sCrypt", 
             task: "Write Smart Contract", 
-            topic: "Create a stateful contract for {Contract Logic} where {Condition}." 
+            topic: "Create a stateful contract for {Contract Logic} where {Condition}. Use the UTXO model." 
         },
         { 
             label: "Secure Python API", 
@@ -41,18 +41,18 @@ export const PRESETS = {
     writing: [
         { 
             label: "Viral X/Twitter Thread", 
-            // Note: 'platform' is usually in Social, but we map it here if the builder supports cross-pollination
+            platform: "X (Twitter)",
             framework: "Storytelling", 
             intent: "Inspire", 
             style: "TechCrunch Style",
-            topic: "Write a thread about {Topic}. Hook the reader immediately with a surprising fact." 
+            topic: "Write a thread about {Topic}. Hook the reader immediately with a surprising fact. Use '1/x' numbering." 
         },
         { 
             label: "B2B Cold Email", 
             intent: "Sell", 
             framework: "AIDA (Attention, Interest, Desire, Action)", 
             style: "TechCrunch Style", 
-            topic: "Write a cold email pitching {Product} to a {Target Role}. Focus on the pain point of {Pain Point}." 
+            topic: "Write a cold email pitching {Product} to a {Target Role}. Focus on the pain point of {Pain Point}. Keep it under 75 words." 
         },
         { 
             label: "SEO Blog Post", 
@@ -64,36 +64,78 @@ export const PRESETS = {
             label: "LinkedIn Authority Op-Ed", 
             intent: "Persuade",
             style: "Malcolm Gladwell",
-            topic: "Write a contrarian post about {Industry Trend}. Argue that {Opinion}." 
+            topic: "Write a contrarian post about {Industry Trend}. Argue that {Opinion}. Use short, punchy sentences (Broetry style)." 
         }
     ],
 
-    // --- SOCIAL PRESETS ---
-    // Specific configurations for Social Media platforms
+    // --- SOCIAL PRESETS (Viral Architectures) ---
+    // Hardcoded retention protocols from 1of10, SendShort, and SocialRails research
     social: [
+        // VIDEO HOOKS (Short-Form)
         { 
-            label: "TikTok Viral Script", 
+            label: "Hook: The Negative Warning", 
             platform: "TikTok", 
             content_type: "Short-Form Video",
             hook_type: "Negativity/Fear", 
             goal: "Engagement", 
-            topic: "Script a 30-second video about {Topic}. Start with a 'Stop Scrolling' hook about a common mistake." 
+            topic: "Script a video starting with the hook: 'Stop {Action} if you want {Goal}.' Explain why this habit is destroying progress." 
         },
         { 
-            label: "Instagram Carousel", 
+            label: "Hook: The Unanswered Question", 
+            platform: "Instagram Reels", 
+            content_type: "Short-Form Video",
+            hook_type: "Curiosity", 
+            goal: "Engagement", 
+            topic: "Script a video starting with: 'Why do 99% of people fail at {Subject}?' Provide the counter-intuitive answer." 
+        },
+        { 
+            label: "Hook: The Secret Reveal", 
+            platform: "TikTok", 
+            content_type: "Short-Form Video", 
+            hook_type: "Curiosity", 
+            goal: "Shares/Saves", 
+            topic: "Script a video starting with: 'The {Industry} industry doesn't want you to know this...' Reveal a specific insider secret about {Topic}." 
+        },
+
+        // YOUTUBE TITLES (Long-Form)
+        { 
+            label: "Title: The Survivorship Protocol", 
+            platform: "YouTube Video", 
+            hook_type: "Negativity/Fear", 
+            goal: "Click-Through Rate",
+            topic: "Generate a video title using the syntax: 'I Survived {Duration} With {Constraint}.' Ensure the constraint represents a mortal or reputational threat." 
+        },
+        { 
+            label: "Title: The Time Condenser", 
+            platform: "YouTube Video", 
+            hook_type: "Value/Status", 
+            goal: "Click-Through Rate",
+            topic: "Generate a video title using the syntax: 'I Tested {Number} Years Of {Subject}.' The time period must be exaggerated to imply high information density." 
+        },
+        { 
+            label: "Title: The Tier List", 
+            platform: "YouTube Video", 
+            hook_type: "Value/Status", 
+            goal: "Engagement",
+            topic: "Generate a video title using the syntax: 'The {Subject} Tier List'. Rank items from S-Tier to F-Tier to invite tribal debate." 
+        },
+
+        // CAROUSELS (Static)
+        { 
+            label: "Carousel: Step-by-Step", 
             platform: "Instagram", 
             content_type: "Carousel (PDF/Image)", 
             framework: "Educational", 
-            goal: "Conversion",
-            topic: "Create a 5-slide breakdown of {Topic}. Slide 1 is the Hook, Slide 5 is the CTA to {Action}." 
+            goal: "Saves", 
+            topic: "Create a 10-slide carousel about {Topic}. Slide 1: Problem/Hook. Slides 2-8: Micro-actions. Slide 9: Final Result. Slide 10: CTA." 
         },
         { 
-            label: "YouTube Clickbait Title", 
-            platform: "YouTube Video", 
-            content_type: "Thumbnail",
-            hook_type: "Curiosity", 
-            goal: "Engagement",
-            topic: "Generate 5 high-CTR titles for a video about {Topic}. Use the 'I Survived...' or 'I Tested...' syntax." 
+            label: "Carousel: Myth vs Fact", 
+            platform: "LinkedIn", 
+            content_type: "Carousel (PDF/Image)", 
+            framework: "Educational", 
+            goal: "Engagement", 
+            topic: "Create a carousel comparing {Common Myth} vs {The Truth}. Use alternating slides to contrast the misconception with the reality." 
         }
     ],
 
@@ -105,14 +147,14 @@ export const PRESETS = {
             persona: "Physics Tutor", 
             tone: "Friendly", 
             language_style: "Simple English",
-            topic: "Explain {Complex Concept} using a {Real World Object} analogy." 
+            topic: "Explain {Complex Concept} using a {Real World Object} analogy. Keep it simple enough for a 5-year-old." 
         },
         { 
             label: "Executive Summary", 
             persona: "Project Manager", 
             format: "Structured", 
             length: "Brief",
-            topic: "Summarize this text into bullet points with key action items: {Insert Text}" 
+            topic: "Summarize this text into bullet points with key action items and owners: {Insert Text Here}" 
         },
         { 
             label: "Tough Interviewer", 
@@ -131,28 +173,28 @@ export const PRESETS = {
             shot: "Close-up", 
             visuals: "Studio Lighting",
             tech: "8k",
-            topic: "A portrait of {Subject} looking {Emotion}. Highly detailed texture." 
+            topic: "A portrait of {Subject} looking {Emotion}. Highly detailed skin texture, dramatic side lighting." 
         },
         { 
             label: "Cyberpunk City", 
             genre: "Cyberpunk", 
             environment: "Cyber City", 
             visuals: "Neon",
-            topic: "A futuristic {City Name} street at night. Rain reflecting neon lights. {Action} happening in background." 
+            topic: "A futuristic {City Name} street at night. Wet pavement reflecting neon signs. {Action} happening in background. Heavy atmosphere." 
         },
         { 
             label: "Studio Ghibli Scene", 
             style: "Studio Ghibli", 
             environment: "Nature", 
             visuals: "Pastel",
-            topic: "A peaceful scene of {Subject} in a {Setting}. Fluffy clouds, lush grass, gentle breeze." 
+            topic: "A peaceful scene of {Subject} in a {Setting}. Fluffy cumulus clouds, lush green grass, gentle breeze blowing." 
         },
         { 
             label: "Isometric Game Asset", 
             shot: "Isometric", 
             background: "White Background", 
             visuals: "Bright",
-            topic: "A cute low-poly {Building Type} on a floating island." 
+            topic: "A cute low-poly {Building Type} on a floating island. Soft lighting, clean edges." 
         }
     ],
 
@@ -164,14 +206,14 @@ export const PRESETS = {
             framing: "Headshot", 
             expression: "Confident", 
             background: "Gradient",
-            topic: "A 3D character of {Description}." 
+            topic: "A 3D character of {Description}. Big expressive eyes, soft rendering." 
         },
         { 
             label: "Anime Profile", 
             avatar_style: "Anime", 
             framing: "Bust (Shoulders up)", 
             expression: "Mysterious", 
-            topic: "An anime character with {Hair Color} hair and {Eye Color} eyes." 
+            topic: "An anime character with {Hair Color} hair and {Eye Color} eyes. Cel-shaded style." 
         },
         { 
             label: "Professional Headshot", 
@@ -179,7 +221,7 @@ export const PRESETS = {
             framing: "Headshot", 
             expression: "Friendly", 
             background: "Office Blur",
-            topic: "A professional photo of {Subject} wearing {Clothing}." 
+            topic: "A professional photo of {Subject} wearing {Clothing}. Shallow depth of field." 
         }
     ],
 
@@ -190,19 +232,19 @@ export const PRESETS = {
             camera_move: "Drone Flyover", 
             motion_strength: "Normal Motion", 
             aesthetics: "4k Digital Clean", 
-            topic: "Sweeping aerial view of {Location} at {Time of Day}." 
+            topic: "Sweeping aerial view of {Location} at {Time of Day}. Smooth movement." 
         },
         { 
             label: "90s VHS Style", 
             camera_move: "Handheld Shake", 
             aesthetics: "VHS Glitch", 
-            topic: "POV walking through {Location}. Grainy footage, flickering lights." 
+            topic: "POV walking through {Location}. Grainy footage, flickering lights, tracking errors." 
         },
         { 
             label: "Product Showcase", 
             camera_move: "Orbit", 
             motion_strength: "Slow Motion", 
-            topic: "A close up of {Product}. Elegant lighting, smooth rotation." 
+            topic: "A close up of {Product}. Elegant lighting, smooth rotation, water droplets." 
         }
     ]
 };
