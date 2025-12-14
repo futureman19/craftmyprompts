@@ -1,6 +1,5 @@
 // This is a "Barrel File".
 // It aggregates data from multiple smaller files and re-exports them.
-// This keeps your imports clean in the rest of the app.
 
 export { GENERAL_DATA } from './categories/general.jsx';
 export { CODING_DATA } from './categories/coding.jsx';
