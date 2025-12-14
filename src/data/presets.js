@@ -1,44 +1,200 @@
 export const PRESETS = {
+    // --- CODING PRESETS ---
+    // Targeted to trigger specific knowledge modules (React Server Components, sCrypt, Python Pydantic v2)
     coding: [
-        { label: "React Component", task: "Write Code", lang: "React", topic: "Create a functional component named {Name} that accepts props {Props} and renders {Description}." },
-        { label: "sCrypt Smart Contract", task: "Write Smart Contract", lang: "sCrypt", topic: "Create a stateful contract that requires two signatures to unlock funds." },
-        { label: "Python API Endpoint", task: "Write Code", lang: "Python", topic: "Create a FastAPI endpoint for {Functionality} that accepts {Input} and returns {Output}." },
-        { label: "SQL Query Optimizer", task: "Optimize", lang: "SQL", topic: "Analyze this query for performance issues and suggest indexes: {Query}." },
-        { label: "Regex Generator", task: "Write Code", lang: "JavaScript", topic: "Write a regex pattern to match {Pattern_Description}." },
-        { label: "Unit Tests", task: "Write Unit Tests", lang: "TypeScript", topic: "Write comprehensive tests for this function: {Function_Code}" },
-        { label: "Debug Python", task: "Debug", lang: "Python", topic: "Fix the following error: {Error_Message} in this code: {Code}" }
+        { 
+            label: "Modern React (Next.js 14)", 
+            lang: "React", 
+            framework_version: "Next.js 14",
+            task: "Write Code", 
+            topic: "Create a responsive 'DashboardCard' component using Tailwind CSS. It should accept a title, value, and trend percentage. Use Server Components where possible." 
+        },
+        { 
+            label: "Bitcoin Smart Contract (sCrypt)", 
+            lang: "sCrypt", 
+            task: "Write Smart Contract", 
+            topic: "Create a stateful contract for a 'Rock Paper Scissors' game where two players commit hashes and then reveal moves." 
+        },
+        { 
+            label: "Secure Python API (FastAPI)", 
+            lang: "Python", 
+            framework_version: "Python 3.12",
+            task: "Write Code", 
+            topic: "Create a POST endpoint '/users' that validates input using Pydantic v2. Ensure email validation and password hashing." 
+        },
+        { 
+            label: "Solidity Safe Transfer", 
+            lang: "Solidity", 
+            task: "Write Smart Contract", 
+            topic: "Write a secure 'withdraw' function that follows the Checks-Effects-Interactions pattern to prevent reentrancy attacks." 
+        },
+        { 
+            label: "SQL Optimization Expert", 
+            lang: "SQL", 
+            task: "Optimize", 
+            topic: "Analyze this query for performance bottlenecks. Suggest specific indexes and rewrite the query using CTEs if beneficial: {Insert Query Here}" 
+        }
     ],
+
+    // --- WRITING PRESETS ---
+    // Designed to trigger SEO, Cold Email, and Thread frameworks
     writing: [
-        { label: "Viral LinkedIn Post", intent: "Inspire", framework: "PAS (Problem, Agitate, Solution)", topic: "Write a post about {Topic} targeting {Audience}." },
-        { label: "SEO Blog Post", intent: "Inform", style: "TechCrunch Style", topic: "Write an outline for an article about {Subject} with keywords: {Keywords}." },
-        { label: "Cold Email", intent: "Sell", framework: "AIDA (Attention, Interest, Desire, Action)", topic: "Write a cold email to {Prospect_Role} pitching {Product_Name}." },
-        { label: "YouTube Script", intent: "Entertain", style: "BuzzFeed Style", topic: "Write a script for a video titled '{Title}'." },
-        { label: "Press Release", intent: "Inform", style: "Professional", topic: "Announce the launch of {Product}." }
+        { 
+            label: "Viral X/Twitter Thread", 
+            platform: "X (Twitter)",
+            framework: "Storytelling", 
+            intent: "Inspire", 
+            topic: "Write a thread about 'The Psychology of Color in Marketing'. Hook the reader immediately with a surprising fact." 
+        },
+        { 
+            label: "High-Converting Cold Email", 
+            intent: "Sell", 
+            style: "TechCrunch Style", 
+            topic: "Write a B2B cold email pitching a new AI scheduling tool to a busy CEO. Use the '3-Sentence Rule' framework." 
+        },
+        { 
+            label: "SEO Power Blog", 
+            intent: "Inform", 
+            framework: "Marketing", 
+            topic: "Outline a blog post about 'Sustainable Gardening'. Target keywords: 'organic soil', 'urban farming'. Include H2s for 'People Also Ask' questions." 
+        },
+        { 
+            label: "LinkedIn Authority Post", 
+            platform: "LinkedIn",
+            style: "Modern/Business",
+            intent: "Persuade",
+            topic: "Write a post about 'Why Remote Work is Failing'. Use a contrarian hook and short, punchy lines." 
+        }
     ],
+
+    // --- SOCIAL PRESETS ---
+    // Triggers platform-specific logic (TikTok Hooks, Carousel Structures)
+    social: [
+        { 
+            label: "TikTok Viral Script", 
+            platform: "TikTok", 
+            hook_type: "Negativity/Fear", 
+            goal: "Engagement", 
+            topic: "Script a 30-second video about 'Common Gym Mistakes'. Start with a 'Stop Scrolling' hook." 
+        },
+        { 
+            label: "Instagram Carousel (Educational)", 
+            content_type: "Carousel (PDF/Image)", 
+            platform: "Instagram",
+            framework: "Educational", 
+            topic: "Create a 5-slide breakdown of 'How to Meditate'. Slide 1 is the Hook, Slide 5 is the Save CTA." 
+        },
+        { 
+            label: "YouTube Clickbait Title", 
+            platform: "YouTube Video", 
+            hook_type: "Curiosity", 
+            topic: "Generate 5 high-CTR titles for a video about 'Living in a Van'. Use the 'I Survived...' syntax." 
+        }
+    ],
+
+    // --- GENERAL PRESETS ---
     general: [
-        { label: "Professional Email", persona: "Project Manager", tone: "Diplomatic", topic: "Write an email to {Recipient} about {Subject}." },
-        { label: "Complex Concept Explainer", persona: "Physics Tutor", tone: "Friendly", topic: "Explain {Concept} to a 5-year old." },
-        { label: "Travel Itinerary", persona: "Travel Guide", tone: "Enthusiastic", topic: "Create a 3-day itinerary for {City} focused on {Interests}." },
-        { label: "Meal Plan", persona: "Nutritionist", tone: "Objective", topic: "Create a weekly meal plan for {Diet_Type} diet." },
-        { label: "Job Interview Prep", persona: "HR Specialist", tone: "Professional", topic: "Give me 5 tough interview questions for a {Job_Role} position." }
+        { 
+            label: "The 5-Year Old Explainer", 
+            persona: "Physics Tutor", 
+            tone: "Friendly", 
+            language_style: "Simple English",
+            topic: "Explain 'Black Holes' using a bathtub analogy." 
+        },
+        { 
+            label: "Executive Summary", 
+            persona: "Project Manager", 
+            format: "Structured", 
+            length: "Brief",
+            topic: "Summarize this meeting transcript into key action items and owners: {Insert Transcript}" 
+        },
+        { 
+            label: "Tough Interview Prep", 
+            persona: "HR Specialist", 
+            context: "Situation", 
+            topic: "Act as a sceptical interviewer for a Senior Developer role. Ask me 3 hard questions about System Design." 
+        }
     ],
+
+    // --- ART PRESETS (Midjourney v6 Optimized) ---
     art: [
-        { label: "Cinematic Portrait", genre: "Cinematic", shot: "Close-up", topic: "A portrait of {Subject}, {Lighting}, highly detailed." },
-        { label: "Isometric Game Asset", genre: "Modern", shot: "Isometric", topic: "A {Building_Type} on a floating island, white background." },
-        { label: "Minimalist Logo", genre: "Modern", visuals: "High Contrast", topic: "A vector logo design for {Company_Name}, flat style, minimal." },
-        { label: "Fantasy Landscape", genre: "Fantasy", environment: "Mountains", topic: "A sweeping view of {Place}, epic scale, 8k resolution." },
-        { label: "Product Photography", genre: "Modern", visuals: "Studio Lighting", topic: "A professional shot of {Product}, sleek background." },
-        { label: "Synthwave City", genre: "Vaporwave", environment: "Cyber City", topic: "A retro-futuristic city skyline at sunset." }
+        { 
+            label: "Hyper-Real Portrait", 
+            genre: "Cinematic", 
+            shot: "Close-up", 
+            visuals: "Studio Lighting",
+            tech: "8k",
+            topic: "A portrait of an elderly fisherman with weathered skin, intense eyes, wearing a yellow raincoat. Rain droplets on face." 
+        },
+        { 
+            label: "Cyberpunk Cityscape", 
+            genre: "Cyberpunk", 
+            environment: "Cyber City", 
+            visuals: "Neon",
+            topic: "A futuristic Tokyo street at night. Wet pavement reflecting neon signs. Flying cars overhead. Atmosphere is heavy and moody." 
+        },
+        { 
+            label: "Ghibli Style Landscape", 
+            style: "Studio Ghibli", 
+            environment: "Nature", 
+            visuals: "Pastel",
+            topic: "A grassy hill with a single giant oak tree. Fluffy white clouds in a blue sky. A gentle breeze blowing the grass." 
+        },
+        { 
+            label: "Isometric Game Asset", 
+            shot: "Isometric", 
+            background: "White Background", 
+            topic: "A magical potion shop on a floating island. Cute low-poly style. Glowing windows." 
+        }
     ],
+
+    // --- AVATAR PRESETS ---
     avatar: [
-        { label: "Pixar Style 3D", avatar_style: "Pixar Style", framing: "Headshot", expression: "Confident", topic: "A cute 3D character of {Subject}." },
-        { label: "Cyberpunk PFP", avatar_style: "Cyberpunk", accessories: "VR Headset", background: "Neon City", topic: "A futuristic avatar of {Subject}." },
-        { label: "Anime Profile", avatar_style: "Anime", framing: "Bust (Shoulders up)", expression: "Mysterious", topic: "An anime character of {Subject}." },
-        { label: "Professional Headshot", avatar_style: "Realistic", framing: "Headshot", background: "Office Blur", topic: "A professional photo of {Subject} wearing a suit." },
-        { label: "Vector Sticker", avatar_style: "Vector Flat", background: "White Background", topic: "A flat vector sticker of {Subject}." }
+        { 
+            label: "Pixar 3D Profile", 
+            avatar_style: "Pixar Style", 
+            framing: "Headshot", 
+            expression: "Confident", 
+            background: "Gradient",
+            topic: "A 3D character of a young tech wizard with blue hair." 
+        },
+        { 
+            label: "Anime PFP", 
+            avatar_style: "Anime", 
+            framing: "Bust (Shoulders up)", 
+            expression: "Mysterious", 
+            topic: "An anime character with silver hair and glowing red eyes. Dark moody background." 
+        },
+        { 
+            label: "Professional LinkedIn Headshot", 
+            avatar_style: "Photorealistic", 
+            framing: "Headshot", 
+            expression: "Friendly", 
+            background: "Office Blur",
+            topic: "A professional photo of a woman in a navy blazer. Soft studio lighting." 
+        }
     ],
+
+    // --- VIDEO PRESETS (Runway/Pika) ---
     video: [
-        { label: "Cinematic Drone Shot", camera_move: "Drone Flyover", motion_strength: "Normal Motion", aesthetics: "4k Digital Clean", topic: "A sweeping aerial view of {Location} at sunset." },
-        { label: "Vintage VHS Style", camera_move: "Handheld Shake", aesthetics: "VHS Glitch", topic: "A 90s style home video of {Subject}." }
+        { 
+            label: "Cinematic Drone Shot", 
+            camera_move: "Drone Flyover", 
+            motion_strength: "Normal Motion", 
+            aesthetics: "4k Digital Clean", 
+            topic: "Sweeping aerial view of the Swiss Alps at sunrise. Golden light hitting the snow peaks." 
+        },
+        { 
+            label: "90s VHS Horror", 
+            camera_move: "Handheld Shake", 
+            aesthetics: "VHS Glitch", 
+            topic: "POV walking down a dark hospital hallway. Flickering lights. Grainy footage." 
+        },
+        { 
+            label: "Slow Mo Product Reveal", 
+            camera_move: "Orbit", 
+            motion_strength: "Slow Motion", 
+            topic: "A luxury perfume bottle spinning slowly. Water droplets splashing in slow motion." 
+        }
     ]
 };
