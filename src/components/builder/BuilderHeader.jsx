@@ -44,7 +44,8 @@ const BuilderHeader = ({
                 {/* Sub-Mode / Target Selectors */}
                 {state.mode === 'text' && (
                         <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
-                        {['general', 'coding', 'writing'].map(m => (
+                        {/* CTO UPDATE: New Tab Structure (General, Coding, Social) */}
+                        {['general', 'coding', 'social'].map(m => (
                             <button key={m} onClick={() => dispatch({ type: 'SET_SUBMODE', payload: m })} className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] border whitespace-nowrap transition-colors capitalize ${state.textSubMode === m ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:border-slate-300'}`}>{m}</button>
                         ))}
                         </div>
@@ -73,25 +74,25 @@ const BuilderHeader = ({
                         {/* Gap fix */}
                         <div className="absolute top-full left-0 w-64 pt-2 hidden group-hover:block z-50">
                             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-600 p-2 max-h-96 overflow-y-auto">
-                            
-                            {user && customPresets.length > 0 && (
-                                <div className="mb-2 pb-2 border-b border-slate-100 dark:border-slate-700">
-                                    <div className="text-[10px] font-bold text-indigo-500 uppercase px-2 py-1 flex items-center gap-1"><Bookmark size={10} /> My Presets</div>
-                                    {customPresets.map((p) => (
-                                        <button key={p.id} onClick={() => applyPreset(p)} className="w-full text-left px-2 py-2 text-xs hover:bg-indigo-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg flex items-center justify-between group">
-                                            <span>{p.label}</span>
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
+                                
+                                {user && customPresets.length > 0 && (
+                                    <div className="mb-2 pb-2 border-b border-slate-100 dark:border-slate-700">
+                                        <div className="text-[10px] font-bold text-indigo-500 uppercase px-2 py-1 flex items-center gap-1"><Bookmark size={10} /> My Presets</div>
+                                        {customPresets.map((p) => (
+                                            <button key={p.id} onClick={() => applyPreset(p)} className="w-full text-left px-2 py-2 text-xs hover:bg-indigo-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg flex items-center justify-between group">
+                                                <span>{p.label}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
 
-                            <div className="text-[10px] font-bold text-slate-400 uppercase px-2 py-1">Quick Start</div>
-                            {((state.mode === 'text' 
-                                ? PRESETS[state.textSubMode] || PRESETS.general 
-                                : (state.mode === 'video' ? PRESETS.video : (state.textSubMode === 'avatar' ? PRESETS.avatar : PRESETS.art))
-                            ) || []).map((p, i) => (
-                                <button key={i} onClick={() => applyPreset(p)} className="w-full text-left px-2 py-2 text-xs hover:bg-indigo-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg">{p.label}</button>
-                            ))}
+                                <div className="text-[10px] font-bold text-slate-400 uppercase px-2 py-1">Quick Start</div>
+                                {((state.mode === 'text' 
+                                    ? PRESETS[state.textSubMode] || PRESETS.general 
+                                    : (state.mode === 'video' ? PRESETS.video : (state.textSubMode === 'avatar' ? PRESETS.avatar : PRESETS.art))
+                                ) || []).map((p, i) => (
+                                    <button key={i} onClick={() => applyPreset(p)} className="w-full text-left px-2 py-2 text-xs hover:bg-indigo-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg">{p.label}</button>
+                                ))}
                             </div>
                         </div>
                     </div>
