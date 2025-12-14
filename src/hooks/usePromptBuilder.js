@@ -3,7 +3,7 @@ import {
   GENERAL_DATA, CODING_DATA, WRITING_DATA, ART_DATA, AVATAR_DATA, VIDEO_DATA, 
   RANDOM_TOPICS 
 } from '../data/constants.jsx';
-import { KNOWLEDGE_BASE } from '../data/knowledgeBase.js'; // <--- NEW IMPORT
+import { KNOWLEDGE_BASE } from '../data/knowledgeBase.js';
 
 // --- INITIAL STATE ---
 const initialState = {
@@ -236,34 +236,69 @@ export const usePromptBuilder = (initialData) => {
     // --- CONTEXT & KNOWLEDGE INJECTION (CTO UPDATE) ---
     const contextDocs = [];
     
-    // 1. Coding Knowledge
+    // 1. Coding Knowledge (Based on Selections)
     if (state.textSubMode === 'coding') {
         const langs = getVals('language');
-        const frameworks = getVals('framework_version'); // Check for specific versions too
         
         // sCrypt Detection
-        if (langs.some(l => l.includes('sCrypt')) || frameworks.some(f => f.includes('sCrypt'))) {
-            contextDocs.push(KNOWLEDGE_BASE.scrypt);
+        if (langs.some(l => l.toLowerCase().includes('scrypt'))) {
+            contextDocs.push(KNOWLEDGE_BASE.scrypt_bitcoin);
         }
         
-        // React/Tailwind Detection
-        if (langs.includes('React') || langs.includes('Tailwind CSS') || frameworks.some(f => f.includes('React'))) {
-            contextDocs.push(KNOWLEDGE_BASE.tailwind);
+        // Solidity Detection
+        if (langs.includes('Solidity')) {
+            contextDocs.push(KNOWLEDGE_BASE.solidity_security);
         }
-    }
-    
-    // 2. Writing Knowledge
-    if (state.textSubMode === 'writing') {
-        const styles = getVals('style');
-        if (styles.includes('TechCrunch Style') || styles.includes('BuzzFeed Style')) {
-            contextDocs.push(KNOWLEDGE_BASE.viral_hooks);
-        }
-    }
-    
-    // Always inject meta-guide for better quality? Optional, but good for "Pro" feel.
-    // contextDocs.push(KNOWLEDGE_BASE.prompt_engineering); 
 
-    // --- VIDEO MODE ---
+        // React / Next.js Detection
+        if (langs.includes('Next.js') || langs.includes('React')) {
+            contextDocs.push(KNOWLEDGE_BASE.react_server_components);
+        }
+        
+        // Tailwind Detection
+        if (langs.includes('Tailwind CSS')) {
+            contextDocs.push(KNOWLEDGE_BASE.tailwind_modern);
+        }
+        
+        // Python Detection
+        if (langs.includes('Python') || langs.includes('Django')) {
+             contextDocs.push(KNOWLEDGE_BASE.fastapi_pydantic_v2);
+        }
+
+        // Supabase / SQL Detection
+        if (langs.includes('SQL') || state.customTopic.toLowerCase().includes('supabase')) {
+            contextDocs.push(KNOWLEDGE_BASE.supabase_v2);
+        }
+    }
+    
+    // 2. Writing Knowledge (Based on Topic Text)
+    if (state.textSubMode === 'writing') {
+        const topicLower = state.customTopic.toLowerCase();
+        
+        if (topicLower.includes('linkedin')) contextDocs.push(KNOWLEDGE_BASE.linkedin_viral);
+        if (topicLower.includes('twitter') || topicLower.includes('thread')) contextDocs.push(KNOWLEDGE_BASE.twitter_threads);
+        if (topicLower.includes('blog') || topicLower.includes('seo')) contextDocs.push(KNOWLEDGE_BASE.seo_blog);
+        if (topicLower.includes('email') || topicLower.includes('outreach')) contextDocs.push(KNOWLEDGE_BASE.cold_email_b2b);
+    }
+    
+    // 3. Art / Video Knowledge (Based on Model/Mode)
+    if (state.mode === 'art') {
+        if (state.targetModel === 'midjourney') contextDocs.push(KNOWLEDGE_BASE.midjourney_v6);
+        if (state.targetModel === 'flux') contextDocs.push(KNOWLEDGE_BASE.flux_prompts);
+    }
+    
+    if (state.mode === 'video') {
+        contextDocs.push(KNOWLEDGE_BASE.runway_camera);
+    }
+    
+    // 4. Meta Knowledge (Based on Toggles)
+    if (state.chainOfThought) {
+        contextDocs.push(KNOWLEDGE_BASE.chain_of_thought);
+    }
+
+    // --- STANDARD PROMPT ASSEMBLY ---
+
+    // Video Mode
     if (state.mode === 'video') {
         if (processedTopic?.trim()) parts.push(`${processedTopic}`);
         const camera = getVals('camera_move').join(', ');
@@ -278,10 +313,15 @@ export const usePromptBuilder = (initialData) => {
         if (state.negativePrompt) allNegatives.push(state.negativePrompt);
         if (videoNegs.length > 0) allNegatives.push(...videoNegs);
         if (allNegatives.length > 0) promptString += ` --no ${allNegatives.join(', ')}`;
+        
+        // Append Context if any
+        if (contextDocs.length > 0) {
+            promptString += `\n\n[EXPERT KNOWLEDGE BASE]:\n${contextDocs.join('\n\n')}`;
+        }
         return promptString;
     }
 
-    // --- TEXT MODE ---
+    // Text Mode
     if (state.mode === 'text') {
       if (state.textSubMode === 'coding') {
           const langs = getVals('language').join(', ');
@@ -317,14 +357,14 @@ export const usePromptBuilder = (initialData) => {
           parts.push(`\n${label}\n"${processedTopic}"\n`);
       }
 
-      // Inject Static Knowledge Base
+      // Inject Static Knowledge Base (CTO UPDATE)
       if (contextDocs.length > 0) {
-          parts.push(`\nDOCUMENTATION / KNOWLEDGE BASE:\n${contextDocs.join('\n\n')}\n`);
+          parts.push(`\n[EXPERT KNOWLEDGE BASE - STRICT ADHERENCE REQUIRED]:\n${contextDocs.join('\n\n')}\n`);
       }
 
-      // Inject User Code Context (from Fetch URL or Copy Paste)
+      // Inject User Code Context
       if (state.textSubMode === 'coding' && state.codeContext?.trim()) {
-          parts.push(`\nUSER PROVIDED CODE CONTEXT:\n\`\`\`\n${state.codeContext}\n\`\`\`\n`);
+          parts.push(`\n[USER CODE CONTEXT]:\n\`\`\`\n${state.codeContext}\n\`\`\`\n`);
       }
 
       if (state.chainOfThought) parts.push("Take a deep breath and think step-by-step to ensure the highest quality response.");
@@ -360,6 +400,11 @@ export const usePromptBuilder = (initialData) => {
           }
 
           if (state.negativePrompt) parts.push(`Do not include: ${state.negativePrompt}.`);
+          
+          // Append Context if any (Rare for Art, but consistent)
+          if (contextDocs.length > 0) {
+              parts.push(`\n\n[STYLE GUIDELINES]:\n${contextDocs.join('\n\n')}`);
+          }
           return parts.join(' ');
       }
 
@@ -446,6 +491,12 @@ export const usePromptBuilder = (initialData) => {
             }
         });
       }
+      
+      // Inject Knowledge for Art Models that support it via natural language (Not MJ parameters)
+      if (contextDocs.length > 0 && state.targetModel !== 'midjourney') {
+           mainPrompt += `\n\n[STYLE NOTES]: ${contextDocs.join(' ')}`;
+      }
+
       return mainPrompt + suffix;
     }
   }, [state, processedTopic]);
