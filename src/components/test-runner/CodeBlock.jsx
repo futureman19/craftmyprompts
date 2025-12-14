@@ -5,7 +5,6 @@ const CodeBlock = ({ rawContent, onShip }) => {
     const [copied, setCopied] = useState(false);
     
     // Clean up: remove the opening ```lang line and closing ```
-    // This regex looks for the first newline to strip the header, and removes the last line
     const cleanCode = rawContent.replace(/^```[a-z]*\n/i, '').replace(/```$/, '');
     
     // Extract language label if present (e.g. ```javascript)
@@ -37,7 +36,7 @@ const CodeBlock = ({ rawContent, onShip }) => {
                         className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-white transition-colors"
                     >
                         {copied ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
-                        {copied ? 'Copy' : 'Copy'}
+                        {copied ? 'Copied' : 'Copy'}
                     </button>
                 </div>
             </div>
