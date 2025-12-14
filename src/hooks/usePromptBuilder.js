@@ -1,6 +1,7 @@
 import { useReducer, useMemo } from 'react';
 import { 
   GENERAL_DATA, CODING_DATA, WRITING_DATA, ART_DATA, AVATAR_DATA, VIDEO_DATA, 
+  SOCIAL_DATA, // <--- NEW IMPORT
   RANDOM_TOPICS 
 } from '../data/constants.jsx';
 import { KNOWLEDGE_BASE } from '../data/knowledgeBase.js';
@@ -8,11 +9,10 @@ import { KNOWLEDGE_BASE } from '../data/knowledgeBase.js';
 // --- INITIAL STATE ---
 const initialState = {
   mode: 'text', // 'text' | 'art' | 'video'
-  textSubMode: 'general', // Used for both Text (general/coding/writing) and Art (general/avatar)
+  textSubMode: 'general', // general | coding | writing | social
   targetModel: 'midjourney',
   customTopic: '',
-  selections: {}, // { categoryId: [{value, weight}] }
-  // Flattened params for easier access
+  selections: {}, 
   negativePrompt: '',
   referenceImage: '',
   loraName: '',
@@ -51,7 +51,6 @@ function builderReducer(state, action) {
          if (exists) newCatSelections = [];
          else newCatSelections = [{ value: option, weight: 1 }];
       } else {
-        // Multi-select logic
         if (exists) newCatSelections = current.filter(item => item.value !== option);
         else newCatSelections = [...current, { value: option, weight: 1 }];
       }
@@ -70,13 +69,11 @@ function builderReducer(state, action) {
         return { ...state, selections: { ...state.selections, [categoryId]: newCatSelections } };
     }
     case 'LOAD_PRESET':
-        // Logic to parse a preset object into state
         const newSels = {};
         const addSel = (cat, val) => { newSels[cat] = [{ value: val, weight: 1 }]; };
-        
         const p = action.payload;
         
-        // General/Text keys
+        // Parse preset keys...
         if (p.lang) addSel('language', p.lang);
         if (p.task) addSel('task', p.task);
         if (p.framework) addSel('framework', p.framework);
@@ -86,6 +83,12 @@ function builderReducer(state, action) {
         if (p.tone) addSel('tone', p.tone);
         if (p.author) addSel('author', p.author);
         
+        // Social keys
+        if (p.platform) addSel('platform', p.platform);
+        if (p.hook_type) addSel('hook_type', p.hook_type);
+        if (p.content_type) addSel('content_type', p.content_type);
+        if (p.goal) addSel('goal', p.goal);
+
         // Art keys
         if (p.genre) addSel('genre', p.genre);
         if (p.shot) addSel('shots', p.shot);
@@ -108,16 +111,14 @@ function builderReducer(state, action) {
             customTopic: p.topic || '', 
             codeContext: p.codeContext || '', 
             variables: {},
-            // Auto-switch mode logic
             mode: p.camera_move ? 'video' : (p.avatar_style ? 'art' : (p.genre ? 'art' : 'text')),
-            textSubMode: p.avatar_style ? 'avatar' : (p.lang ? 'coding' : (p.framework ? 'writing' : 'general'))
+            textSubMode: p.avatar_style ? 'avatar' : (p.lang ? 'coding' : (p.platform ? 'social' : (p.framework ? 'writing' : 'general')))
         };
     case 'RANDOMIZE': {
         const dataSrc = action.payload; 
         const rand = (arr) => arr[Math.floor(Math.random() * arr.length)];
         const randomSels = {};
         
-        // 1. Randomize Dropdowns
         dataSrc.forEach(cat => {
             if (cat.subcategories.length) {
                 const sub = rand(cat.subcategories);
@@ -126,7 +127,6 @@ function builderReducer(state, action) {
             }
         });
 
-        // 2. Randomize Topic
         const topicList = RANDOM_TOPICS && RANDOM_TOPICS.length > 0 ? RANDOM_TOPICS : ["A futuristic city"];
         const randomTopic = rand(topicList);
 
@@ -222,6 +222,7 @@ export const usePromptBuilder = (initialData) => {
       }
       if (state.textSubMode === 'coding') return CODING_DATA;
       if (state.textSubMode === 'writing') return WRITING_DATA;
+      if (state.textSubMode === 'social') return SOCIAL_DATA; // <--- NEW SUBMODE
       return GENERAL_DATA;
   }, [state.mode, state.textSubMode]);
 
@@ -233,55 +234,66 @@ export const usePromptBuilder = (initialData) => {
     const parts = [];
     const getVals = (catId) => state.selections[catId]?.map(i => i.value) || [];
 
-    // --- CONTEXT & KNOWLEDGE INJECTION (CTO UPDATE) ---
+    // --- CONTEXT & KNOWLEDGE INJECTION ---
     const contextDocs = [];
     
-    // 1. Coding Knowledge (Based on Selections)
+    // 1. Coding Knowledge
     if (state.textSubMode === 'coding') {
         const langs = getVals('language');
+        const frameworks = getVals('framework_version');
         
-        // sCrypt Detection
-        if (langs.some(l => l.toLowerCase().includes('scrypt'))) {
+        if (langs.some(l => l.includes('sCrypt')) || frameworks.some(f => f.includes('sCrypt'))) {
             contextDocs.push(KNOWLEDGE_BASE.scrypt_bitcoin);
         }
         
-        // Solidity Detection
-        if (langs.includes('Solidity')) {
-            contextDocs.push(KNOWLEDGE_BASE.solidity_security);
-        }
-
-        // React / Next.js Detection
-        if (langs.includes('Next.js') || langs.includes('React')) {
+        if (langs.includes('React') || langs.includes('Tailwind CSS') || frameworks.some(f => f.includes('React'))) {
             contextDocs.push(KNOWLEDGE_BASE.react_server_components);
-        }
-        
-        // Tailwind Detection
-        if (langs.includes('Tailwind CSS')) {
             contextDocs.push(KNOWLEDGE_BASE.tailwind_modern);
         }
-        
-        // Python Detection
-        if (langs.includes('Python') || langs.includes('Django')) {
-             contextDocs.push(KNOWLEDGE_BASE.fastapi_pydantic_v2);
-        }
 
-        // Supabase / SQL Detection
-        if (langs.includes('SQL') || state.customTopic.toLowerCase().includes('supabase')) {
-            contextDocs.push(KNOWLEDGE_BASE.supabase_v2);
+        if (langs.includes('Solidity')) contextDocs.push(KNOWLEDGE_BASE.solidity_security);
+        if (langs.includes('Python')) contextDocs.push(KNOWLEDGE_BASE.fastapi_pydantic_v2);
+        if (langs.includes('SQL') || state.customTopic.toLowerCase().includes('supabase')) contextDocs.push(KNOWLEDGE_BASE.supabase_v2);
+    }
+    
+    // 2. Social / Writing Knowledge (CTO UPDATE)
+    if (state.textSubMode === 'social') {
+        const platforms = getVals('platform');
+        const contentTypes = getVals('content_type');
+
+        // Video Hooks (TikTok/Reels)
+        if (platforms.some(p => ['TikTok', 'Instagram Reels', 'YouTube Shorts'].includes(p))) {
+            contextDocs.push(KNOWLEDGE_BASE.social_video_hooks);
+        }
+        
+        // Carousel Architecture
+        if (contentTypes.includes('Carousel (PDF/Image)')) {
+            contextDocs.push(KNOWLEDGE_BASE.social_carousel_structures);
+        }
+        
+        // YouTube Packaging
+        if (platforms.includes('YouTube Video')) {
+            contextDocs.push(KNOWLEDGE_BASE.social_youtube_packaging);
+        }
+        
+        // Pinterest SEO
+        if (platforms.includes('Pinterest')) {
+            contextDocs.push(KNOWLEDGE_BASE.social_pinterest_seo);
+        }
+        
+        // LinkedIn / Text
+        if (platforms.includes('LinkedIn')) {
+             contextDocs.push(KNOWLEDGE_BASE.linkedin_viral);
         }
     }
     
-    // 2. Writing Knowledge (Based on Topic Text)
     if (state.textSubMode === 'writing') {
         const topicLower = state.customTopic.toLowerCase();
-        
-        if (topicLower.includes('linkedin')) contextDocs.push(KNOWLEDGE_BASE.linkedin_viral);
-        if (topicLower.includes('twitter') || topicLower.includes('thread')) contextDocs.push(KNOWLEDGE_BASE.twitter_threads);
         if (topicLower.includes('blog') || topicLower.includes('seo')) contextDocs.push(KNOWLEDGE_BASE.seo_blog);
-        if (topicLower.includes('email') || topicLower.includes('outreach')) contextDocs.push(KNOWLEDGE_BASE.cold_email_b2b);
+        if (topicLower.includes('email')) contextDocs.push(KNOWLEDGE_BASE.cold_email_b2b);
+        if (topicLower.includes('twitter')) contextDocs.push(KNOWLEDGE_BASE.twitter_threads);
     }
     
-    // 3. Art / Video Knowledge (Based on Model/Mode)
     if (state.mode === 'art') {
         if (state.targetModel === 'midjourney') contextDocs.push(KNOWLEDGE_BASE.midjourney_v6);
         if (state.targetModel === 'flux') contextDocs.push(KNOWLEDGE_BASE.flux_prompts);
@@ -291,12 +303,11 @@ export const usePromptBuilder = (initialData) => {
         contextDocs.push(KNOWLEDGE_BASE.runway_camera);
     }
     
-    // 4. Meta Knowledge (Based on Toggles)
     if (state.chainOfThought) {
         contextDocs.push(KNOWLEDGE_BASE.chain_of_thought);
     }
 
-    // --- STANDARD PROMPT ASSEMBLY ---
+    // --- PROMPT ASSEMBLY ---
 
     // Video Mode
     if (state.mode === 'video') {
@@ -314,7 +325,6 @@ export const usePromptBuilder = (initialData) => {
         if (videoNegs.length > 0) allNegatives.push(...videoNegs);
         if (allNegatives.length > 0) promptString += ` --no ${allNegatives.join(', ')}`;
         
-        // Append Context if any
         if (contextDocs.length > 0) {
             promptString += `\n\n[EXPERT KNOWLEDGE BASE]:\n${contextDocs.join('\n\n')}`;
         }
@@ -327,17 +337,28 @@ export const usePromptBuilder = (initialData) => {
           const langs = getVals('language').join(', ');
           const tasks = getVals('task').join(' and ');
           const principles = getVals('principles').join(', ');
-          
           if (tasks) parts.push(`Act as an expert Developer. Your task is to ${tasks}.`);
           else parts.push("Act as an expert Developer.");
           if (langs) parts.push(`Tech Stack: ${langs}.`);
           if (principles) parts.push(`Adhere to these principles: ${principles}.`);
+      } else if (state.textSubMode === 'social') {
+          // --- SOCIAL PROMPT STRUCTURE ---
+          const platforms = getVals('platform').join(', ');
+          const types = getVals('content_type').join(', ');
+          const hooks = getVals('hook_type').join(', ');
+          const frameworks = getVals('framework').join(', ');
+          const goals = getVals('goal').join(', ');
+          
+          if (platforms) parts.push(`Act as a Master Content Strategist for ${platforms}.`);
+          if (types) parts.push(`Format: ${types}.`);
+          if (goals) parts.push(`Primary Goal: ${goals}.`);
+          if (hooks) parts.push(`Hook Strategy: ${hooks}.`);
+          if (frameworks) parts.push(`Narrative Structure: ${frameworks}.`);
       } else if (state.textSubMode === 'writing') {
           const frameworks = getVals('framework').join(', ');
           const intent = getVals('intent').join(', ');
           const styles = getVals('style').join(', ');
           const authors = getVals('author').join(', ');
-          
           if (frameworks) parts.push(`Use the ${frameworks} framework.`);
           if (intent) parts.push(`Goal: ${intent}.`);
           if (styles) parts.push(`Style/Voice: ${styles}.`);
@@ -346,7 +367,6 @@ export const usePromptBuilder = (initialData) => {
           const persona = getVals('persona');
           const tone = getVals('tone');
           const format = getVals('format');
-          
           if (persona.length) parts.push(`Act as an expert ${persona[0]}.`);
           if (tone.length) parts.push(`Tone: ${tone.join(', ')}.`);
           if (format.length) parts.push(`Format: ${format.join(', ')}.`);
@@ -357,12 +377,11 @@ export const usePromptBuilder = (initialData) => {
           parts.push(`\n${label}\n"${processedTopic}"\n`);
       }
 
-      // Inject Static Knowledge Base (CTO UPDATE)
+      // Inject Static Knowledge Base
       if (contextDocs.length > 0) {
           parts.push(`\n[EXPERT KNOWLEDGE BASE - STRICT ADHERENCE REQUIRED]:\n${contextDocs.join('\n\n')}\n`);
       }
 
-      // Inject User Code Context
       if (state.textSubMode === 'coding' && state.codeContext?.trim()) {
           parts.push(`\n[USER CODE CONTEXT]:\n\`\`\`\n${state.codeContext}\n\`\`\`\n`);
       }
@@ -372,10 +391,9 @@ export const usePromptBuilder = (initialData) => {
 
       return parts.join('\n');
     } else {
-      // --- ART MODE ---
+      // --- ART MODE (Unchanged) ---
       if (state.targetModel === 'dalle' || state.targetModel === 'gemini') {
           parts.push("Create an image of");
-          
           if (state.textSubMode === 'avatar') {
              const styles = getVals('avatar_style').join(', ');
              const framings = getVals('framing').join(', ');
@@ -398,39 +416,25 @@ export const usePromptBuilder = (initialData) => {
              const styles = getVals('style').join(', ');
              if (styles) parts.push(`Artistic inspiration: ${styles}.`);
           }
-
           if (state.negativePrompt) parts.push(`Do not include: ${state.negativePrompt}.`);
-          
-          // Append Context if any (Rare for Art, but consistent)
-          if (contextDocs.length > 0) {
-              parts.push(`\n\n[STYLE GUIDELINES]:\n${contextDocs.join('\n\n')}`);
-          }
+          if (contextDocs.length > 0) parts.push(`\n\n[STYLE GUIDELINES]:\n${contextDocs.join('\n\n')}`);
           return parts.join(' ');
       }
 
-      // Tag-Based Models (Midjourney, SD, Flux)
       if (state.referenceImage?.trim()) parts.push(state.referenceImage.trim());
-
       const coreParts = [];
-      
       if (state.textSubMode === 'avatar') {
           const framings = state.selections.framing?.map(i => formatOption(i, true, state.targetModel)) || [];
           const styles = state.selections.avatar_style?.map(i => formatOption(i, true, state.targetModel)) || [];
-          
           if (framings.length) coreParts.push(framings.join(' '));
           if (styles.length) coreParts.push(styles.join(' '));
-          
           coreParts.push("avatar of");
           if (processedTopic?.trim()) coreParts.push(processedTopic);
-          
           if (coreParts.length) parts.push(coreParts.join(' '));
-
           const exprs = state.selections.expression?.map(i => formatOption(i, true, state.targetModel)) || [];
           if (exprs.length) parts.push(exprs.join(', '));
-
           const accs = state.selections.accessories?.map(i => formatOption(i, true, state.targetModel)) || [];
           if (accs.length) parts.push(accs.join(', '));
-          
           const bgs = state.selections.background?.map(i => formatOption(i, true, state.targetModel)) || [];
           if (bgs.length) parts.push(bgs.join(', '));
       } else {
@@ -438,44 +442,35 @@ export const usePromptBuilder = (initialData) => {
           if (genres.length) coreParts.push(genres.join(' '));
           if (processedTopic?.trim()) coreParts.push(processedTopic);
           if (coreParts.length) parts.push(coreParts.join(' '));
-
           const envs = state.selections.environment?.map(i => formatOption(i, true, state.targetModel)) || [];
           if (envs.length) parts.push(`set in ${envs.join(', ')}`);
-          
           const camParts = [];
           const shots = state.selections.shots?.map(i => formatOption(i, true, state.targetModel)) || [];
           const cameras = state.selections.camera?.map(i => formatOption(i, true, state.targetModel)) || [];
           if (shots.length) camParts.push(...shots);
           if (cameras.length) camParts.push(...cameras);
           if (camParts.length) parts.push(camParts.join(', '));
-
           const visualParts = [];
           const visuals = state.selections.visuals?.map(i => formatOption(i, true, state.targetModel)) || [];
           const tech = state.selections.tech?.map(i => formatOption(i, true, state.targetModel)) || [];
           if (visuals.length) visualParts.push(...visuals);
           if (tech.length) visualParts.push(...tech);
           if (visualParts.length) parts.push(visualParts.join(', '));
-
           const styles = state.selections.style?.map(i => formatOption(i, true, state.targetModel)) || [];
           if (styles.length) {
             parts.push(`in the style of ${styles.map(s => `by ${s}`).join(', ')}`);
           }
       }
-
       if (state.targetModel === 'stable-diffusion' && state.loraName) {
           parts.push(`<lora:${state.loraName}:${state.loraWeight}>`);
       }
-
       let mainPrompt = parts.join(', ').replace(/, ,/g, ',');
       let suffix = '';
-      
       if (state.negativePrompt?.trim()) {
           if (state.targetModel === 'midjourney') suffix += ` --no ${state.negativePrompt.trim()}`;
           else if (state.targetModel === 'stable-diffusion') mainPrompt += ` [${state.negativePrompt.trim()}]`;
       }
-
       if (state.seed && state.targetModel === 'midjourney') suffix += ` --seed ${state.seed}`;
-      
       if (state.selections.params?.length) {
         state.selections.params.forEach(item => {
             const p = item.value;
@@ -491,12 +486,6 @@ export const usePromptBuilder = (initialData) => {
             }
         });
       }
-      
-      // Inject Knowledge for Art Models that support it via natural language (Not MJ parameters)
-      if (contextDocs.length > 0 && state.targetModel !== 'midjourney') {
-           mainPrompt += `\n\n[STYLE NOTES]: ${contextDocs.join(' ')}`;
-      }
-
       return mainPrompt + suffix;
     }
   }, [state, processedTopic]);
