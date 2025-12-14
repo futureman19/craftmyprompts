@@ -1,200 +1,208 @@
 export const PRESETS = {
     // --- CODING PRESETS ---
-    // Targeted to trigger specific knowledge modules (React Server Components, sCrypt, Python Pydantic v2)
+    // Sets up the environment for specific coding tasks
     coding: [
         { 
-            label: "Modern React (Next.js 14)", 
+            label: "Modern React Component", 
             lang: "React", 
             framework_version: "Next.js 14",
             task: "Write Code", 
-            topic: "Create a responsive 'DashboardCard' component using Tailwind CSS. It should accept a title, value, and trend percentage. Use Server Components where possible." 
+            topic: "Create a responsive {Component Name} using Tailwind CSS. It should {Functionality}. Use Server Components where possible." 
         },
         { 
-            label: "Bitcoin Smart Contract (sCrypt)", 
+            label: "Bitcoin Smart Contract", 
             lang: "sCrypt", 
             task: "Write Smart Contract", 
-            topic: "Create a stateful contract for a 'Rock Paper Scissors' game where two players commit hashes and then reveal moves." 
+            topic: "Create a stateful contract for {Contract Logic} where {Condition}." 
         },
         { 
-            label: "Secure Python API (FastAPI)", 
+            label: "Secure Python API", 
             lang: "Python", 
             framework_version: "Python 3.12",
             task: "Write Code", 
-            topic: "Create a POST endpoint '/users' that validates input using Pydantic v2. Ensure email validation and password hashing." 
+            topic: "Create a POST endpoint '{Endpoint}' that validates input using Pydantic v2. Ensure {Validation Rule}." 
         },
         { 
             label: "Solidity Safe Transfer", 
             lang: "Solidity", 
             task: "Write Smart Contract", 
-            topic: "Write a secure 'withdraw' function that follows the Checks-Effects-Interactions pattern to prevent reentrancy attacks." 
+            topic: "Write a secure '{Function Name}' function that follows the Checks-Effects-Interactions pattern to prevent reentrancy." 
         },
         { 
-            label: "SQL Optimization Expert", 
+            label: "SQL Optimization", 
             lang: "SQL", 
             task: "Optimize", 
-            topic: "Analyze this query for performance bottlenecks. Suggest specific indexes and rewrite the query using CTEs if beneficial: {Insert Query Here}" 
+            topic: "Analyze this query for performance bottlenecks and suggest indexes: {Insert Query Here}" 
         }
     ],
 
     // --- WRITING PRESETS ---
-    // Designed to trigger SEO, Cold Email, and Thread frameworks
+    // Sets the Tone, Framework, and Style for text generation
     writing: [
         { 
             label: "Viral X/Twitter Thread", 
-            platform: "X (Twitter)",
+            // Note: 'platform' is usually in Social, but we map it here if the builder supports cross-pollination
             framework: "Storytelling", 
             intent: "Inspire", 
-            topic: "Write a thread about 'The Psychology of Color in Marketing'. Hook the reader immediately with a surprising fact." 
+            style: "TechCrunch Style",
+            topic: "Write a thread about {Topic}. Hook the reader immediately with a surprising fact." 
         },
         { 
-            label: "High-Converting Cold Email", 
+            label: "B2B Cold Email", 
             intent: "Sell", 
+            framework: "AIDA (Attention, Interest, Desire, Action)", 
             style: "TechCrunch Style", 
-            topic: "Write a B2B cold email pitching a new AI scheduling tool to a busy CEO. Use the '3-Sentence Rule' framework." 
+            topic: "Write a cold email pitching {Product} to a {Target Role}. Focus on the pain point of {Pain Point}." 
         },
         { 
-            label: "SEO Power Blog", 
+            label: "SEO Blog Post", 
             intent: "Inform", 
-            framework: "Marketing", 
-            topic: "Outline a blog post about 'Sustainable Gardening'. Target keywords: 'organic soil', 'urban farming'. Include H2s for 'People Also Ask' questions." 
+            framework: "PAS (Problem, Agitate, Solution)", 
+            topic: "Outline a blog post about {Topic}. Target keywords: {Keywords}. Include H2 headers for 'People Also Ask'." 
         },
         { 
-            label: "LinkedIn Authority Post", 
-            platform: "LinkedIn",
-            style: "Modern/Business",
+            label: "LinkedIn Authority Op-Ed", 
             intent: "Persuade",
-            topic: "Write a post about 'Why Remote Work is Failing'. Use a contrarian hook and short, punchy lines." 
+            style: "Malcolm Gladwell",
+            topic: "Write a contrarian post about {Industry Trend}. Argue that {Opinion}." 
         }
     ],
 
     // --- SOCIAL PRESETS ---
-    // Triggers platform-specific logic (TikTok Hooks, Carousel Structures)
+    // Specific configurations for Social Media platforms
     social: [
         { 
             label: "TikTok Viral Script", 
             platform: "TikTok", 
+            content_type: "Short-Form Video",
             hook_type: "Negativity/Fear", 
             goal: "Engagement", 
-            topic: "Script a 30-second video about 'Common Gym Mistakes'. Start with a 'Stop Scrolling' hook." 
+            topic: "Script a 30-second video about {Topic}. Start with a 'Stop Scrolling' hook about a common mistake." 
         },
         { 
-            label: "Instagram Carousel (Educational)", 
+            label: "Instagram Carousel", 
+            platform: "Instagram", 
             content_type: "Carousel (PDF/Image)", 
-            platform: "Instagram",
             framework: "Educational", 
-            topic: "Create a 5-slide breakdown of 'How to Meditate'. Slide 1 is the Hook, Slide 5 is the Save CTA." 
+            goal: "Conversion",
+            topic: "Create a 5-slide breakdown of {Topic}. Slide 1 is the Hook, Slide 5 is the CTA to {Action}." 
         },
         { 
             label: "YouTube Clickbait Title", 
             platform: "YouTube Video", 
+            content_type: "Thumbnail",
             hook_type: "Curiosity", 
-            topic: "Generate 5 high-CTR titles for a video about 'Living in a Van'. Use the 'I Survived...' syntax." 
+            goal: "Engagement",
+            topic: "Generate 5 high-CTR titles for a video about {Topic}. Use the 'I Survived...' or 'I Tested...' syntax." 
         }
     ],
 
     // --- GENERAL PRESETS ---
+    // Personas and Modes for general tasks
     general: [
         { 
-            label: "The 5-Year Old Explainer", 
+            label: "ELI5 Explainer", 
             persona: "Physics Tutor", 
             tone: "Friendly", 
             language_style: "Simple English",
-            topic: "Explain 'Black Holes' using a bathtub analogy." 
+            topic: "Explain {Complex Concept} using a {Real World Object} analogy." 
         },
         { 
             label: "Executive Summary", 
             persona: "Project Manager", 
             format: "Structured", 
             length: "Brief",
-            topic: "Summarize this meeting transcript into key action items and owners: {Insert Transcript}" 
+            topic: "Summarize this text into bullet points with key action items: {Insert Text}" 
         },
         { 
-            label: "Tough Interview Prep", 
+            label: "Tough Interviewer", 
             persona: "HR Specialist", 
             context: "Situation", 
-            topic: "Act as a sceptical interviewer for a Senior Developer role. Ask me 3 hard questions about System Design." 
+            topic: "Act as a sceptical interviewer for a {Job Role} position. Ask me 3 hard questions about {Skill}." 
         }
     ],
 
-    // --- ART PRESETS (Midjourney v6 Optimized) ---
+    // --- ART PRESETS ---
+    // Configures Midjourney/Stable Diffusion settings
     art: [
         { 
-            label: "Hyper-Real Portrait", 
+            label: "Cinematic Portrait", 
             genre: "Cinematic", 
             shot: "Close-up", 
             visuals: "Studio Lighting",
             tech: "8k",
-            topic: "A portrait of an elderly fisherman with weathered skin, intense eyes, wearing a yellow raincoat. Rain droplets on face." 
+            topic: "A portrait of {Subject} looking {Emotion}. Highly detailed texture." 
         },
         { 
-            label: "Cyberpunk Cityscape", 
+            label: "Cyberpunk City", 
             genre: "Cyberpunk", 
             environment: "Cyber City", 
             visuals: "Neon",
-            topic: "A futuristic Tokyo street at night. Wet pavement reflecting neon signs. Flying cars overhead. Atmosphere is heavy and moody." 
+            topic: "A futuristic {City Name} street at night. Rain reflecting neon lights. {Action} happening in background." 
         },
         { 
-            label: "Ghibli Style Landscape", 
+            label: "Studio Ghibli Scene", 
             style: "Studio Ghibli", 
             environment: "Nature", 
             visuals: "Pastel",
-            topic: "A grassy hill with a single giant oak tree. Fluffy white clouds in a blue sky. A gentle breeze blowing the grass." 
+            topic: "A peaceful scene of {Subject} in a {Setting}. Fluffy clouds, lush grass, gentle breeze." 
         },
         { 
             label: "Isometric Game Asset", 
             shot: "Isometric", 
             background: "White Background", 
-            topic: "A magical potion shop on a floating island. Cute low-poly style. Glowing windows." 
+            visuals: "Bright",
+            topic: "A cute low-poly {Building Type} on a floating island." 
         }
     ],
 
     // --- AVATAR PRESETS ---
     avatar: [
         { 
-            label: "Pixar 3D Profile", 
+            label: "Pixar Style 3D", 
             avatar_style: "Pixar Style", 
             framing: "Headshot", 
             expression: "Confident", 
             background: "Gradient",
-            topic: "A 3D character of a young tech wizard with blue hair." 
+            topic: "A 3D character of {Description}." 
         },
         { 
-            label: "Anime PFP", 
+            label: "Anime Profile", 
             avatar_style: "Anime", 
             framing: "Bust (Shoulders up)", 
             expression: "Mysterious", 
-            topic: "An anime character with silver hair and glowing red eyes. Dark moody background." 
+            topic: "An anime character with {Hair Color} hair and {Eye Color} eyes." 
         },
         { 
-            label: "Professional LinkedIn Headshot", 
+            label: "Professional Headshot", 
             avatar_style: "Photorealistic", 
             framing: "Headshot", 
             expression: "Friendly", 
             background: "Office Blur",
-            topic: "A professional photo of a woman in a navy blazer. Soft studio lighting." 
+            topic: "A professional photo of {Subject} wearing {Clothing}." 
         }
     ],
 
-    // --- VIDEO PRESETS (Runway/Pika) ---
+    // --- VIDEO PRESETS ---
     video: [
         { 
-            label: "Cinematic Drone Shot", 
+            label: "Cinematic Drone", 
             camera_move: "Drone Flyover", 
             motion_strength: "Normal Motion", 
             aesthetics: "4k Digital Clean", 
-            topic: "Sweeping aerial view of the Swiss Alps at sunrise. Golden light hitting the snow peaks." 
+            topic: "Sweeping aerial view of {Location} at {Time of Day}." 
         },
         { 
-            label: "90s VHS Horror", 
+            label: "90s VHS Style", 
             camera_move: "Handheld Shake", 
             aesthetics: "VHS Glitch", 
-            topic: "POV walking down a dark hospital hallway. Flickering lights. Grainy footage." 
+            topic: "POV walking through {Location}. Grainy footage, flickering lights." 
         },
         { 
-            label: "Slow Mo Product Reveal", 
+            label: "Product Showcase", 
             camera_move: "Orbit", 
             motion_strength: "Slow Motion", 
-            topic: "A luxury perfume bottle spinning slowly. Water droplets splashing in slow motion." 
+            topic: "A close up of {Product}. Elegant lighting, smooth rotation." 
         }
     ]
 };
