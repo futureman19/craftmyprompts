@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
     Loader, AlertTriangle, Check, Copy, Sparkles, Bot, 
-    MonitorPlay, Bookmark, Split, Layers, Users, PlayCircle, FileCode, Eye, Code, X 
+    MonitorPlay, Bookmark, Split, Layers, Users, PlayCircle, FileCode, Eye, Code, X,
+    Activity, Gauge, ThumbsUp, ThumbsDown
 } from 'lucide-react';
-import CodeBlock from './CodeBlock';
+import CodeBlock from './CodeBlock.jsx';
+import { validateVirality } from '../../utils/viralityValidator.js';
 
 // --- INTERNAL COMPONENT: LIVE PREVIEW IFRAME (POPUP) ---
 const LivePreview = ({ content, onClose }) => {
@@ -149,6 +151,7 @@ const LivePreview = ({ content, onClose }) => {
 const TestRunnerResults = ({ 
     loading, result, error, statusMessage, 
     provider, battleResults, refineSteps, refineView, swarmHistory, 
+    prompt, // The Prompt that generated this result (used for context)
     // Actions
     onSaveSnippet, onShipCode, setRefineView,
     onContinueSwarm, onCompileSwarm
@@ -156,6 +159,12 @@ const TestRunnerResults = ({
     const [copiedText, setCopiedText] = useState(null);
     const [savedText, setSavedText] = useState(null);
     const [previewMode, setPreviewMode] = useState(false);
+
+    // --- VIRALITY ANALYSIS ---
+    const { score, checks } = useMemo(() => {
+        // We pass the 'prompt' as the label proxy to detect intent if specific preset isn't available
+        return validateVirality(result, prompt); 
+    }, [result, prompt]);
 
     // --- HELPERS ---
     const copyToClipboard = (text, label) => {
@@ -220,46 +229,72 @@ const TestRunnerResults = ({
     // 2. Single Result (Gemini/OpenAI)
     if (result && provider !== 'battle' && provider !== 'refine' && provider !== 'swarm') {
         return (
-            <div className={`rounded-xl border p-4 animate-in slide-in-from-bottom-2 fade-in ${provider === 'openai' ? 'bg-emerald-50 border-emerald-100 dark:bg-emerald-900/10 dark:border-emerald-800' : 'bg-slate-50 border-slate-200 dark:bg-slate-800/50 dark:border-slate-700'}`}>
-                <div className="relative">
-                    <div className={`flex items-center justify-between text-xs font-bold uppercase mb-2 ${provider === 'openai' ? 'text-emerald-600' : 'text-indigo-600'}`}>
-                        <div className="flex items-center gap-2">
-                             <Check size={14} /> Result
+            <div className="space-y-4 animate-in slide-in-from-bottom-2 fade-in">
+                
+                {/* --- SCORECARD (NEW) --- */}
+                {checks.length > 0 && (
+                    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                        <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-950/50 flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                                <Gauge size={16} className={score >= 80 ? 'text-emerald-500' : (score >= 50 ? 'text-amber-500' : 'text-red-500')} />
+                                <span className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400">Virality Scorecard</span>
+                            </div>
+                            <span className={`text-xs font-black px-2 py-0.5 rounded ${score >= 80 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : (score >= 50 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400')}`}>
+                                {score}/100
+                            </span>
                         </div>
-
-                        {/* Actions & Toggles */}
-                        <div className="flex items-center gap-2">
-                             {/* Preview Toggle */}
-                             <div className="flex bg-white dark:bg-slate-900 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 mr-2">
-                                <button 
-                                    onClick={() => setPreviewMode(false)}
-                                    className={`px-2 py-1 rounded-md flex items-center gap-1 transition-all ${!previewMode ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300' : 'text-slate-400 hover:text-slate-600'}`}
-                                >
-                                    <Code size={12} /> Code
-                                </button>
-                                <button 
-                                    onClick={() => setPreviewMode(true)}
-                                    className={`px-2 py-1 rounded-md flex items-center gap-1 transition-all ${previewMode ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300' : 'text-slate-400 hover:text-slate-600'}`}
-                                >
-                                    <Eye size={12} /> Preview
-                                </button>
-                             </div>
-
-                             <button onClick={() => handleSave(result, 'Single Result')} className="text-[10px] bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 px-2 py-1.5 rounded hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors flex items-center gap-1">
-                                {savedText === 'Single Result' ? <Check size={12} className="text-emerald-500" /> : <Bookmark size={12} />}
-                            </button>
-                            <button onClick={() => copyToClipboard(result, 'result')} className="text-[10px] bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 px-2 py-1.5 rounded hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors flex items-center gap-1">
-                                {copiedText === 'result' ? <Check size={12} /> : <Copy size={12} />}
-                            </button>
+                        <div className="p-4 grid grid-cols-1 gap-2">
+                            {checks.map((check, idx) => (
+                                <div key={idx} className="flex items-start gap-2 text-xs">
+                                    {check.status === 'pass' ? <Check size={14} className="text-emerald-500 mt-0.5 flex-shrink-0" /> : (check.status === 'warning' ? <AlertTriangle size={14} className="text-amber-500 mt-0.5 flex-shrink-0" /> : <X size={14} className="text-red-500 mt-0.5 flex-shrink-0" />)}
+                                    <span className="text-slate-600 dark:text-slate-300">{check.message}</span>
+                                </div>
+                            ))}
                         </div>
                     </div>
-                    
-                    {/* Content Area */}
-                    {previewMode ? (
-                        <LivePreview content={result} onClose={() => setPreviewMode(false)} />
-                    ) : (
-                        renderResultContent(result)
-                    )}
+                )}
+
+                <div className={`rounded-xl border p-4 ${provider === 'openai' ? 'bg-emerald-50 border-emerald-100 dark:bg-emerald-900/10 dark:border-emerald-800' : 'bg-slate-50 border-slate-200 dark:bg-slate-800/50 dark:border-slate-700'}`}>
+                    <div className="relative">
+                        <div className={`flex items-center justify-between text-xs font-bold uppercase mb-2 ${provider === 'openai' ? 'text-emerald-600' : 'text-indigo-600'}`}>
+                            <div className="flex items-center gap-2">
+                                 <Check size={14} /> Result
+                            </div>
+
+                            {/* Actions & Toggles */}
+                            <div className="flex items-center gap-2">
+                                 {/* Preview Toggle */}
+                                 <div className="flex bg-white dark:bg-slate-900 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 mr-2">
+                                    <button 
+                                        onClick={() => setPreviewMode(false)}
+                                        className={`px-2 py-1 rounded-md flex items-center gap-1 transition-all ${!previewMode ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300' : 'text-slate-400 hover:text-slate-600'}`}
+                                    >
+                                        <Code size={12} /> Code
+                                    </button>
+                                    <button 
+                                        onClick={() => setPreviewMode(true)}
+                                        className={`px-2 py-1 rounded-md flex items-center gap-1 transition-all ${previewMode ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300' : 'text-slate-400 hover:text-slate-600'}`}
+                                    >
+                                        <Eye size={12} /> Preview
+                                    </button>
+                                 </div>
+
+                                 <button onClick={() => handleSave(result, 'Single Result')} className="text-[10px] bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 px-2 py-1.5 rounded hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors flex items-center gap-1">
+                                    {savedText === 'Single Result' ? <Check size={12} className="text-emerald-500" /> : <Bookmark size={12} />}
+                                </button>
+                                <button onClick={() => copyToClipboard(result, 'result')} className="text-[10px] bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 px-2 py-1.5 rounded hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors flex items-center gap-1">
+                                    {copiedText === 'result' ? <Check size={12} /> : <Copy size={12} />}
+                                </button>
+                            </div>
+                        </div>
+                        
+                        {/* Content Area */}
+                        {previewMode ? (
+                            <LivePreview content={result} onClose={() => setPreviewMode(false)} />
+                        ) : (
+                            renderResultContent(result)
+                        )}
+                    </div>
                 </div>
             </div>
         );
