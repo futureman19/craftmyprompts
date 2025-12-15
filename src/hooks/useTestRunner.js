@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { auth } from '../lib/firebase';
+import { auth } from '../lib/firebase.js';
 
 export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
     // --- STATE ---
@@ -14,8 +14,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
     const [showGithub, setShowGithub] = useState(false);
     const [codeToShip, setCodeToShip] = useState('');
 
-    // --- CTO UPDATE: CONFIGURATIONS ---
-    
+    // --- CONFIGURATIONS ---
     const [battleConfig, setBattleConfig] = useState({
         fighterA: 'gemini',
         fighterB: 'openai'
@@ -27,12 +26,13 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         focus: 'general'
     });
 
+    // CTO UPDATE: Dynamic Agents Array (Replaces hardcoded agentA/B)
     const [swarmConfig, setSwarmConfig] = useState({
-        agentA: 'gemini',
-        roleA: 'Visionary CEO',
-        agentB: 'openai',
-        roleB: 'Pragmatic Engineer',
-        rounds: 3
+        rounds: 3,
+        agents: [
+            { id: '1', provider: 'gemini', role: 'Visionary CEO' },
+            { id: '2', provider: 'openai', role: 'Pragmatic Engineer' }
+        ]
     });
     
     const [swarmHistory, setSwarmHistory] = useState([]);
@@ -73,11 +73,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         return () => unsubscribe();
     }, [defaultApiKey, defaultOpenAIKey]);
 
-    // Auto-Fetch Gemini Models
-    useEffect(() => {
-        if (geminiKey) fetchModels(geminiKey);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [geminiKey]);
+    useEffect(() => { if (geminiKey) fetchModels(geminiKey); }, [geminiKey]);
 
     // --- HELPERS ---
     const saveKey = (key, providerName) => {
@@ -97,11 +93,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         else if (providerName === 'anthropic') setAnthropicKey('');
     };
 
-    const handleShipCode = (code) => {
-        setCodeToShip(code);
-        setShowGithub(true);
-    };
-
+    const handleShipCode = (code) => { setCodeToShip(code); setShowGithub(true); };
     const handleViewChange = (mode) => {
         setViewMode(mode);
         if (mode === 'simple') setProvider('gemini');
@@ -116,6 +108,30 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
             case 'anthropic': return anthropicKey;
             default: return '';
         }
+    };
+
+    // --- AGENT MANAGEMENT HANDLERS ---
+    const addSwarmAgent = () => {
+        if (swarmConfig.agents.length >= 4) return;
+        setSwarmConfig(prev => ({
+            ...prev,
+            agents: [...prev.agents, { id: Date.now().toString(), provider: 'gemini', role: 'New Specialist' }]
+        }));
+    };
+
+    const removeSwarmAgent = (id) => {
+        if (swarmConfig.agents.length <= 2) return;
+        setSwarmConfig(prev => ({
+            ...prev,
+            agents: prev.agents.filter(a => a.id !== id)
+        }));
+    };
+
+    const updateSwarmAgent = (id, field, value) => {
+        setSwarmConfig(prev => ({
+            ...prev,
+            agents: prev.agents.map(a => a.id === id ? { ...a, [field]: value } : a)
+        }));
     };
 
     // --- API ACTIONS ---
@@ -153,72 +169,26 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         } catch (err) { console.error("Failed to fetch models", err); }
     };
 
-    const callAIProvider = async (providerName, promptText, key) => {
-        if (providerName === 'gemini') return await callGemini(promptText, key, selectedModel);
-        if (providerName === 'openai') return await callOpenAI(promptText, key);
-        if (providerName === 'groq') return await callGroq(promptText, key);
-        if (providerName === 'anthropic') return await callAnthropic(promptText, key);
-        throw new Error(`Unknown provider: ${providerName}`);
+    const callAIProvider = async (name, text, key) => {
+        const body = { apiKey: key, prompt: text };
+        if (name === 'gemini') body.model = selectedModel || 'models/gemini-1.5-flash';
+        if (name === 'openai') body.model = 'gpt-4o';
+        if (name === 'groq') body.model = 'llama-3.3-70b-versatile';
+        if (name === 'anthropic') body.model = 'claude-3-5-sonnet-latest';
+        
+        const res = await fetch(`/api/${name}`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error?.message || data.error || 'API Error');
+        
+        if (name === 'gemini') return data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (name === 'openai' || name === 'groq') return data.choices?.[0]?.message?.content;
+        if (name === 'anthropic') return data.content?.[0]?.text;
+        return "No response.";
     };
 
-    const callGemini = async (promptText, key, model) => {
-        const targetModel = model || 'models/gemini-1.5-flash';
-        const response = await fetch('/api/gemini', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ apiKey: key, prompt: promptText, model: targetModel })
-        });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || `Gemini Error (${response.status})`);
-        return data.candidates?.[0]?.content?.parts?.[0]?.text || "No text returned.";
-    };
-
-    const callOpenAI = async (promptText, key) => {
-        const response = await fetch('/api/openai', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ apiKey: key, prompt: promptText, model: "gpt-4o" })
-        });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || `OpenAI Error (${response.status})`);
-        return data.choices?.[0]?.message?.content || "No text returned.";
-    };
-
-    const callGroq = async (promptText, key) => {
-        const response = await fetch('/api/groq', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ apiKey: key, prompt: promptText, model: "llama-3.3-70b-versatile" }) 
-        });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || `Groq Error (${response.status})`);
-        return data.choices?.[0]?.message?.content || "No text returned.";
-    };
-
-    const callAnthropic = async (promptText, key) => {
-        const response = await fetch('/api/anthropic', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ apiKey: key, prompt: promptText, model: "claude-3-5-sonnet-latest" })
-        });
-        const data = await response.json();
-        if (!response.ok) {
-             const errorMessage = data.error?.message || data.error || `Anthropic Error (${response.status})`;
-             throw new Error(errorMessage);
-        }
-        return data.content?.[0]?.text || "No text returned.";
-    };
-
-    // --- MAIN RUN HANDLER ---
+    // --- MAIN RUNNER ---
     const runTest = async (prompt) => {
-        setLoading(true);
-        setError(null);
-        setResult(null);
-        setBattleResults(null);
-        setRefineSteps(null);
-        setSwarmHistory([]);
-        setStatusMessage('');
-
+        setLoading(true); setError(null); setResult(null); setBattleResults(null); setRefineSteps(null); setSwarmHistory([]);
         try {
             // Save keys dynamically
             if (geminiKey) saveKey(geminiKey, 'gemini');
@@ -226,32 +196,40 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
             if (groqKey) saveKey(groqKey, 'groq');
             if (anthropicKey) saveKey(anthropicKey, 'anthropic');
 
-            // --- SWARM ---
             if (provider === 'swarm') {
-                if (!getKeyForProvider(swarmConfig.agentA)) throw new Error(`API Key missing for ${swarmConfig.agentA}`);
-                if (!getKeyForProvider(swarmConfig.agentB)) throw new Error(`API Key missing for ${swarmConfig.agentB}`);
+                // Validate Keys for ALL agents
+                swarmConfig.agents.forEach(agent => {
+                    if (!getKeyForProvider(agent.provider)) throw new Error(`Key missing for Agent: ${agent.role} (${agent.provider})`);
+                });
 
-                let currentHistory = [];
+                let history = [];
                 for (let i = 0; i < swarmConfig.rounds; i++) {
-                    setStatusMessage(`Round ${i+1}: ${swarmConfig.roleA} (${swarmConfig.agentA}) is speaking...`);
-                    const contextA = `ROUNDTABLE DISCUSSION.\nTOPIC: "${prompt}"\nYOUR ROLE: ${swarmConfig.roleA}\nTRANSCRIPT:\n${currentHistory.map(m => `${m.role}: ${m.text}`).join('\n')}\nINSTRUCTION: Provide your next response. Be concise.`;
-                    const resA = await callAIProvider(swarmConfig.agentA, contextA, getKeyForProvider(swarmConfig.agentA));
-                    currentHistory.push({ speaker: 'A', role: swarmConfig.roleA, text: resA, provider: swarmConfig.agentA });
-                    setSwarmHistory([...currentHistory]);
-
-                    setStatusMessage(`Round ${i+1}: ${swarmConfig.roleB} (${swarmConfig.agentB}) is responding...`);
-                    const contextB = `ROUNDTABLE DISCUSSION.\nTOPIC: "${prompt}"\nYOUR ROLE: ${swarmConfig.roleB}\nTRANSCRIPT:\n${currentHistory.map(m => `${m.role}: ${m.text}`).join('\n')}\nINSTRUCTION: Respond to the previous point. Be concise.`;
-                    const resB = await callAIProvider(swarmConfig.agentB, contextB, getKeyForProvider(swarmConfig.agentB));
-                    currentHistory.push({ speaker: 'B', role: swarmConfig.roleB, text: resB, provider: swarmConfig.agentB });
-                    setSwarmHistory([...currentHistory]);
+                    // LOOP: Iterate through dynamic agents list
+                    for (const agent of swarmConfig.agents) {
+                        setStatusMessage(`Round ${i+1}: ${agent.role} is speaking...`);
+                        
+                        const context = `ROUNDTABLE DISCUSSION.\nTOPIC: "${prompt}"\nYOUR ROLE: ${agent.role}\nTRANSCRIPT:\n${history.map(m=>`${m.role}: ${m.text}`).join('\n')}\nINSTRUCTION: Provide your next response. Be concise.`;
+                        
+                        const responseText = await callAIProvider(agent.provider, context, getKeyForProvider(agent.provider));
+                        
+                        const newMsg = { role: agent.role, text: responseText, provider: agent.provider };
+                        history.push(newMsg);
+                        setSwarmHistory([...history]); // Update UI incrementally
+                    }
                 }
                 setStatusMessage('Meeting adjourned.');
 
-            // --- REFINE ---
+            } else if (provider === 'battle') {
+                setStatusMessage(`Versus: ${battleConfig.fighterA} vs ${battleConfig.fighterB}...`);
+                const [rA, rB] = await Promise.allSettled([
+                    callAIProvider(battleConfig.fighterA, prompt, getKeyForProvider(battleConfig.fighterA)),
+                    callAIProvider(battleConfig.fighterB, prompt, getKeyForProvider(battleConfig.fighterB))
+                ]);
+                setBattleResults({
+                    fighterA: { name: battleConfig.fighterA, text: rA.status==='fulfilled'?rA.value:rA.reason.message },
+                    fighterB: { name: battleConfig.fighterB, text: rB.status==='fulfilled'?rB.value:rB.reason.message }
+                });
             } else if (provider === 'refine') {
-                if (!getKeyForProvider(refineConfig.drafter)) throw new Error(`Key missing for Drafter (${refineConfig.drafter})`);
-                if (!getKeyForProvider(refineConfig.critiquer)) throw new Error(`Key missing for Critiquer (${refineConfig.critiquer})`);
-
                 setStatusMessage(`Drafting with ${refineConfig.drafter}...`);
                 const draft = await callAIProvider(refineConfig.drafter, prompt, getKeyForProvider(refineConfig.drafter));
                 setRefineSteps({ draft, critique: null, final: null });
@@ -266,30 +244,9 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
                 const final = await callAIProvider(refineConfig.drafter, polPrompt, getKeyForProvider(refineConfig.drafter));
                 setRefineSteps({ draft, critique, final });
                 setResult(final);
-
-            // --- BATTLE (CTO UPDATE: DYNAMIC FIGHTERS) ---
-            } else if (provider === 'battle') {
-                if (!getKeyForProvider(battleConfig.fighterA)) throw new Error(`Key missing for ${battleConfig.fighterA}`);
-                if (!getKeyForProvider(battleConfig.fighterB)) throw new Error(`Key missing for ${battleConfig.fighterB}`);
-                
-                setStatusMessage(`Battle: ${battleConfig.fighterA} vs ${battleConfig.fighterB}...`);
-                
-                const [resA, resB] = await Promise.allSettled([
-                    callAIProvider(battleConfig.fighterA, prompt, getKeyForProvider(battleConfig.fighterA)),
-                    callAIProvider(battleConfig.fighterB, prompt, getKeyForProvider(battleConfig.fighterB))
-                ]);
-                
-                setBattleResults({
-                    fighterA: { name: battleConfig.fighterA, text: resA.status === 'fulfilled' ? resA.value : `Error: ${resA.reason.message}` },
-                    fighterB: { name: battleConfig.fighterB, text: resB.status === 'fulfilled' ? resB.value : `Error: ${resB.reason.message}` }
-                });
-
             } else {
-                // Single Provider Run
-                const key = getKeyForProvider(provider);
-                if (!key) throw new Error(`${provider} API Key is missing.`);
                 setStatusMessage(`${provider} is thinking...`);
-                const text = await callAIProvider(provider, prompt, key);
+                const text = await callAIProvider(provider, prompt, getKeyForProvider(provider));
                 setResult(text);
             }
         } catch (err) {
@@ -300,34 +257,29 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         }
     };
 
-    // --- NEW: CONTINUE/COMPILE SWARM ---
     const continueSwarm = async (currentPrompt) => {
-        if (!getKeyForProvider(swarmConfig.agentA) || !getKeyForProvider(swarmConfig.agentB)) return;
         setLoading(true);
         setStatusMessage('Continuing the meeting...');
-
         try {
             let updatedHistory = [...swarmHistory];
-            // Agent A
-            setStatusMessage(`Extra Round: ${swarmConfig.roleA} is speaking...`);
-            const contextA = `CONTINUING DISCUSSION.\nTOPIC: "${currentPrompt}"\nYOUR ROLE: ${swarmConfig.roleA}\nTRANSCRIPT:\n${updatedHistory.map(m => `${m.role}: ${m.text}`).join('\n')}\nINSTRUCTION: Continue.`;
-            const resA = await callAIProvider(swarmConfig.agentA, contextA, getKeyForProvider(swarmConfig.agentA));
-            updatedHistory.push({ speaker: 'A', role: swarmConfig.roleA, text: resA, provider: swarmConfig.agentA });
-            setSwarmHistory([...updatedHistory]);
-            
-            const contextB = `CONTINUING DISCUSSION.\nTOPIC: "${currentPrompt}"\nYOUR ROLE: ${swarmConfig.roleB}\nTRANSCRIPT:\n${updatedHistory.map(m => `${m.role}: ${m.text}`).join('\n')}\nINSTRUCTION: Respond.`;
-            const resB = await callAIProvider(swarmConfig.agentB, contextB, getKeyForProvider(swarmConfig.agentB));
-            updatedHistory.push({ speaker: 'B', role: swarmConfig.roleB, text: resB, provider: swarmConfig.agentB });
-            setSwarmHistory([...updatedHistory]);
+            // One extra round for ALL agents
+            for (const agent of swarmConfig.agents) {
+                if (!getKeyForProvider(agent.provider)) continue; // Skip if key missing
+                
+                setStatusMessage(`Extra Round: ${agent.role} is speaking...`);
+                const context = `CONTINUING DISCUSSION.\nTOPIC: "${currentPrompt}"\nYOUR ROLE: ${agent.role}\nTRANSCRIPT:\n${updatedHistory.map(m => `${m.role}: ${m.text}`).join('\n')}\nINSTRUCTION: Continue/Respond.`;
+                
+                const responseText = await callAIProvider(agent.provider, context, getKeyForProvider(agent.provider));
+                updatedHistory.push({ role: agent.role, text: responseText, provider: agent.provider });
+                setSwarmHistory([...updatedHistory]);
+            }
         } catch (err) { setError(err.message); } finally { setLoading(false); setStatusMessage(''); }
     };
 
     const compileSwarmCode = async () => {
         const compilerKey = openaiKey || geminiKey; 
         const compilerProvider = openaiKey ? 'openai' : 'gemini';
-        
         if (!compilerKey) { setError("No API Key available for compilation."); return; }
-        
         setLoading(true);
         setStatusMessage('Compiling final code...');
         try {
@@ -340,14 +292,16 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
 
     return {
         viewMode, provider, refineView, showGithub, codeToShip, refineConfig, swarmConfig, swarmHistory,
-        geminiKey, openaiKey, groqKey, anthropicKey, battleConfig, // Export Battle Config
+        geminiKey, openaiKey, groqKey, anthropicKey, battleConfig,
         loading, result, battleResults, refineSteps, statusMessage, error, selectedModel, availableModels,
         isLoggedIn,
         
         setGeminiKey, setOpenaiKey, setGroqKey, setAnthropicKey,
-        setProvider, setRefineView, setShowGithub, setRefineConfig, setSwarmConfig, setBattleConfig, // Export Battle Setter
+        setProvider, setRefineView, setShowGithub, setRefineConfig, setSwarmConfig, setBattleConfig,
         setSelectedModel,
         
-        runTest, fetchModels, clearKey, handleShipCode, handleViewChange, continueSwarm, compileSwarmCode
+        runTest, fetchModels, clearKey, handleShipCode, handleViewChange, continueSwarm, compileSwarmCode,
+        // New Handlers for UI
+        addSwarmAgent, removeSwarmAgent, updateSwarmAgent
     };
 };

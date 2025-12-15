@@ -2,14 +2,14 @@ import React from 'react';
 import { 
     Key, RefreshCw, Zap, Bot, Sparkles, Swords, GitCompare, 
     Layers, MonitorPlay, ArrowRight, Target, ShieldCheck, Users, 
-    Activity, Brain, Lock 
+    Activity, Brain, Lock, Plus, X
 } from 'lucide-react';
 
 const TestRunnerControls = ({
     // State
     viewMode, provider, 
     geminiKey, openaiKey, groqKey, anthropicKey,
-    refineConfig, swarmConfig, battleConfig, // <--- Added battleConfig
+    refineConfig, swarmConfig, battleConfig,
     selectedModel, availableModels, 
     // Derived State
     isUsingGlobalGemini, isUsingGlobalOpenAI, 
@@ -19,7 +19,9 @@ const TestRunnerControls = ({
     onViewChange, onProviderChange, 
     onGeminiKeyChange, onOpenaiKeyChange, onGroqKeyChange, onAnthropicKeyChange,
     onClearKey, onFetchModels, onModelChange, 
-    onRefineConfigChange, onSwarmConfigChange, onBattleConfigChange // <--- Added Handler
+    onRefineConfigChange, onSwarmConfigChange, onBattleConfigChange,
+    // CTO UPDATE: New Handlers for Dynamic Agents
+    addSwarmAgent, removeSwarmAgent, updateSwarmAgent
 }) => {
 
     const renderLockedButton = (label, icon) => (
@@ -119,7 +121,7 @@ const TestRunnerControls = ({
             
             {/* CONFIGURATION PANELS */}
 
-            {/* 1. BATTLE CONFIG (NEW) */}
+            {/* 1. VERSUS CONFIG */}
             {provider === 'battle' && (
                 <div className="p-4 bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-100 dark:border-amber-800/50 animate-in fade-in space-y-4">
                     <div className="flex items-center justify-between border-b border-amber-200 dark:border-amber-800 pb-2 mb-2">
@@ -200,7 +202,7 @@ const TestRunnerControls = ({
                 </div>
             )}
 
-            {/* 3. SWARM CONFIG */}
+            {/* 3. COLLAB CONFIG (DYNAMIC AGENTS) */}
             {provider === 'swarm' && (
                 <div className="p-4 bg-violet-50 dark:bg-violet-900/10 rounded-xl border border-violet-100 dark:border-violet-800/50 animate-in fade-in space-y-4">
                     <div className="flex items-center justify-between border-b border-violet-200 dark:border-violet-800 pb-2 mb-2">
@@ -220,49 +222,50 @@ const TestRunnerControls = ({
                          </div>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-4">
-                        {/* Agent A */}
-                        <div className="space-y-2">
-                            <div className="flex justify-between">
-                                <span className="text-[10px] font-bold text-violet-500 uppercase">Agent A</span>
-                                <select 
-                                    value={swarmConfig.agentA}
-                                    onChange={(e) => onSwarmConfigChange('agentA', e.target.value)}
-                                    className="text-[10px] text-slate-400 bg-transparent outline-none text-right"
-                                >
-                                    {providerOptions}
-                                </select>
+                    {/* DYNAMIC AGENT LIST */}
+                    <div className="space-y-3">
+                        {swarmConfig.agents.map((agent, index) => (
+                            <div key={agent.id} className="p-3 bg-white dark:bg-slate-800 rounded-lg border border-violet-100 dark:border-violet-800 flex gap-3 items-start relative group">
+                                <div className="flex-1 space-y-2">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-[10px] font-bold text-violet-500 uppercase">Agent {index + 1}</span>
+                                        <select 
+                                            value={agent.provider}
+                                            onChange={(e) => updateSwarmAgent(agent.id, 'provider', e.target.value)}
+                                            className="text-[10px] text-slate-500 bg-transparent outline-none text-right cursor-pointer"
+                                        >
+                                            {providerOptions}
+                                        </select>
+                                    </div>
+                                    <input 
+                                        type="text" 
+                                        value={agent.role}
+                                        onChange={(e) => updateSwarmAgent(agent.id, 'role', e.target.value)}
+                                        className="w-full text-xs p-2 rounded border border-violet-200 dark:border-violet-700 bg-slate-50 dark:bg-slate-900 outline-none focus:ring-1 focus:ring-violet-500"
+                                        placeholder="Agent Role (e.g. CEO)"
+                                    />
+                                </div>
+                                {swarmConfig.agents.length > 2 && (
+                                    <button 
+                                        onClick={() => removeSwarmAgent(agent.id)}
+                                        className="absolute -top-2 -right-2 bg-slate-200 dark:bg-slate-700 text-slate-500 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:text-red-500"
+                                        title="Remove Agent"
+                                    >
+                                        <X size={12} />
+                                    </button>
+                                )}
                             </div>
-                            <input 
-                                type="text" 
-                                value={swarmConfig.roleA}
-                                onChange={(e) => onSwarmConfigChange('roleA', e.target.value)}
-                                className="w-full text-xs p-2 rounded-lg border border-violet-200 dark:border-violet-800 bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-violet-500"
-                                placeholder="e.g. Visionary CEO"
-                            />
-                        </div>
-
-                        {/* Agent B */}
-                        <div className="space-y-2">
-                            <div className="flex justify-between">
-                                <span className="text-[10px] font-bold text-violet-500 uppercase">Agent B</span>
-                                <select 
-                                    value={swarmConfig.agentB}
-                                    onChange={(e) => onSwarmConfigChange('agentB', e.target.value)}
-                                    className="text-[10px] text-slate-400 bg-transparent outline-none text-right"
-                                >
-                                    {providerOptions}
-                                </select>
-                            </div>
-                            <input 
-                                type="text" 
-                                value={swarmConfig.roleB}
-                                onChange={(e) => onSwarmConfigChange('roleB', e.target.value)}
-                                className="w-full text-xs p-2 rounded-lg border border-violet-200 dark:border-violet-800 bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-violet-500"
-                                placeholder="e.g. Skeptical Engineer"
-                            />
-                        </div>
+                        ))}
                     </div>
+                    
+                    {swarmConfig.agents.length < 4 && (
+                        <button 
+                            onClick={addSwarmAgent}
+                            className="w-full py-2 border-2 border-dashed border-violet-200 dark:border-violet-800 rounded-lg text-xs font-bold text-violet-400 hover:text-violet-600 hover:border-violet-300 transition-colors flex items-center justify-center gap-2"
+                        >
+                            <Plus size={14} /> Add Another Agent
+                        </button>
+                    )}
                 </div>
             )}
 
