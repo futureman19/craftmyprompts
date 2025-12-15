@@ -1,15 +1,16 @@
 import { useReducer, useMemo } from 'react';
 import { 
   GENERAL_DATA, CODING_DATA, WRITING_DATA, ART_DATA, AVATAR_DATA, VIDEO_DATA, 
-  SOCIAL_DATA, // <--- NEW IMPORT
+  SOCIAL_DATA, 
   RANDOM_TOPICS 
 } from '../data/constants.jsx';
 import { KNOWLEDGE_BASE } from '../data/knowledgeBase.js';
+import { INSTRUCTIONS } from '../data/instructions.js';
 
 // --- INITIAL STATE ---
 const initialState = {
   mode: 'text', // 'text' | 'art' | 'video'
-  textSubMode: 'general', // general | coding | writing | social
+  textSubMode: 'general', // general | coding | social
   targetModel: 'midjourney',
   customTopic: '',
   selections: {}, 
@@ -221,8 +222,8 @@ export const usePromptBuilder = (initialData) => {
           return ART_DATA;
       }
       if (state.textSubMode === 'coding') return CODING_DATA;
-      if (state.textSubMode === 'writing') return WRITING_DATA;
-      if (state.textSubMode === 'social') return SOCIAL_DATA; // <--- NEW SUBMODE
+      if (state.textSubMode === 'writing') return WRITING_DATA; // Fallback for old presets
+      if (state.textSubMode === 'social') return SOCIAL_DATA;
       return GENERAL_DATA;
   }, [state.mode, state.textSubMode]);
 
@@ -236,11 +237,25 @@ export const usePromptBuilder = (initialData) => {
 
     // --- CONTEXT & KNOWLEDGE INJECTION ---
     const contextDocs = [];
+    const instructionOverrides = [];
+
+    // Helper to find rich instructions from DB
+    const injectInstruction = (options) => {
+        options.forEach(opt => {
+            if (INSTRUCTIONS[opt]) {
+                instructionOverrides.push(INSTRUCTIONS[opt].system_instruction);
+            }
+        });
+    };
     
     // 1. Coding Knowledge
     if (state.textSubMode === 'coding') {
         const langs = getVals('language');
         const frameworks = getVals('framework_version');
+        const tasks = getVals('task');
+        
+        // Inject Instructions
+        injectInstruction(langs);
         
         if (langs.some(l => l.includes('sCrypt')) || frameworks.some(f => f.includes('sCrypt'))) {
             contextDocs.push(KNOWLEDGE_BASE.scrypt_bitcoin);
@@ -254,174 +269,189 @@ export const usePromptBuilder = (initialData) => {
         if (langs.includes('Solidity')) contextDocs.push(KNOWLEDGE_BASE.solidity_security);
         if (langs.includes('Python')) contextDocs.push(KNOWLEDGE_BASE.fastapi_pydantic_v2);
         if (langs.includes('SQL') || state.customTopic.toLowerCase().includes('supabase')) contextDocs.push(KNOWLEDGE_BASE.supabase_v2);
-    }
-    
-    // 2. Social / Writing Knowledge (CTO UPDATE)
-    if (state.textSubMode === 'social') {
-        const platforms = getVals('platform');
-        const contentTypes = getVals('content_type');
+        
+        // Fallback or append if no rich instruction
+        if (instructionOverrides.length === 0) {
+             if (tasks.length) parts.push(`Act as an expert Developer. Your task is to ${tasks.join(' and ')}.`);
+             else parts.push("Act as an expert Developer.");
+             if (langs.length) parts.push(`Tech Stack: ${langs.join(', ')}.`);
+        } else {
+             // We found rich instructions, use them
+             parts.push(instructionOverrides.join('\n'));
+             if (tasks.length) parts.push(`Task: ${tasks.join(' and ')}.`);
+        }
+        
+        const principles = getVals('principles').join(', ');
+        if (principles) parts.push(`Adhere to these principles: ${principles}.`);
 
-        // Video Hooks (TikTok/Reels)
+    } else if (state.textSubMode === 'social') {
+        // --- SOCIAL PROMPT STRUCTURE ---
+        const platforms = getVals('platform');
+        
+        // Inject rich instructions based on Platform
+        injectInstruction(platforms); 
+        
+        const types = getVals('content_type').join(', ');
+        const hooks = getVals('hook_type').join(', ');
+        const frameworks = getVals('framework').join(', ');
+        const goals = getVals('goal').join(', ');
+
         if (platforms.some(p => ['TikTok', 'Instagram Reels', 'YouTube Shorts'].includes(p))) {
             contextDocs.push(KNOWLEDGE_BASE.social_video_hooks);
         }
-        
-        // Carousel Architecture
-        if (contentTypes.includes('Carousel (PDF/Image)')) {
+        if (types.includes('Carousel')) {
             contextDocs.push(KNOWLEDGE_BASE.social_carousel_structures);
         }
-        
-        // YouTube Packaging
         if (platforms.includes('YouTube Video')) {
             contextDocs.push(KNOWLEDGE_BASE.social_youtube_packaging);
         }
-        
-        // Pinterest SEO
         if (platforms.includes('Pinterest')) {
             contextDocs.push(KNOWLEDGE_BASE.social_pinterest_seo);
         }
-        
-        // LinkedIn / Text
         if (platforms.includes('LinkedIn')) {
              contextDocs.push(KNOWLEDGE_BASE.linkedin_viral);
         }
-    }
-    
-    if (state.textSubMode === 'writing') {
-        const topicLower = state.customTopic.toLowerCase();
-        if (topicLower.includes('blog') || topicLower.includes('seo')) contextDocs.push(KNOWLEDGE_BASE.seo_blog);
-        if (topicLower.includes('email')) contextDocs.push(KNOWLEDGE_BASE.cold_email_b2b);
-        if (topicLower.includes('twitter')) contextDocs.push(KNOWLEDGE_BASE.twitter_threads);
-    }
-    
-    if (state.mode === 'art') {
-        if (state.targetModel === 'midjourney') contextDocs.push(KNOWLEDGE_BASE.midjourney_v6);
-        if (state.targetModel === 'flux') contextDocs.push(KNOWLEDGE_BASE.flux_prompts);
-    }
-    
-    if (state.mode === 'video') {
-        contextDocs.push(KNOWLEDGE_BASE.runway_camera);
-    }
-    
-    if (state.chainOfThought) {
-        contextDocs.push(KNOWLEDGE_BASE.chain_of_thought);
-    }
-
-    // --- PROMPT ASSEMBLY ---
-
-    // Video Mode
-    if (state.mode === 'video') {
-        if (processedTopic?.trim()) parts.push(`${processedTopic}`);
-        const camera = getVals('camera_move').join(', ');
-        const motion = getVals('motion_strength').join(', ');
-        if (camera) parts.push(`Camera Movement: ${camera}`);
-        if (motion) parts.push(`Motion: ${motion}`);
-        const aesthetics = getVals('aesthetics').join(', ');
-        if (aesthetics) parts.push(`Style/Look: ${aesthetics}`);
-        const videoNegs = getVals('video_negative');
-        let promptString = parts.join('. ');
-        const allNegatives = [];
-        if (state.negativePrompt) allNegatives.push(state.negativePrompt);
-        if (videoNegs.length > 0) allNegatives.push(...videoNegs);
-        if (allNegatives.length > 0) promptString += ` --no ${allNegatives.join(', ')}`;
         
-        if (contextDocs.length > 0) {
-            promptString += `\n\n[EXPERT KNOWLEDGE BASE]:\n${contextDocs.join('\n\n')}`;
+        if (instructionOverrides.length > 0) {
+             parts.push(instructionOverrides.join('\n'));
+        } else {
+             if (platforms.length) parts.push(`Act as a Master Content Strategist for ${platforms.join(', ')}.`);
         }
-        return promptString;
+
+        if (types) parts.push(`Format: ${types}.`);
+        if (goals) parts.push(`Primary Goal: ${goals}.`);
+        if (hooks) parts.push(`Hook Strategy: ${hooks}.`);
+        if (frameworks) parts.push(`Narrative Structure: ${frameworks}.`);
+
+    } else {
+        // GENERAL / WRITING
+        const persona = getVals('persona');
+        const styles = getVals('style');
+        
+        // Check for Rich Persona/Style Instructions
+        injectInstruction(persona);
+        injectInstruction(styles);
+
+        if (instructionOverrides.length > 0) {
+            parts.push(instructionOverrides.join('\n'));
+        } else {
+            if (persona.length) parts.push(`Act as an expert ${persona[0]}.`);
+        }
+
+        const tone = getVals('tone');
+        const format = getVals('format');
+        const intent = getVals('intent');
+        
+        if (tone.length) parts.push(`Tone: ${tone.join(', ')}.`);
+        if (format.length) parts.push(`Format: ${format.join(', ')}.`);
+        if (intent.length) parts.push(`Goal: ${intent.join(', ')}.`);
     }
 
-    // Text Mode
-    if (state.mode === 'text') {
-      if (state.textSubMode === 'coding') {
-          const langs = getVals('language').join(', ');
-          const tasks = getVals('task').join(' and ');
-          const principles = getVals('principles').join(', ');
-          if (tasks) parts.push(`Act as an expert Developer. Your task is to ${tasks}.`);
-          else parts.push("Act as an expert Developer.");
-          if (langs) parts.push(`Tech Stack: ${langs}.`);
-          if (principles) parts.push(`Adhere to these principles: ${principles}.`);
-      } else if (state.textSubMode === 'social') {
-          // --- SOCIAL PROMPT STRUCTURE ---
-          const platforms = getVals('platform').join(', ');
-          const types = getVals('content_type').join(', ');
-          const hooks = getVals('hook_type').join(', ');
-          const frameworks = getVals('framework').join(', ');
-          const goals = getVals('goal').join(', ');
-          
-          if (platforms) parts.push(`Act as a Master Content Strategist for ${platforms}.`);
-          if (types) parts.push(`Format: ${types}.`);
-          if (goals) parts.push(`Primary Goal: ${goals}.`);
-          if (hooks) parts.push(`Hook Strategy: ${hooks}.`);
-          if (frameworks) parts.push(`Narrative Structure: ${frameworks}.`);
-      } else if (state.textSubMode === 'writing') {
-          const frameworks = getVals('framework').join(', ');
-          const intent = getVals('intent').join(', ');
-          const styles = getVals('style').join(', ');
-          const authors = getVals('author').join(', ');
-          if (frameworks) parts.push(`Use the ${frameworks} framework.`);
-          if (intent) parts.push(`Goal: ${intent}.`);
-          if (styles) parts.push(`Style/Voice: ${styles}.`);
-          if (authors) parts.push(`Emulate the style of: ${authors}.`);
-      } else {
-          const persona = getVals('persona');
-          const tone = getVals('tone');
-          const format = getVals('format');
-          if (persona.length) parts.push(`Act as an expert ${persona[0]}.`);
-          if (tone.length) parts.push(`Tone: ${tone.join(', ')}.`);
-          if (format.length) parts.push(`Format: ${format.join(', ')}.`);
-      }
+    // --- TOPIC INJECTION ---
+    if (processedTopic?.trim()) {
+        const label = state.textSubMode === 'coding' ? 'TASK / INSTRUCTION:' : 'TOPIC / CONTENT:';
+        parts.push(`\n${label}\n"${processedTopic}"\n`);
+    }
 
-      if (processedTopic?.trim()) {
-          const label = state.textSubMode === 'coding' ? 'TASK / INSTRUCTION:' : 'TOPIC / CONTENT:';
-          parts.push(`\n${label}\n"${processedTopic}"\n`);
-      }
+    // --- ART / VIDEO MODE LOGIC ---
+    if (state.mode === 'art' || state.mode === 'video') {
+       // Check for Rich Art Instructions (e.g. Wes Anderson, Vaporwave)
+       const artStyles = getVals('style');
+       const videoCams = getVals('camera_move');
+       const aesthetics = getVals('aesthetics');
+       const avatarStyles = getVals('avatar_style');
+       
+       injectInstruction(artStyles);
+       injectInstruction(videoCams);
+       injectInstruction(aesthetics);
+       injectInstruction(avatarStyles);
+       
+       if (instructionOverrides.length > 0) {
+           parts.push(`\n[STYLISTIC DIRECTIVES]:\n${instructionOverrides.join('\n')}`);
+       }
+    }
 
-      // Inject Static Knowledge Base
-      if (contextDocs.length > 0) {
-          parts.push(`\n[EXPERT KNOWLEDGE BASE - STRICT ADHERENCE REQUIRED]:\n${contextDocs.join('\n\n')}\n`);
-      }
+    // Inject Static Knowledge Base
+    if (contextDocs.length > 0) {
+        parts.push(`\n[EXPERT KNOWLEDGE BASE - STRICT ADHERENCE REQUIRED]:\n${contextDocs.join('\n\n')}\n`);
+    }
 
-      if (state.textSubMode === 'coding' && state.codeContext?.trim()) {
-          parts.push(`\n[USER CODE CONTEXT]:\n\`\`\`\n${state.codeContext}\n\`\`\`\n`);
-      }
+    if (state.textSubMode === 'coding' && state.codeContext?.trim()) {
+        parts.push(`\n[USER CODE CONTEXT]:\n\`\`\`\n${state.codeContext}\n\`\`\`\n`);
+    }
 
-      if (state.chainOfThought) parts.push("Take a deep breath and think step-by-step to ensure the highest quality response.");
-      if (state.codeOnly && state.textSubMode === 'coding') parts.push("IMPORTANT: Output ONLY the code. Do not provide explanations, chatter, or introductory text. Just the code block.");
+    if (state.chainOfThought) parts.push("Take a deep breath and think step-by-step to ensure the highest quality response.");
+    if (state.codeOnly && state.textSubMode === 'coding') parts.push("IMPORTANT: Output ONLY the code. Do not provide explanations, chatter, or introductory text. Just the code block.");
 
-      return parts.join('\n');
-    } else {
-      // --- ART MODE (Unchanged) ---
-      if (state.targetModel === 'dalle' || state.targetModel === 'gemini') {
-          parts.push("Create an image of");
-          if (state.textSubMode === 'avatar') {
-             const styles = getVals('avatar_style').join(', ');
-             const framings = getVals('framing').join(', ');
-             if (styles) parts.push(`a ${styles}`);
-             if (framings) parts.push(`(${framings})`);
-             parts.push("avatar of");
-             if (processedTopic) parts.push(`${processedTopic}.`);
-             const exprs = getVals('expression').join(', ');
-             if (exprs) parts.push(`Expression: ${exprs}.`);
-             const accs = getVals('accessories').join(', ');
-             if (accs) parts.push(`Wearing: ${accs}.`);
-             const bgs = getVals('background').join(', ');
-             if (bgs) parts.push(`Background: ${bgs}.`);
-          } else {
-             if (processedTopic) parts.push(`${processedTopic}.`);
-             const genres = getVals('genre').join(' and ');
-             if (genres) parts.push(`The style should be ${genres}.`);
-             const envs = getVals('environment').join(', ');
-             if (envs) parts.push(`The scene is set in ${envs}.`);
-             const styles = getVals('style').join(', ');
-             if (styles) parts.push(`Artistic inspiration: ${styles}.`);
-          }
-          if (state.negativePrompt) parts.push(`Do not include: ${state.negativePrompt}.`);
-          if (contextDocs.length > 0) parts.push(`\n\n[STYLE GUIDELINES]:\n${contextDocs.join('\n\n')}`);
-          return parts.join(' ');
-      }
+    // Final Assembly for Art Mode vs Text Mode
+    if (state.mode === 'art') {
+       // For Art, we still want the keyword string for simple copypasting, 
+       // but we might want to include the System Instruction if it's being used in an LLM context.
+       // The current logic prioritizes the "Act as..." for Text/Code/Social. 
+       // For pure art generation prompt string building:
+       if (state.targetModel === 'dalle' || state.targetModel === 'gemini') {
+           // These models take natural language better, so the system instruction is good.
+           return parts.join('\n');
+       } else {
+           // Midjourney/SD prefer tokens.
+           // We use the existing token builder logic below, BUT we can prepend the "Act as" context if helpful for the user to see.
+           // For now, let's keep the Token Builder logic separate for MJ/SD to ensure it's paste-ready.
+           return buildArtPrompt(state, processedTopic, instructionOverrides, contextDocs);
+       }
+    }
 
+    // For Video Mode
+    if (state.mode === 'video') {
+        const baseVideoPrompt = buildVideoPrompt(state, processedTopic);
+        if (instructionOverrides.length > 0) {
+            return `${baseVideoPrompt}\n\n[DIRECTOR NOTES]: ${instructionOverrides.join(' ')}`;
+        }
+        return baseVideoPrompt;
+    }
+
+    return parts.join('\n');
+  }, [state, processedTopic]);
+
+  return {
+    state,
+    dispatch,
+    generatedPrompt,
+    currentData,
+    detectedVars
+  };
+};
+
+// --- SUBSIDIARY BUILDERS (Kept separate for cleanliness) ---
+
+const buildVideoPrompt = (state, topic) => {
+    const parts = [];
+    const getVals = (catId) => state.selections[catId]?.map(i => i.value) || [];
+    
+    if (topic?.trim()) parts.push(`${topic}`);
+    const camera = getVals('camera_move').join(', ');
+    const motion = getVals('motion_strength').join(', ');
+    if (camera) parts.push(`Camera Movement: ${camera}`);
+    if (motion) parts.push(`Motion: ${motion}`);
+    const aesthetics = getVals('aesthetics').join(', ');
+    if (aesthetics) parts.push(`Style/Look: ${aesthetics}`);
+    
+    let promptString = parts.join('. ');
+    
+    const videoNegs = getVals('video_negative');
+    const allNegatives = [];
+    if (state.negativePrompt) allNegatives.push(state.negativePrompt);
+    if (videoNegs.length > 0) allNegatives.push(...videoNegs);
+    if (allNegatives.length > 0) promptString += ` --no ${allNegatives.join(', ')}`;
+    
+    return promptString;
+};
+
+const buildArtPrompt = (state, topic, instructions, context) => {
+      const parts = [];
+      const getVals = (catId) => state.selections[catId]?.map(i => i.value) || [];
+      
       if (state.referenceImage?.trim()) parts.push(state.referenceImage.trim());
+      
       const coreParts = [];
       if (state.textSubMode === 'avatar') {
           const framings = state.selections.framing?.map(i => formatOption(i, true, state.targetModel)) || [];
@@ -429,7 +459,7 @@ export const usePromptBuilder = (initialData) => {
           if (framings.length) coreParts.push(framings.join(' '));
           if (styles.length) coreParts.push(styles.join(' '));
           coreParts.push("avatar of");
-          if (processedTopic?.trim()) coreParts.push(processedTopic);
+          if (topic?.trim()) coreParts.push(topic);
           if (coreParts.length) parts.push(coreParts.join(' '));
           const exprs = state.selections.expression?.map(i => formatOption(i, true, state.targetModel)) || [];
           if (exprs.length) parts.push(exprs.join(', '));
@@ -440,37 +470,45 @@ export const usePromptBuilder = (initialData) => {
       } else {
           const genres = state.selections.genre?.map(i => formatOption(i, true, state.targetModel)) || [];
           if (genres.length) coreParts.push(genres.join(' '));
-          if (processedTopic?.trim()) coreParts.push(processedTopic);
+          if (topic?.trim()) coreParts.push(topic);
           if (coreParts.length) parts.push(coreParts.join(' '));
           const envs = state.selections.environment?.map(i => formatOption(i, true, state.targetModel)) || [];
           if (envs.length) parts.push(`set in ${envs.join(', ')}`);
+          
           const camParts = [];
           const shots = state.selections.shots?.map(i => formatOption(i, true, state.targetModel)) || [];
           const cameras = state.selections.camera?.map(i => formatOption(i, true, state.targetModel)) || [];
           if (shots.length) camParts.push(...shots);
           if (cameras.length) camParts.push(...cameras);
           if (camParts.length) parts.push(camParts.join(', '));
+          
           const visualParts = [];
           const visuals = state.selections.visuals?.map(i => formatOption(i, true, state.targetModel)) || [];
           const tech = state.selections.tech?.map(i => formatOption(i, true, state.targetModel)) || [];
           if (visuals.length) visualParts.push(...visuals);
           if (tech.length) visualParts.push(...tech);
           if (visualParts.length) parts.push(visualParts.join(', '));
+          
           const styles = state.selections.style?.map(i => formatOption(i, true, state.targetModel)) || [];
           if (styles.length) {
             parts.push(`in the style of ${styles.map(s => `by ${s}`).join(', ')}`);
           }
       }
+      
       if (state.targetModel === 'stable-diffusion' && state.loraName) {
           parts.push(`<lora:${state.loraName}:${state.loraWeight}>`);
       }
+      
       let mainPrompt = parts.join(', ').replace(/, ,/g, ',');
       let suffix = '';
+      
       if (state.negativePrompt?.trim()) {
           if (state.targetModel === 'midjourney') suffix += ` --no ${state.negativePrompt.trim()}`;
           else if (state.targetModel === 'stable-diffusion') mainPrompt += ` [${state.negativePrompt.trim()}]`;
       }
+      
       if (state.seed && state.targetModel === 'midjourney') suffix += ` --seed ${state.seed}`;
+      
       if (state.selections.params?.length) {
         state.selections.params.forEach(item => {
             const p = item.value;
@@ -486,15 +524,8 @@ export const usePromptBuilder = (initialData) => {
             }
         });
       }
+      
+      // Append rich instructions if available, but kept somewhat clean for MJ
+      // Note: MJ doesn't read instructions well, but we can add them as comment or context
       return mainPrompt + suffix;
-    }
-  }, [state, processedTopic]);
-
-  return {
-    state,
-    dispatch,
-    generatedPrompt,
-    currentData,
-    detectedVars
-  };
 };
