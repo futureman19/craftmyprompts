@@ -3,12 +3,12 @@ import {
   FileText, Zap, RefreshCw, Check, Copy as CopyIcon, Braces, 
   Lock, Globe, Save, Bookmark, ArrowLeft 
 } from 'lucide-react';
-import TestRunnerPanel from '../test-runner/TestRunnerPanel'; // <--- IMPORT ADDED
+import TestRunnerPanel from '../test-runner/TestRunnerPanel';
 
 const BuilderPreviewPanel = ({ 
     // State
     state, generatedPrompt, mobileTab, copied, copiedJson, 
-    saveVisibility, isSaving, globalApiKey, globalOpenAIKey, // <--- New Props needed
+    saveVisibility, isSaving, globalApiKey, globalOpenAIKey,
     // Actions
     dispatch, setMobileTab, setSaveVisibility, handleCopy, 
     handleCopyJSON, handleUnifiedSave, handleSaveAsPreset, handleSaveSnippet 
@@ -56,17 +56,32 @@ const BuilderPreviewPanel = ({
                 </div>
 
                 {/* Quick Actions Bar */}
-                <div className="p-2 border-t border-slate-800 bg-slate-900 flex gap-2">
-                     <button onClick={handleCopy} disabled={!generatedPrompt} className={`flex-1 flex items-center justify-center gap-2 py-1.5 rounded-lg font-bold text-xs transition-all ${copied ? 'bg-emerald-500 text-white' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'} disabled:opacity-50`}>
+                <div className="p-2 border-t border-slate-800 bg-slate-900 flex items-center gap-2">
+                     <button onClick={handleCopy} disabled={!generatedPrompt} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-bold text-xs transition-all ${copied ? 'bg-emerald-500 text-white' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'} disabled:opacity-50`}>
                         {copied ? <Check size={14} /> : <CopyIcon size={14} />} {copied ? 'Copied' : 'Copy'}
                     </button>
-                    <button onClick={handleUnifiedSave} disabled={!generatedPrompt || isSaving} className="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-medium text-slate-300 flex items-center justify-center gap-2 transition-colors disabled:opacity-50">
-                        <Save size={14} /> {isSaving ? 'Saving...' : 'Save to Library'}
+
+                    {/* VISIBILITY TOGGLE */}
+                    <button 
+                        onClick={() => setSaveVisibility(saveVisibility === 'public' ? 'private' : 'public')}
+                        className={`px-3 py-2 rounded-lg text-xs font-medium border transition-all flex items-center gap-2 ${
+                            saveVisibility === 'public' 
+                            ? 'bg-indigo-600 text-white border-indigo-600' 
+                            : 'bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-600'
+                        }`}
+                        title={saveVisibility === 'public' ? "Public: Visible in Community Feed" : "Private: Only visible to you"}
+                    >
+                        {saveVisibility === 'public' ? <Globe size={14} /> : <Lock size={14} />}
+                        <span>{saveVisibility === 'public' ? 'Public' : 'Private'}</span>
+                    </button>
+
+                    <button onClick={handleUnifiedSave} disabled={!generatedPrompt || isSaving} className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-medium text-slate-300 flex items-center justify-center gap-2 transition-colors disabled:opacity-50">
+                        <Save size={14} /> {isSaving ? 'Saving...' : 'Save'}
                     </button>
                 </div>
             </div>
 
-            {/* --- BOTTOM SECTION: TEST RUNNER (The New Panel) --- */}
+            {/* --- BOTTOM SECTION: TEST RUNNER --- */}
             <div className="flex-1 overflow-hidden flex flex-col bg-white dark:bg-slate-900">
                 <TestRunnerPanel 
                     prompt={generatedPrompt} 
