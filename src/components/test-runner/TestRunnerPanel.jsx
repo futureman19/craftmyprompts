@@ -25,7 +25,7 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
             <div className="flex-shrink-0 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-4">
                 <div className="flex justify-between items-center">
                     <h3 className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                        <Terminal size={18} className="text-indigo-500" /> Test Runner
+                        <Terminal size={18} className="text-indigo-500" /> Test your prompt
                     </h3>
                 </div>
             </div>
@@ -108,9 +108,9 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
                     }`}
                 >
                     {runner.loading ? 'Running...' : (
-                        runner.provider === 'battle' ? 'Start Battle' : 
+                        runner.provider === 'battle' ? 'Start Versus' : 
                         (runner.provider === 'refine' ? 'Start Loop' : 
-                        (runner.provider === 'swarm' ? 'Start Meeting' : 'Run Test'))
+                        (runner.provider === 'swarm' ? 'Start Collab' : 'Run Test'))
                     )}
                 </button>
             </div>

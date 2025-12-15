@@ -53,7 +53,7 @@ const TestRunnerControls = ({
                     onClick={() => onViewChange('simple')} 
                     className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-sm font-bold transition-all ${viewMode === 'simple' ? 'bg-white dark:bg-slate-700 shadow text-indigo-600 dark:text-indigo-300' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
                 >
-                    <MonitorPlay size={16} /> Individual Run
+                    <MonitorPlay size={16} /> Choose your AI
                 </button>
                 
                 {/* Lock Orchestrator for Guests */}
@@ -106,13 +106,13 @@ const TestRunnerControls = ({
                 /* Advanced Modes */
                 <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
                     <button onClick={() => onProviderChange('battle')} className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg border-2 transition-all text-sm font-bold whitespace-nowrap ${provider === 'battle' ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400' : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-500'}`}>
-                        <Swords size={16} /> Battle
+                        <Swords size={16} /> Versus
                     </button>
                     <button onClick={() => onProviderChange('refine')} className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg border-2 transition-all text-sm font-bold whitespace-nowrap ${provider === 'refine' ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400' : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-500'}`}>
                         <GitCompare size={16} /> Refine
                     </button>
                     <button onClick={() => onProviderChange('swarm')} className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg border-2 transition-all text-sm font-bold whitespace-nowrap ${provider === 'swarm' ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400' : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-500'}`}>
-                        <Users size={16} /> Swarm
+                        <Users size={16} /> Collab
                     </button>
                 </div>
             )}
@@ -124,7 +124,7 @@ const TestRunnerControls = ({
                 <div className="p-4 bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-100 dark:border-amber-800/50 animate-in fade-in space-y-4">
                     <div className="flex items-center justify-between border-b border-amber-200 dark:border-amber-800 pb-2 mb-2">
                          <h4 className="text-xs font-bold uppercase text-amber-600 dark:text-amber-400 flex items-center gap-2">
-                            <Swords size={14} /> Battle Arena
+                            <Swords size={14} /> Versus Arena
                          </h4>
                     </div>
                     
@@ -205,7 +205,7 @@ const TestRunnerControls = ({
                 <div className="p-4 bg-violet-50 dark:bg-violet-900/10 rounded-xl border border-violet-100 dark:border-violet-800/50 animate-in fade-in space-y-4">
                     <div className="flex items-center justify-between border-b border-violet-200 dark:border-violet-800 pb-2 mb-2">
                          <h4 className="text-xs font-bold uppercase text-violet-600 dark:text-violet-400 flex items-center gap-2">
-                            <Users size={14} /> Meeting Room
+                            <Users size={14} /> Collab Room
                          </h4>
                          <div className="flex items-center gap-2">
                             <label className="text-[10px] font-bold text-violet-400 uppercase">Rounds:</label>
