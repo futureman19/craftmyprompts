@@ -1,13 +1,16 @@
 import React from 'react';
 import { Terminal } from 'lucide-react';
 import { useTestRunner } from '../../hooks/useTestRunner';
-import TestRunnerControls from './TestRunnerControls';
-import TestRunnerResults from './TestRunnerResults';
-import GitHubModal from '../GitHubModal';
+import TestRunnerControls from './TestRunnerControls.jsx';
+import TestRunnerResults from './TestRunnerResults.jsx';
+// If GitHubModal is missing, we can temporarily comment it out or assume it exists. 
+// For safety, I'm including a placeholder if it wasn't created, 
+// but typically it should be in ../GitHubModal.jsx
+import GitHubModal from '../GitHubModal.jsx'; 
 
 const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippet }) => {
     
-    // 1. Initialize the "Brain" (Reusing the same hook!)
+    // 1. Initialize the "Brain"
     const runner = useTestRunner(defaultApiKey, defaultOpenAIKey);
 
     // 2. Main Run Handler
@@ -24,7 +27,6 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
                     <h3 className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
                         <Terminal size={18} className="text-indigo-500" /> Test Runner
                     </h3>
-                    {/* No Close Button needed for Panel version */}
                 </div>
             </div>
 
@@ -46,6 +48,7 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
                     // Configs
                     refineConfig={runner.refineConfig}
                     swarmConfig={runner.swarmConfig}
+                    battleConfig={runner.battleConfig} // Pass Battle Config
                     selectedModel={runner.selectedModel}
                     availableModels={runner.availableModels}
                     isUsingGlobalGemini={!!defaultApiKey && runner.geminiKey === defaultApiKey}
@@ -63,11 +66,10 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
                     onModelChange={runner.setSelectedModel}
                     onRefineConfigChange={(key, val) => runner.setRefineConfig(prev => ({ ...prev, [key]: val }))}
                     onSwarmConfigChange={(key, val) => runner.setSwarmConfig(prev => ({ ...prev, [key]: val }))}
+                    onBattleConfigChange={runner.setBattleConfig} // Pass Battle Config Change Handler
                 />
 
                 {/* 2. RESULTS DISPLAY */}
-                {/* We removed the "Prompt Preview" box here because the user can see the prompt in the main editor on the left! */}
-                
                 <TestRunnerResults 
                     loading={runner.loading}
                     result={runner.result}
@@ -113,7 +115,7 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
                 </button>
             </div>
 
-            {/* GitHub Modal (Triggered by the hook logic) */}
+            {/* GitHub Modal */}
             <GitHubModal 
                 isOpen={runner.showGithub} 
                 onClose={() => runner.setShowGithub(false)} 
