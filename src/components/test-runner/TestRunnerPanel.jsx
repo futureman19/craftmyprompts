@@ -1,14 +1,11 @@
 import React from 'react';
 import { Terminal } from 'lucide-react';
-import { useTestRunner } from '../../hooks/useTestRunner';
+import { useTestRunner } from '../../hooks/useTestRunner.js';
 import TestRunnerControls from './TestRunnerControls.jsx';
 import TestRunnerResults from './TestRunnerResults.jsx';
-// If GitHubModal is missing, we can temporarily comment it out or assume it exists. 
-// For safety, I'm including a placeholder if it wasn't created, 
-// but typically it should be in ../GitHubModal.jsx
 import GitHubModal from '../GitHubModal.jsx'; 
 
-const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippet }) => {
+const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippet, isSocialMode }) => {
     
     // 1. Initialize the "Brain"
     const runner = useTestRunner(defaultApiKey, defaultOpenAIKey);
@@ -48,7 +45,7 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
                     // Configs
                     refineConfig={runner.refineConfig}
                     swarmConfig={runner.swarmConfig}
-                    battleConfig={runner.battleConfig} // Pass Battle Config
+                    battleConfig={runner.battleConfig} 
                     selectedModel={runner.selectedModel}
                     availableModels={runner.availableModels}
                     isUsingGlobalGemini={!!defaultApiKey && runner.geminiKey === defaultApiKey}
@@ -66,7 +63,12 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
                     onModelChange={runner.setSelectedModel}
                     onRefineConfigChange={(key, val) => runner.setRefineConfig(prev => ({ ...prev, [key]: val }))}
                     onSwarmConfigChange={(key, val) => runner.setSwarmConfig(prev => ({ ...prev, [key]: val }))}
-                    onBattleConfigChange={runner.setBattleConfig} // Pass Battle Config Change Handler
+                    onBattleConfigChange={runner.setBattleConfig} 
+                    
+                    // New Agent Handlers
+                    addSwarmAgent={runner.addSwarmAgent}
+                    removeSwarmAgent={runner.removeSwarmAgent}
+                    updateSwarmAgent={runner.updateSwarmAgent}
                 />
 
                 {/* 2. RESULTS DISPLAY */}
@@ -87,6 +89,9 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
                     setRefineView={runner.setRefineView}
                     onContinueSwarm={runner.continueSwarm}
                     onCompileSwarm={runner.compileSwarmCode}
+                    
+                    // CTO UPDATE: Passing the Social Mode Flag
+                    isSocialMode={isSocialMode}
                 />
             </div>
 

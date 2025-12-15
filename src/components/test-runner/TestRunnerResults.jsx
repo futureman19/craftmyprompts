@@ -180,7 +180,9 @@ const TestRunnerResults = ({
     prompt, // The Prompt that generated this result (used for context)
     // Actions
     onSaveSnippet, onShipCode, setRefineView,
-    onContinueSwarm, onCompileSwarm
+    onContinueSwarm, onCompileSwarm,
+    // CTO UPDATE: Only show Virality Scorecard if this flag is true
+    isSocialMode 
 }) => {
     const [copiedText, setCopiedText] = useState(null);
     const [savedText, setSavedText] = useState(null);
@@ -258,8 +260,9 @@ const TestRunnerResults = ({
         return (
             <div className="space-y-4 animate-in slide-in-from-bottom-2 fade-in">
                 
-                {/* --- SCORECARD --- */}
-                {checks.length > 0 && (
+                {/* --- SCORECARD (CONDITIONAL) --- */}
+                {/* Only render if we are in Social Mode AND we have checks to show */}
+                {isSocialMode && checks.length > 0 && (
                     <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
                         <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-950/50 flex justify-between items-center">
                             <div className="flex items-center gap-2">

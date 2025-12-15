@@ -3,7 +3,8 @@ import {
   FileText, Zap, RefreshCw, Check, Copy as CopyIcon, Braces, 
   Lock, Globe, Save, Bookmark, ArrowLeft 
 } from 'lucide-react';
-import TestRunnerPanel from '../test-runner/TestRunnerPanel';
+// Updated import path with explicit extension for reliability
+import TestRunnerPanel from '../test-runner/TestRunnerPanel.jsx';
 
 const BuilderPreviewPanel = ({ 
     // State
@@ -30,6 +31,9 @@ const BuilderPreviewPanel = ({
             return <span key={index}>{part}</span>;
         });
     };
+
+    // Calculate if we are in Social Mode to conditionally show the Virality Scorecard
+    const isSocialMode = state.mode === 'text' && state.textSubMode === 'social';
 
     return (
         <div className={`bg-slate-900 text-slate-100 flex-col h-full border-l border-slate-800 shadow-xl z-20 flex-shrink-0 transition-all ${mobileTab === 'edit' ? 'hidden md:flex' : 'flex w-full'} md:w-[600px]`}>
@@ -88,6 +92,7 @@ const BuilderPreviewPanel = ({
                     defaultApiKey={globalApiKey} 
                     defaultOpenAIKey={globalOpenAIKey}
                     onSaveSnippet={handleSaveSnippet}
+                    isSocialMode={isSocialMode} // <--- PASSING THE PROP
                 />
             </div>
         </div>
