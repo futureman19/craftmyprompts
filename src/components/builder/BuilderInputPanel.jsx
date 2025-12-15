@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Wand2, Brain, XCircle, Code, Terminal, Globe, RefreshCw, Download, 
-  Ban, Sliders, ImagePlus, Cpu, ChevronDown 
+  Ban, Sliders, ImagePlus, Cpu, ChevronDown, Search, X
 } from 'lucide-react';
 import { STYLE_PREVIEWS } from '../../data/stylePreviews.js';
+import VisualSearchModal from '../VisualSearchModal.jsx';
 
 const BuilderInputPanel = ({ 
     // State
@@ -12,6 +13,12 @@ const BuilderInputPanel = ({
     // Actions
     dispatch, setContextUrl, handleFetchContext, toggleCategory, toggleSelection, toggleSubcatExpansion
 }) => {
+    const [showVisualSearch, setShowVisualSearch] = useState(false);
+
+    const handleImageSelect = (url) => {
+        dispatch({ type: 'UPDATE_FIELD', field: 'referenceImage', value: url });
+    };
+
     return (
         <div className="space-y-3">
             {/* --- TOPIC BOX --- */}
@@ -106,10 +113,39 @@ const BuilderInputPanel = ({
             {state.mode === 'art' && (
                 <div className="space-y-3 animate-in slide-in-from-top-4 fade-in">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700">
+                        <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col">
                             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2"><ImagePlus size={14} /> Ref Image URL</h3>
-                            <input className="w-full p-2 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-700 focus:ring-2 focus:ring-pink-500 outline-none text-sm placeholder-slate-300 dark:text-slate-200" placeholder="https://..." value={state.referenceImage} onChange={(e) => dispatch({ type: 'UPDATE_FIELD', field: 'referenceImage', value: e.target.value })} />
+                            
+                            <div className="flex gap-2">
+                                <input 
+                                    className="flex-1 p-2 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-700 focus:ring-2 focus:ring-pink-500 outline-none text-sm placeholder-slate-300 dark:text-slate-200" 
+                                    placeholder="https://..." 
+                                    value={state.referenceImage} 
+                                    onChange={(e) => dispatch({ type: 'UPDATE_FIELD', field: 'referenceImage', value: e.target.value })} 
+                                />
+                                <button 
+                                    onClick={() => setShowVisualSearch(true)}
+                                    className="p-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 rounded-lg text-slate-500 dark:text-slate-300 transition-colors"
+                                    title="Search Visuals (Pexels)"
+                                >
+                                    <Search size={16} />
+                                </button>
+                            </div>
+                            
+                            {/* Preview Thumbnail */}
+                            {state.referenceImage && (
+                                <div className="mt-2 relative group w-16 h-16 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+                                    <img src={state.referenceImage} alt="Ref" className="w-full h-full object-cover" />
+                                    <button 
+                                        onClick={() => dispatch({ type: 'UPDATE_FIELD', field: 'referenceImage', value: '' })}
+                                        className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white"
+                                    >
+                                        <X size={16} />
+                                    </button>
+                                </div>
+                            )}
                         </div>
+
                         <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700">
                             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2"><Ban size={14} /> Negative Prompt</h3>
                             <input className="w-full p-2 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-700 focus:ring-2 focus:ring-red-500 outline-none text-sm placeholder-slate-300 dark:text-slate-200" placeholder="e.g. blur, text" value={state.negativePrompt} onChange={(e) => dispatch({ type: 'UPDATE_FIELD', field: 'negativePrompt', value: e.target.value })} />
@@ -149,7 +185,7 @@ const BuilderInputPanel = ({
                 </div>
             )}
 
-            {/* --- CATEGORY GRID (2 Columns on Large Screens) --- */}
+            {/* --- CATEGORY GRID --- */}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
             {filteredData.map((category) => (
                 <div key={category.id} className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden h-fit">
@@ -174,7 +210,6 @@ const BuilderInputPanel = ({
                                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                                 {optionsToShow.map((option) => {
                                                     const isSelected = state.selections[category.id]?.find(i => i.value === option);
-                                                    // USE STYLE PREVIEW
                                                     const previewUrl = STYLE_PREVIEWS[option] || `https://placehold.co/100x100/${isSelected ? 'pink' : 'e2e8f0'}/white?text=${option.charAt(0)}`;
                                                     const opacityClass = STYLE_PREVIEWS[option] ? 'opacity-70' : 'opacity-20';
                                                     
@@ -225,6 +260,13 @@ const BuilderInputPanel = ({
                 </div>
             ))}
             </div>
+            
+            {/* Visual Search Modal */}
+            <VisualSearchModal 
+                isOpen={showVisualSearch} 
+                onClose={() => setShowVisualSearch(false)} 
+                onSelectImage={handleImageSelect}
+            />
         </div>
     );
 };
