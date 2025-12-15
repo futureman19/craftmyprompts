@@ -1,7 +1,7 @@
 /**
  * Virality Validator
  * Enforces retention protocols defined in "Engineering Viral Architecture".
- * * Analyzes generated content against rigid structural rules (Hooks, Duration, Syntax).
+ * Analyzes generated content against rigid structural rules (Hooks, Duration, Syntax).
  */
 
 export const validateVirality = (content, presetLabel) => {
