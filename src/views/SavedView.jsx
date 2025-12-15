@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, doc, deleteDoc, addDoc, query, orderBy, serverTimestamp } from 'firebase/firestore';
-import { RefreshCw, Save, Trash2, Copy, Check, Terminal, FileText, Bookmark, Play, Lock, Code, Zap, BookOpen, Plus } from 'lucide-react';
+import { RefreshCw, Save, Trash2, Copy, Check, Terminal, FileText, Bookmark, Play, Lock, Code, Zap, BookOpen, Plus, Github } from 'lucide-react';
 import { db, APP_ID } from '../lib/firebase.js';
 import { formatTimestamp } from '../utils/index.js';
+import GitHubModal from '../components/GitHubModal.jsx';
 
 const SavedView = ({ user, loadPrompt, showToast }) => {
   const [activeTab, setActiveTab] = useState('prompts'); // 'prompts' | 'snippets' | 'presets' | 'knowledge'
@@ -16,6 +17,10 @@ const SavedView = ({ user, loadPrompt, showToast }) => {
   // UI State
   const [loading, setLoading] = useState(true);
   const [copiedId, setCopiedId] = useState(null);
+  
+  // GitHub Ship State
+  const [showGithub, setShowGithub] = useState(false);
+  const [codeToShip, setCodeToShip] = useState('');
   
   // Knowledge Form State
   const [showAddKnowledge, setShowAddKnowledge] = useState(false);
@@ -95,6 +100,17 @@ const SavedView = ({ user, loadPrompt, showToast }) => {
       showToast("Copied to clipboard");
   };
 
+  const handleShip = (rawContent) => {
+      // Clean up markdown fences if present before shipping
+      const cleanCode = rawContent
+        .replace(/^```[a-z]*\s*\n/i, '') // Remove opening fence
+        .replace(/```\s*$/, '')          // Remove closing fence
+        .trim();
+      
+      setCodeToShip(cleanCode);
+      setShowGithub(true);
+  };
+
   const handleAddKnowledge = async () => {
       if (!newKnowledgeTitle || !newKnowledgeContent) {
           showToast("Title and Content are required", "error");
@@ -138,7 +154,7 @@ const SavedView = ({ user, loadPrompt, showToast }) => {
   );
 
   return (
-    <div className="flex-1 bg-slate-50 dark:bg-slate-900 overflow-y-auto p-6 md:p-10 w-full pl-16 md:pl-24 transition-colors">
+    <div className="flex-1 bg-slate-50 dark:bg-slate-900 overflow-y-auto p-6 md:p-10 w-full pl-16 md:pl-24 transition-colors relative">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
           <div>
             <h2 className="text-3xl font-bold text-slate-800 dark:text-slate-100">My Studio</h2>
@@ -156,7 +172,6 @@ const SavedView = ({ user, loadPrompt, showToast }) => {
               <button onClick={() => setActiveTab('presets')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'presets' ? 'bg-amber-600 text-white shadow' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
                   <Bookmark size={16} /> Presets <span className="opacity-60 text-xs ml-1">{presets.length}</span>
               </button>
-              {/* NEW TAB: Knowledge */}
               <button onClick={() => setActiveTab('knowledge')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'knowledge' ? 'bg-violet-600 text-white shadow' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
                   <BookOpen size={16} /> Knowledge <span className="opacity-60 text-xs ml-1">{knowledge.length}</span>
               </button>
@@ -213,8 +228,13 @@ const SavedView = ({ user, loadPrompt, showToast }) => {
                               </div>
                           </div>
                           <div className="flex items-center gap-2">
+                               {/* --- NEW SHIP BUTTON --- */}
+                              <button onClick={() => handleShip(item.content)} className="px-3 py-1.5 text-xs font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors flex items-center gap-1">
+                                  <Github size={14} /> Ship
+                              </button>
+                              
                               <button onClick={() => handleCopy(item.content, item.id)} className="px-3 py-1.5 text-xs font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors flex items-center gap-1">
-                                  {copiedId === item.id ? <Check size={14} className="text-emerald-500"/> : <Copy size={14} />} {copiedId === item.id ? 'Copied' : 'Copy Code'}
+                                  {copiedId === item.id ? <Check size={14} className="text-emerald-500"/> : <Copy size={14} />} {copiedId === item.id ? 'Copied' : 'Copy'}
                               </button>
                               <button onClick={() => handleDelete('snippets', item.id)} className="p-2 text-slate-400 hover:text-red-500 transition-colors">
                                   <Trash2 size={16} />
@@ -254,7 +274,6 @@ const SavedView = ({ user, loadPrompt, showToast }) => {
                           </div>
                       </div>
                       
-                      {/* Mini Tags Display */}
                       <div className="flex flex-wrap gap-1 mb-6">
                           {Object.keys(item.selections || {}).slice(0, 4).map(key => (
                               <span key={key} className="text-[10px] bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-2 py-1 rounded border border-slate-200 dark:border-slate-600">
@@ -277,10 +296,9 @@ const SavedView = ({ user, loadPrompt, showToast }) => {
           </div>
       )}
 
-      {/* 4. KNOWLEDGE LIST (New) */}
+      {/* 4. KNOWLEDGE LIST */}
       {activeTab === 'knowledge' && (
           <div className="space-y-6">
-              {/* Add New Knowledge Bar */}
               <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
                   {showAddKnowledge ? (
                       <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
@@ -330,6 +348,13 @@ const SavedView = ({ user, loadPrompt, showToast }) => {
               </div>
           </div>
       )}
+      
+      {/* GitHub Modal (Global for this view) */}
+      <GitHubModal 
+        isOpen={showGithub} 
+        onClose={() => setShowGithub(false)} 
+        codeToPush={codeToShip} 
+      />
     </div>
   );
 };
