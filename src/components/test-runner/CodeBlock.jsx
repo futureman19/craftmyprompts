@@ -4,8 +4,7 @@ import { Check, Copy, Github, Terminal } from 'lucide-react';
 const CodeBlock = ({ rawContent, onShip }) => {
     const [copied, setCopied] = useState(false);
     
-    // 1. Robust Regex: Handles optional whitespace after ```lang and before newline
-    // Also handles the end of the block more gracefully
+    // Clean up: remove the opening ```lang line and closing ```
     const cleanCode = rawContent
         .replace(/^```[a-z]*\s*\n/i, '') // Remove opening fence
         .replace(/```\s*$/, '')          // Remove closing fence

@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { 
     Loader, AlertTriangle, Check, Copy, Sparkles, Bot, 
     MonitorPlay, Bookmark, Split, Layers, Users, PlayCircle, FileCode, Eye, Code, X,
-    Activity, Gauge, ThumbsUp, ThumbsDown
+    Activity, Gauge, ThumbsUp, ThumbsDown, Maximize2
 } from 'lucide-react';
 import CodeBlock from './CodeBlock.jsx';
 import { validateVirality } from '../../utils/viralityValidator.js';
@@ -148,6 +148,32 @@ const LivePreview = ({ content, onClose }) => {
     );
 };
 
+// --- NEW COMPONENT: MAXIMIZED TEXT VIEW ---
+const MaximizedResult = ({ content, onClose, renderContent }) => {
+    return (
+        <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 md:p-8 animate-in fade-in duration-200">
+            <div className="bg-white dark:bg-slate-900 w-full h-full max-w-5xl rounded-xl overflow-hidden shadow-2xl flex flex-col relative border border-slate-200 dark:border-slate-700">
+                {/* Header */}
+                <div className="flex justify-between items-center p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
+                     <div className="flex items-center gap-2">
+                        <Check size={20} className="text-emerald-500" />
+                        <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Full Result</h2>
+                     </div>
+                    <button onClick={onClose} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors">
+                        <X size={24} className="text-slate-500 dark:text-slate-400"/>
+                    </button>
+                </div>
+                {/* Content */}
+                <div className="flex-1 p-8 overflow-y-auto bg-white dark:bg-slate-900">
+                    <div className="max-w-4xl mx-auto">
+                        {renderContent(content)}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const TestRunnerResults = ({ 
     loading, result, error, statusMessage, 
     provider, battleResults, refineSteps, refineView, swarmHistory, 
@@ -159,6 +185,7 @@ const TestRunnerResults = ({
     const [copiedText, setCopiedText] = useState(null);
     const [savedText, setSavedText] = useState(null);
     const [previewMode, setPreviewMode] = useState(false);
+    const [maximized, setMaximized] = useState(false);
 
     // --- VIRALITY ANALYSIS ---
     const { score, checks } = useMemo(() => {
@@ -231,7 +258,7 @@ const TestRunnerResults = ({
         return (
             <div className="space-y-4 animate-in slide-in-from-bottom-2 fade-in">
                 
-                {/* --- SCORECARD (NEW) --- */}
+                {/* --- SCORECARD --- */}
                 {checks.length > 0 && (
                     <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
                         <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-950/50 flex justify-between items-center">
@@ -263,6 +290,15 @@ const TestRunnerResults = ({
 
                             {/* Actions & Toggles */}
                             <div className="flex items-center gap-2">
+                                 {/* Pop Out Button */}
+                                 <button 
+                                    onClick={() => setMaximized(true)}
+                                    className="p-1.5 rounded hover:bg-white dark:hover:bg-slate-800 text-slate-400 hover:text-indigo-600 transition-colors"
+                                    title="Maximize View"
+                                 >
+                                    <Maximize2 size={14} />
+                                 </button>
+
                                  {/* Preview Toggle */}
                                  <div className="flex bg-white dark:bg-slate-900 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 mr-2">
                                     <button 
@@ -296,6 +332,15 @@ const TestRunnerResults = ({
                         )}
                     </div>
                 </div>
+
+                {/* Maximized Modal */}
+                {maximized && (
+                    <MaximizedResult 
+                        content={result} 
+                        onClose={() => setMaximized(false)} 
+                        renderContent={renderResultContent} 
+                    />
+                )}
             </div>
         );
     }
