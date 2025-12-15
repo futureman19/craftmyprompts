@@ -65,7 +65,7 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
                     onSwarmConfigChange={(key, val) => runner.setSwarmConfig(prev => ({ ...prev, [key]: val }))}
                     onBattleConfigChange={runner.setBattleConfig} 
                     
-                    // New Agent Handlers
+                    // New Dynamic Agent Handlers
                     addSwarmAgent={runner.addSwarmAgent}
                     removeSwarmAgent={runner.removeSwarmAgent}
                     updateSwarmAgent={runner.updateSwarmAgent}
@@ -124,7 +124,10 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
             <GitHubModal 
                 isOpen={runner.showGithub} 
                 onClose={() => runner.setShowGithub(false)} 
-                codeToPush={runner.codeToShip} 
+                codeToPush={runner.codeToShip}
+                // CTO UPDATE: Wiring up the ship function and existing token
+                onShip={runner.shipToGithub}
+                initialToken={runner.githubToken}
             />
         </div>
     );

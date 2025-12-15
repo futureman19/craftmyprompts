@@ -13,6 +13,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
     // GitHub State
     const [showGithub, setShowGithub] = useState(false);
     const [codeToShip, setCodeToShip] = useState('');
+    const [githubToken, setGithubToken] = useState(''); // New State
 
     // --- CONFIGURATIONS ---
     const [battleConfig, setBattleConfig] = useState({
@@ -26,7 +27,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         focus: 'general'
     });
 
-    // CTO UPDATE: Dynamic Agents Array (Replaces hardcoded agentA/B)
+    // Dynamic Agents Array (Replaces hardcoded agentA/B)
     const [swarmConfig, setSwarmConfig] = useState({
         rounds: 3,
         agents: [
@@ -69,6 +70,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
 
         setGroqKey(localStorage.getItem('craft_my_prompt_groq_key') || '');
         setAnthropicKey(localStorage.getItem('craft_my_prompt_anthropic_key') || '');
+        setGithubToken(localStorage.getItem('craft_my_prompt_github_key') || ''); // Load GitHub Token
 
         return () => unsubscribe();
     }, [defaultApiKey, defaultOpenAIKey]);
@@ -91,6 +93,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         else if (providerName === 'openai') setOpenaiKey('');
         else if (providerName === 'groq') setGroqKey('');
         else if (providerName === 'anthropic') setAnthropicKey('');
+        else if (providerName === 'github') setGithubToken('');
     };
 
     const handleShipCode = (code) => { setCodeToShip(code); setShowGithub(true); };
@@ -169,6 +172,39 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         } catch (err) { console.error("Failed to fetch models", err); }
     };
 
+    // --- NEW: SHIP TO GITHUB ---
+    const shipToGithub = async (token, filename, description, isPublic) => {
+        if (!token) throw new Error("GitHub Token is required.");
+        
+        // Save token locally for convenience
+        saveKey(token, 'github');
+        setGithubToken(token);
+
+        const payload = {
+            description: description || "Snippet from CraftMyPrompt",
+            public: isPublic,
+            files: {
+                [filename || 'snippet.txt']: {
+                    content: codeToShip
+                }
+            }
+        };
+
+        const response = await fetch('/api/github', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                token: token, 
+                action: 'create_gist', 
+                payload: payload 
+            })
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Failed to ship to GitHub.");
+        return data.html_url; // Return the URL of the new Gist
+    };
+
     const callAIProvider = async (name, text, key) => {
         const body = { apiKey: key, prompt: text };
         if (name === 'gemini') body.model = selectedModel || 'models/gemini-1.5-flash';
@@ -181,12 +217,12 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         if (!res.ok) throw new Error(data.error?.message || data.error || 'API Error');
         
         if (name === 'gemini') return data.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (name === 'openai' || name === 'groq') return data.choices?.[0]?.message?.content;
+        if (name === 'openai') return data.choices?.[0]?.message?.content;
+        if (name === 'groq') return data.choices?.[0]?.message?.content;
         if (name === 'anthropic') return data.content?.[0]?.text;
         return "No response.";
     };
 
-    // --- MAIN RUNNER ---
     const runTest = async (prompt) => {
         setLoading(true); setError(null); setResult(null); setBattleResults(null); setRefineSteps(null); setSwarmHistory([]);
         try {
@@ -197,24 +233,19 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
             if (anthropicKey) saveKey(anthropicKey, 'anthropic');
 
             if (provider === 'swarm') {
-                // Validate Keys for ALL agents
                 swarmConfig.agents.forEach(agent => {
                     if (!getKeyForProvider(agent.provider)) throw new Error(`Key missing for Agent: ${agent.role} (${agent.provider})`);
                 });
 
                 let history = [];
                 for (let i = 0; i < swarmConfig.rounds; i++) {
-                    // LOOP: Iterate through dynamic agents list
                     for (const agent of swarmConfig.agents) {
                         setStatusMessage(`Round ${i+1}: ${agent.role} is speaking...`);
-                        
                         const context = `ROUNDTABLE DISCUSSION.\nTOPIC: "${prompt}"\nYOUR ROLE: ${agent.role}\nTRANSCRIPT:\n${history.map(m=>`${m.role}: ${m.text}`).join('\n')}\nINSTRUCTION: Provide your next response. Be concise.`;
-                        
                         const responseText = await callAIProvider(agent.provider, context, getKeyForProvider(agent.provider));
-                        
                         const newMsg = { role: agent.role, text: responseText, provider: agent.provider };
                         history.push(newMsg);
-                        setSwarmHistory([...history]); // Update UI incrementally
+                        setSwarmHistory([...history]);
                     }
                 }
                 setStatusMessage('Meeting adjourned.');
@@ -262,13 +293,10 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         setStatusMessage('Continuing the meeting...');
         try {
             let updatedHistory = [...swarmHistory];
-            // One extra round for ALL agents
             for (const agent of swarmConfig.agents) {
-                if (!getKeyForProvider(agent.provider)) continue; // Skip if key missing
-                
+                if (!getKeyForProvider(agent.provider)) continue;
                 setStatusMessage(`Extra Round: ${agent.role} is speaking...`);
                 const context = `CONTINUING DISCUSSION.\nTOPIC: "${currentPrompt}"\nYOUR ROLE: ${agent.role}\nTRANSCRIPT:\n${updatedHistory.map(m => `${m.role}: ${m.text}`).join('\n')}\nINSTRUCTION: Continue/Respond.`;
-                
                 const responseText = await callAIProvider(agent.provider, context, getKeyForProvider(agent.provider));
                 updatedHistory.push({ role: agent.role, text: responseText, provider: agent.provider });
                 setSwarmHistory([...updatedHistory]);
@@ -295,13 +323,17 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         geminiKey, openaiKey, groqKey, anthropicKey, battleConfig,
         loading, result, battleResults, refineSteps, statusMessage, error, selectedModel, availableModels,
         isLoggedIn,
+        // New Github State
+        githubToken, setGithubToken, 
         
         setGeminiKey, setOpenaiKey, setGroqKey, setAnthropicKey,
         setProvider, setRefineView, setShowGithub, setRefineConfig, setSwarmConfig, setBattleConfig,
         setSelectedModel,
         
         runTest, fetchModels, clearKey, handleShipCode, handleViewChange, continueSwarm, compileSwarmCode,
-        // New Handlers for UI
-        addSwarmAgent, removeSwarmAgent, updateSwarmAgent
+        addSwarmAgent, removeSwarmAgent, updateSwarmAgent,
+        
+        // New API Function
+        shipToGithub 
     };
 };
