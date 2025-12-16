@@ -227,7 +227,7 @@ export const usePromptBuilder = (initialData) => {
           return ART_DATA;
       }
       if (state.textSubMode === 'coding') return CODING_DATA;
-      if (state.textSubMode === 'writing') return WRITING_DATA; // Fallback
+      if (state.textSubMode === 'writing') return WRITING_DATA; // Fallback for old presets
       if (state.textSubMode === 'social') return SOCIAL_DATA;
       return GENERAL_DATA;
   }, [state.mode, state.textSubMode]);
@@ -244,7 +244,7 @@ export const usePromptBuilder = (initialData) => {
     const contextDocs = [];
     const instructionOverrides = [];
 
-    // Helper to find rich instructions
+    // Helper to find rich instructions from DB
     const injectInstruction = (options) => {
         options.forEach(opt => {
             if (INSTRUCTIONS[opt]) {
@@ -259,6 +259,7 @@ export const usePromptBuilder = (initialData) => {
         const frameworks = getVals('framework_version');
         const tasks = getVals('task');
         
+        // Inject Instructions
         injectInstruction(langs);
         
         // --- RULES ENGINE: CODING ---
@@ -281,18 +282,23 @@ export const usePromptBuilder = (initialData) => {
         if (langs.some(l => l.includes('sCrypt')) || frameworks.some(f => f.includes('sCrypt'))) {
             contextDocs.push(KNOWLEDGE_BASE.scrypt_bitcoin);
         }
-        if (langs.includes('React') || langs.includes('Tailwind CSS')) {
+        
+        if (langs.includes('React') || langs.includes('Tailwind CSS') || frameworks.some(f => f.includes('React'))) {
             contextDocs.push(KNOWLEDGE_BASE.react_server_components);
             contextDocs.push(KNOWLEDGE_BASE.tailwind_modern);
         }
+
         if (langs.includes('Solidity')) contextDocs.push(KNOWLEDGE_BASE.solidity_security);
+        if (langs.includes('Python')) contextDocs.push(KNOWLEDGE_BASE.fastapi_pydantic_v2);
+        if (langs.includes('SQL') || state.customTopic.toLowerCase().includes('supabase')) contextDocs.push(KNOWLEDGE_BASE.supabase_v2);
         
-        // Assemble
+        // Fallback or append if no rich instruction
         if (instructionOverrides.length === 0) {
              if (tasks.length) parts.push(`Act as an expert Developer. Your task is to ${tasks.join(' and ')}.`);
              else parts.push("Act as an expert Developer.");
              if (langs.length) parts.push(`Tech Stack: ${langs.join(', ')}.`);
         } else {
+             // We found rich instructions, use them
              parts.push(instructionOverrides.join('\n'));
              if (tasks.length) parts.push(`Task: ${tasks.join(' and ')}.`);
         }
@@ -301,12 +307,13 @@ export const usePromptBuilder = (initialData) => {
         if (principles) parts.push(`Adhere to these principles: ${principles}.`);
 
     } else if (state.textSubMode === 'social') {
-        // --- SOCIAL RULES & KNOWLEDGE ---
+        // --- SOCIAL PROMPT STRUCTURE ---
         const platforms = getVals('platform');
         
+        // Inject rich instructions based on Platform
         injectInstruction(platforms); 
-        
-        // Check Social Rules
+
+        // --- RULES ENGINE: SOCIAL ---
         platforms.forEach(plat => {
             if (SOCIAL_RULES[plat]) {
                 const limits = SOCIAL_RULES[plat];
@@ -316,7 +323,7 @@ export const usePromptBuilder = (initialData) => {
                 if (limitText) contextDocs.push(`PLATFORM LIMITS (${plat}): ${limitText}`);
             }
         });
-
+        
         const types = getVals('content_type').join(', ');
         const hooks = getVals('hook_type').join(', ');
         const frameworks = getVals('framework').join(', ');
@@ -327,6 +334,12 @@ export const usePromptBuilder = (initialData) => {
         }
         if (types.includes('Carousel')) {
             contextDocs.push(KNOWLEDGE_BASE.social_carousel_structures);
+        }
+        if (platforms.includes('YouTube Video')) {
+            contextDocs.push(KNOWLEDGE_BASE.social_youtube_packaging);
+        }
+        if (platforms.includes('Pinterest')) {
+            contextDocs.push(KNOWLEDGE_BASE.social_pinterest_seo);
         }
         if (platforms.includes('LinkedIn')) {
              contextDocs.push(KNOWLEDGE_BASE.linkedin_viral);
@@ -348,6 +361,7 @@ export const usePromptBuilder = (initialData) => {
         const persona = getVals('persona');
         const styles = getVals('style');
         
+        // Check for Rich Persona/Style Instructions
         injectInstruction(persona);
         injectInstruction(styles);
 
@@ -374,6 +388,7 @@ export const usePromptBuilder = (initialData) => {
 
     // --- ART / VIDEO MODE LOGIC ---
     if (state.mode === 'art' || state.mode === 'video') {
+       // Check for Rich Art Instructions (e.g. Wes Anderson, Vaporwave)
        const artStyles = getVals('style');
        const videoCams = getVals('camera_move');
        const aesthetics = getVals('aesthetics');
@@ -384,7 +399,7 @@ export const usePromptBuilder = (initialData) => {
        injectInstruction(aesthetics);
        injectInstruction(avatarStyles);
        
-       // Rules Check (Art)
+        // --- RULES ENGINE: ART ---
        if (state.mode === 'art' && ART_RULES[state.targetModel]) {
            const rule = ART_RULES[state.targetModel];
            if (rule.restrictions) {
@@ -411,9 +426,17 @@ export const usePromptBuilder = (initialData) => {
 
     // Final Assembly for Art Mode vs Text Mode
     if (state.mode === 'art') {
+       // For Art, we still want the keyword string for simple copypasting, 
+       // but we might want to include the System Instruction if it's being used in an LLM context.
+       // The current logic prioritizes the "Act as..." for Text/Code/Social. 
+       // For pure art generation prompt string building:
        if (state.targetModel === 'dalle' || state.targetModel === 'gemini') {
+           // These models take natural language better, so the system instruction is good.
            return parts.join('\n');
        } else {
+           // Midjourney/SD prefer tokens.
+           // We use the existing token builder logic below, BUT we can prepend the "Act as" context if helpful for the user to see.
+           // For now, let's keep the Token Builder logic separate for MJ/SD to ensure it's paste-ready.
            return buildArtPrompt(state, processedTopic, instructionOverrides, contextDocs);
        }
     }
@@ -439,7 +462,7 @@ export const usePromptBuilder = (initialData) => {
   };
 };
 
-// --- SUBSIDIARY BUILDERS ---
+// --- SUBSIDIARY BUILDERS (Kept separate for cleanliness) ---
 
 const buildVideoPrompt = (state, topic) => {
     const parts = [];

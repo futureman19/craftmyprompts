@@ -1,10 +1,13 @@
+import { SOCIAL_RULES } from '../data/rules/socialRules.js';
+
 /**
  * Virality Validator
  * Enforces retention protocols defined in "Engineering Viral Architecture".
- * Analyzes generated content against rigid structural rules (Hooks, Duration, Syntax).
+ * Analyzes generated content against rigid structural rules (Hooks, Duration, Syntax)
+ * and Platform Constraints (Rules Engine).
  */
 
-export const validateVirality = (content, presetLabel) => {
+export const validateVirality = (content, promptContext) => {
     const checks = [];
     let score = 100;
 
@@ -14,31 +17,77 @@ export const validateVirality = (content, presetLabel) => {
     const cleanContent = content.replace(/\*\*/g, '').trim();
     const lines = cleanContent.split('\n').filter(l => l.trim().length > 0);
     const wordCount = cleanContent.split(/\s+/).length;
+    const charCount = cleanContent.length;
     
     // Estimate Duration (Avg speaking rate ~150 wpm = 2.5 words/sec)
     const durationSec = Math.ceil(wordCount / 2.5);
 
-    // --- 1. GOLDEN DURATION CHECK (Section 5.1) ---
-    // Logic: Short-form videos have a strict "Sweet Spot" for algorithm insertion.
-    if (presetLabel?.toLowerCase().includes('short') || presetLabel?.toLowerCase().includes('tiktok') || presetLabel?.toLowerCase().includes('reel')) {
-        if (durationSec < 15) {
-            checks.push({ status: 'warning', message: `Too Short: ~${durationSec}s. Algorithm prefers >15s for ad insertion.` });
-            score -= 10;
-        } else if (durationSec > 60) {
-            checks.push({ status: 'fail', message: `Too Long: ~${durationSec}s. Shorts/Reels hard limit is often 60s.` });
-            score -= 20;
-        } else {
-            checks.push({ status: 'pass', message: `Golden Duration: ~${durationSec}s (Optimal range 15-60s).` });
+    // --- 0. PLATFORM DETECTION & RULES ENGINE ---
+    // Detect which platform the prompt was targeting to apply specific rules
+    let activePlatformRule = null;
+    let platformName = "";
+
+    // Iterate through SOCIAL_RULES to find a match in the promptContext
+    // The promptContext typically contains "Act as a... for [Platform]"
+    Object.keys(SOCIAL_RULES).forEach(key => {
+        // Simple heuristic: if the prompt mentions the platform name, use those rules
+        // Removing special chars for easier matching (e.g., "X (Twitter)" -> "Twitter")
+        const keyword = key.includes('(') ? key.split('(')[1].replace(')', '') : key;
+        
+        if (promptContext?.toLowerCase().includes(keyword.toLowerCase()) || 
+            promptContext?.toLowerCase().includes(key.toLowerCase())) {
+            activePlatformRule = SOCIAL_RULES[key];
+            platformName = key;
+        }
+    });
+
+    // --- 1. HARD CONSTRAINTS (From Rules Engine) ---
+    if (activePlatformRule) {
+        // Character Limit Check
+        const maxChars = activePlatformRule.max_chars_post || activePlatformRule.max_chars_caption || activePlatformRule.max_chars_free;
+        if (maxChars) {
+            if (charCount > maxChars) {
+                checks.push({ status: 'fail', message: `Exceeds ${platformName} limit: ${charCount}/${maxChars} chars.` });
+                score -= 30; // Heavy penalty for breaking platform physics
+            } else {
+                checks.push({ status: 'pass', message: `Within limits: ${charCount}/${maxChars} chars.` });
+            }
+        }
+
+        // Video Duration Check (if applicable)
+        const maxVideoSec = activePlatformRule.video_limit_sec;
+        if (maxVideoSec) {
+            if (durationSec > maxVideoSec) {
+                checks.push({ status: 'fail', message: `Script too long for ${platformName}: ~${durationSec}s (Limit: ${maxVideoSec}s).` });
+                score -= 20;
+            }
         }
     }
 
-    // --- 2. HOOK VELOCITY (Section 3.3) ---
+    // --- 2. GOLDEN DURATION CHECK (Section 5.1) ---
+    // Logic: Short-form videos have a strict "Sweet Spot" for algorithm insertion.
+    // Only run this if we identified it as a video platform OR if we lack specific rules but it looks like a script
+    if (activePlatformRule?.video_limit_sec || activePlatformRule?.video_limit_min || promptContext?.toLowerCase().includes('script')) {
+        if (durationSec < 15) {
+            checks.push({ status: 'warning', message: `Too Short: ~${durationSec}s. Algorithm prefers >15s for ad insertion.` });
+            score -= 10;
+        } else if (durationSec > 60 && !activePlatformRule?.video_limit_min) { 
+            // Only warn about >60s if we don't have a specific long-form rule saying it's okay
+            checks.push({ status: 'fail', message: `Too Long: ~${durationSec}s. Shorts/Reels hard limit is often 60s.` });
+            score -= 20;
+        } else if (!activePlatformRule?.video_limit_sec) {
+            // Default success message if not failed above
+            checks.push({ status: 'pass', message: `Golden Duration: ~${durationSec}s.` });
+        }
+    }
+
+    // --- 3. HOOK VELOCITY (Section 3.3) ---
     // Logic: The first 3 seconds determine retention. The hook must be concise.
     const firstLine = lines[0] || "";
     const hookWords = firstLine.split(/\s+/).length;
 
     // We allow a bit more leeway for Title presets vs Script presets
-    const isTitle = presetLabel?.toLowerCase().includes('title');
+    const isTitle = promptContext?.toLowerCase().includes('title');
     const hookLimit = isTitle ? 20 : 15;
 
     if (hookWords > hookLimit) {
@@ -48,12 +97,12 @@ export const validateVirality = (content, presetLabel) => {
         checks.push({ status: 'pass', message: `Hook Velocity: ${hookWords} words (Concise & Punchy).` });
     }
 
-    // --- 3. ARCHETYPE COMPLIANCE (Section 2 & 3) ---
+    // --- 4. ARCHETYPE COMPLIANCE (Section 2 & 3) ---
     // Logic: Specific presets require specific psychological triggers.
 
-    // A. Negative Warning (Must contain "Stop", "Don't", "Never")
-    if (presetLabel?.includes("Negative Warning")) {
-        if (/stop/i.test(firstLine) || /don'?t/i.test(firstLine) || /never/i.test(firstLine) || /warning/i.test(firstLine)) {
+    // A. Negative Warning
+    if (promptContext?.includes("Negative Warning") || promptContext?.includes("Negativity")) {
+        if (/stop/i.test(firstLine) || /don'?t/i.test(firstLine) || /never/i.test(firstLine) || /warning/i.test(firstLine) || /avoid/i.test(firstLine)) {
             checks.push({ status: 'pass', message: "Negative Pattern Interrupt detected." });
         } else {
             checks.push({ status: 'fail', message: "Missing Negative Trigger ('Stop', 'Don't', 'Never') in hook." });
@@ -61,19 +110,18 @@ export const validateVirality = (content, presetLabel) => {
         }
     }
 
-    // B. Survivorship/High Stakes (Must contain "Survived" or "Built")
-    if (presetLabel?.includes("High Stakes") || presetLabel?.includes("Survivorship")) {
+    // B. Survivorship/High Stakes
+    if (promptContext?.includes("High Stakes") || promptContext?.includes("Survivorship")) {
         if (/survived/i.test(cleanContent) || /built/i.test(cleanContent)) {
-            checks.push({ status: 'pass', message: "High Stakes syntax ('Survived'/'Built') detected." });
+            checks.push({ status: 'pass', message: "High Stakes syntax detected." });
         } else {
-            checks.push({ status: 'fail', message: "Missing 'Survived' or 'Built' keyword for High Stakes format." });
+            checks.push({ status: 'fail', message: "Missing 'Survived' or 'Built' keyword." });
             score -= 25;
         }
     }
 
-    // C. Listicle/Steps (Must contain numbering)
-    if (presetLabel?.includes("Step-by-Step") || presetLabel?.includes("Listicle") || presetLabel?.includes("Tier List")) {
-        // Look for "1.", "2.", or "Tier"
+    // C. Listicle/Steps
+    if (promptContext?.includes("Step-by-Step") || promptContext?.includes("Listicle") || promptContext?.includes("Tier List")) {
         const hasNumbers = lines.some(l => /^\d+\./.test(l.trim()));
         const hasTiers = cleanContent.match(/[SABC]-Tier/i);
         
@@ -85,12 +133,11 @@ export const validateVirality = (content, presetLabel) => {
         }
     }
 
-    // --- 4. READABILITY GATE (Section 6.2) ---
+    // --- 5. READABILITY GATE (Section 6.2) ---
     // Logic: Complex words kill retention. 
-    // Check for words > 14 characters (roughly equates to complex academic language)
     const longWords = cleanContent.split(/\s+/).filter(w => w.length > 14);
     if (longWords.length > 1) {
-        checks.push({ status: 'warning', message: `Detected ${longWords.length} complex words (e.g., "${longWords[0]}"). Simplify for mass appeal.` });
+        checks.push({ status: 'warning', message: `Detected complex words (e.g. "${longWords[0]}"). Simplify for mass appeal.` });
         score -= 5;
     }
 

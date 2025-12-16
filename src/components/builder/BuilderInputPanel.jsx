@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { 
   Wand2, Brain, XCircle, Code, Terminal, Globe, RefreshCw, Download, 
-  Ban, Sliders, ImagePlus, Cpu, ChevronDown, Search, X
+  Ban, Sliders, ImagePlus, Cpu, ChevronDown, Search, X, TrendingUp
 } from 'lucide-react';
 import { STYLE_PREVIEWS } from '../../data/stylePreviews.js';
 import VisualSearchModal from '../VisualSearchModal.jsx';
+import TrendWidget from '../TrendWidget.jsx';
 
 const BuilderInputPanel = ({ 
     // State
@@ -14,9 +15,15 @@ const BuilderInputPanel = ({
     dispatch, setContextUrl, handleFetchContext, toggleCategory, toggleSelection, toggleSubcatExpansion
 }) => {
     const [showVisualSearch, setShowVisualSearch] = useState(false);
+    const [showTrendWidget, setShowTrendWidget] = useState(false);
 
     const handleImageSelect = (url) => {
         dispatch({ type: 'UPDATE_FIELD', field: 'referenceImage', value: url });
+    };
+
+    const handleTrendSelect = (title) => {
+        dispatch({ type: 'UPDATE_FIELD', field: 'customTopic', value: title });
+        setShowTrendWidget(false);
     };
 
     return (
@@ -27,13 +34,34 @@ const BuilderInputPanel = ({
                     <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
                         <Wand2 size={14} /> {state.mode === 'text' ? (state.textSubMode === 'coding' ? 'Task / Instruction' : 'Topic / Content') : 'Main Subject'}
                     </h3>
-                    {state.mode === 'text' && (
-                        <div className="flex items-center gap-2">
-                                <button onClick={() => dispatch({ type: 'UPDATE_FIELD', field: 'chainOfThought', value: !state.chainOfThought })} className={`p-1 rounded-lg text-[10px] font-bold border transition-all flex items-center gap-1 ${state.chainOfThought ? 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 dark:border-emerald-800' : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-700 dark:text-slate-400 dark:border-slate-600 hover:bg-slate-200'}`} title="Chain of Thought"><Brain size={12} /> <span className="hidden sm:inline">CoT</span></button>
-                                {state.textSubMode === 'coding' && <button onClick={() => dispatch({ type: 'UPDATE_FIELD', field: 'codeOnly', value: !state.codeOnly })} className={`p-1 rounded-lg text-[10px] font-bold border transition-all flex items-center gap-1 ${state.codeOnly ? 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/40 dark:text-red-300 dark:border-red-800' : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-700 dark:text-slate-400 dark:border-slate-600 hover:bg-slate-200'}`} title="Code Only"><XCircle size={12} /> <span className="hidden sm:inline">Code Only</span></button>}
-                        </div>
-                    )}
+                    
+                    <div className="flex items-center gap-2">
+                         {/* Trend Toggle Button */}
+                         {state.mode === 'text' && (
+                            <button 
+                                onClick={() => setShowTrendWidget(!showTrendWidget)}
+                                className={`p-1 rounded-lg text-[10px] font-bold border transition-all flex items-center gap-1 ${showTrendWidget ? 'bg-indigo-100 text-indigo-700 border-indigo-200 dark:bg-indigo-900/40 dark:text-indigo-300 dark:border-indigo-800' : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-700 dark:text-slate-400 dark:border-slate-600 hover:bg-slate-200'}`}
+                                title="Viral Trends"
+                            >
+                                <TrendingUp size={12} /> <span className="hidden sm:inline">Trending</span>
+                            </button>
+                         )}
+
+                         {state.mode === 'text' && (
+                            <button onClick={() => dispatch({ type: 'UPDATE_FIELD', field: 'chainOfThought', value: !state.chainOfThought })} className={`p-1 rounded-lg text-[10px] font-bold border transition-all flex items-center gap-1 ${state.chainOfThought ? 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 dark:border-emerald-800' : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-700 dark:text-slate-400 dark:border-slate-600 hover:bg-slate-200'}`} title="Chain of Thought"><Brain size={12} /> <span className="hidden sm:inline">CoT</span></button>
+                         )}
+                         {state.mode === 'text' && state.textSubMode === 'coding' && (
+                            <button onClick={() => dispatch({ type: 'UPDATE_FIELD', field: 'codeOnly', value: !state.codeOnly })} className={`p-1 rounded-lg text-[10px] font-bold border transition-all flex items-center gap-1 ${state.codeOnly ? 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/40 dark:text-red-300 dark:border-red-800' : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-700 dark:text-slate-400 dark:border-slate-600 hover:bg-slate-200'}`} title="Code Only"><XCircle size={12} /> <span className="hidden sm:inline">Code Only</span></button>
+                         )}
+                    </div>
                 </div>
+                
+                {/* Trend Widget Injection */}
+                {showTrendWidget && (
+                    <div className="mb-3">
+                        <TrendWidget onSelectTopic={handleTrendSelect} onClose={() => setShowTrendWidget(false)} />
+                    </div>
+                )}
                 
                 <textarea 
                     className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-700 focus:ring-0 focus:outline-none resize-none text-sm leading-relaxed dark:text-slate-200 min-h-[80px]" 
