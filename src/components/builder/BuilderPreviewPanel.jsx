@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   FileText, Zap, RefreshCw, Check, Copy as CopyIcon, Braces, 
-  Lock, Globe, Save, Bookmark, ArrowLeft 
+  Lock, Globe, Save, Bookmark, ArrowLeft, BookmarkPlus 
 } from 'lucide-react';
 // Updated import path with explicit extension for reliability
 import TestRunnerPanel from '../test-runner/TestRunnerPanel.jsx';
@@ -46,6 +46,17 @@ const BuilderPreviewPanel = ({
                         <h2 className="font-bold text-sm flex items-center gap-2"><FileText size={16} className={state.mode === 'text' ? 'text-indigo-400' : 'text-pink-400'} /> Preview</h2>
                     </div>
                     <div className="flex gap-2">
+                        {/* CTO UPDATE: Added Save as Preset Button */}
+                        <button 
+                            onClick={handleSaveAsPreset} 
+                            className="p-1.5 hover:bg-slate-800 rounded text-amber-500 hover:text-amber-400 transition-colors" 
+                            title="Save current setup as Preset"
+                        >
+                            <BookmarkPlus size={14} />
+                        </button>
+                        
+                        <div className="w-px h-4 bg-slate-800 my-auto mx-1"></div>
+
                         {state.mode === 'art' && (
                             <button onClick={() => dispatch({ type: 'MAGIC_EXPAND' })} className="p-1.5 bg-gradient-to-r from-yellow-500 to-orange-500 rounded hover:opacity-90 transition-opacity text-white" title="Magic Expand"><Zap size={14} /></button>
                         )}
