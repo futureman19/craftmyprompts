@@ -10,12 +10,14 @@ import TrendWidget from '../TrendWidget.jsx';
 const BuilderInputPanel = ({ 
     // State
     state, detectedVars, expandedCategories, expandedSubcats, filteredData,
-    contextUrl, isFetchingContext,
+    contextUrl, isFetchingContext, isSimpleMode,
+    // CTO UPDATE: Received from Parent (Lifted State)
+    showTrendWidget, setShowTrendWidget,
     // Actions
     dispatch, setContextUrl, handleFetchContext, toggleCategory, toggleSelection, toggleSubcatExpansion
 }) => {
     const [showVisualSearch, setShowVisualSearch] = useState(false);
-    const [showTrendWidget, setShowTrendWidget] = useState(false);
+    // Removed local showTrendWidget state to use props instead
 
     const handleImageSelect = (url) => {
         dispatch({ type: 'UPDATE_FIELD', field: 'referenceImage', value: url });
@@ -36,7 +38,7 @@ const BuilderInputPanel = ({
                     </h3>
                     
                     <div className="flex items-center gap-2">
-                         {/* Trend Toggle Button */}
+                         {/* Trend Toggle Button (Local Convenience) */}
                          {state.mode === 'text' && (
                             <button 
                                 onClick={() => setShowTrendWidget(!showTrendWidget)}

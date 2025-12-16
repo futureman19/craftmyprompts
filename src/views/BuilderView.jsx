@@ -8,15 +8,12 @@ import WizardMode from '../components/WizardMode.jsx';
 
 const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHistory, onLoginRequest }) => {
   // 1. Initialize the "Brain"
-  // This hook handles all state, Firebase logic, and event handlers
   const builder = useBuilderView(user, initialData, clearInitialData, showToast, addToHistory, onLoginRequest);
 
-  // 2. Render the View
   return (
       <div className="flex flex-col md:flex-row h-full w-full relative">
         
         {/* --- LEFT PANEL: BUILDER --- */}
-        {/* Visible on Mobile (if tab is 'edit') and Desktop */}
         <div className={`flex-1 min-w-0 flex-col h-full overflow-hidden bg-slate-50 dark:bg-slate-900 transition-colors ${builder.mobileTab === 'preview' ? 'hidden md:flex' : 'flex'}`}>
             
             <BuilderHeader 
@@ -26,7 +23,10 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                 user={user}
                 customPresets={builder.customPresets}
                 currentData={builder.currentData}
-                isSimpleMode={builder.isSimpleMode} // <--- Pass Vibe Mode State
+                isSimpleMode={builder.isSimpleMode}
+                // CTO UPDATE: Passing Trend State to Header
+                showTrendWidget={builder.showTrendWidget}
+                setShowTrendWidget={builder.setShowTrendWidget}
                 
                 dispatch={builder.dispatch}
                 setMobileTab={builder.setMobileTab}
@@ -34,7 +34,8 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                 setShowWizard={builder.setShowWizard}
                 applyPreset={builder.applyPreset}
                 showToast={showToast}
-                setIsSimpleMode={builder.setIsSimpleMode} // <--- Pass Toggle Handler
+                handleSaveAsPreset={builder.handleSaveAsPreset}
+                setIsSimpleMode={builder.setIsSimpleMode}
             />
 
             <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
@@ -46,8 +47,12 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                     filteredData={builder.filteredData}
                     contextUrl={builder.contextUrl}
                     isFetchingContext={builder.isFetchingContext}
-                    isSimpleMode={builder.isSimpleMode} // <--- Pass Vibe Mode State
+                    isSimpleMode={builder.isSimpleMode}
                     
+                    // CTO UPDATE: Passing Trend State to Panel so it opens when Header button is clicked
+                    showTrendWidget={builder.showTrendWidget}
+                    setShowTrendWidget={builder.setShowTrendWidget}
+
                     dispatch={builder.dispatch}
                     setContextUrl={builder.setContextUrl}
                     handleFetchContext={builder.handleFetchContext}
@@ -59,7 +64,6 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
         </div>
         
         {/* --- RIGHT PANEL: PREVIEW & TEST RUNNER --- */}
-        {/* Visible on Mobile (if tab is 'preview') and Desktop */}
         <BuilderPreviewPanel 
             state={builder.state}
             generatedPrompt={builder.generatedPrompt}
@@ -68,7 +72,6 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
             copiedJson={builder.copiedJson}
             saveVisibility={builder.saveVisibility}
             isSaving={builder.isSaving}
-            // CTO UPDATE: Passing Global Keys down for the embedded TestRunner
             globalApiKey={builder.globalApiKey}
             globalOpenAIKey={builder.globalOpenAIKey}
             
@@ -84,7 +87,6 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
         />
 
         {/* --- MODALS --- */}
-        {/* Kept for mobile fallback or specific triggers if needed */}
         <TestRunnerModal 
             isOpen={builder.showTestModal} 
             onClose={() => builder.setShowTestModal(false)} 
@@ -96,10 +98,10 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
         
         <WizardMode 
             isOpen={builder.showWizard} 
-            onClose={() => builder.setShowWizard(false)}
-            data={builder.currentData}
-            selections={builder.state.selections}
-            onToggle={builder.toggleSelection}
+            onClose={() => builder.setShowWizard(false)} 
+            data={builder.currentData} 
+            selections={builder.state.selections} 
+            onToggle={builder.toggleSelection} 
             mode={builder.state.mode}
         />
       </div>
