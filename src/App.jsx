@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
-import { signOut } from 'firebase/auth';
-import { auth } from './lib/firebase.js';
+// Removed Firebase imports
+import { supabase } from './lib/supabase.js';
 
 import Sidebar from './components/Sidebar.jsx';
 import Notification from './components/Notification.jsx';
@@ -41,20 +41,33 @@ const App = () => {
     }
   }, [darkMode]);
 
-  // Check auth state on mount
+  // Check auth state on mount (Supabase Version)
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
-      if (firebaseUser) {
+    // 1. Check active session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
         setUser({
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0]
+            uid: session.user.id, // Map Supabase 'id' to 'uid' for compatibility
+            email: session.user.email,
+            displayName: session.user.user_metadata?.full_name || session.user.email?.split('@')[0]
         });
-      } else {
-        setUser(null);
       }
     });
-    return () => unsubscribe();
+
+    // 2. Listen for changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (session?.user) {
+            setUser({
+                uid: session.user.id,
+                email: session.user.email,
+                displayName: session.user.user_metadata?.full_name || session.user.email?.split('@')[0]
+            });
+        } else {
+            setUser(null);
+        }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   // --- HELPERS ---
@@ -74,7 +87,8 @@ const App = () => {
 
   const handleLogout = async () => {
       try {
-        await signOut(auth);
+        const { error } = await supabase.auth.signOut();
+        if (error) throw error;
         setUser(null);
         showToast("Logged out successfully.");
       } catch (error) {
@@ -93,7 +107,6 @@ const App = () => {
     <div className="flex flex-col md:flex-row w-full h-screen md:h-dvh bg-slate-100 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 overflow-hidden transition-colors duration-200">
         
         {/* Sidebar Component */}
-        {/* Placed first for Desktop left-alignment. Mobile 'fixed' styling handles bottom position. */}
         <Sidebar 
             handleLogin={handleLoginRequest} 
             handleLogout={handleLogout} 
@@ -103,7 +116,6 @@ const App = () => {
         />
         
         {/* Main Content Area */}
-        {/* pb-20 adds padding at the bottom on mobile so content isn't hidden behind the fixed nav bar */}
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative pb-20 md:pb-0">
             <Routes>
                 {/* Public Route: Builder is now accessible to everyone */}

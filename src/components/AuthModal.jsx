@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../lib/firebase.js';
+import { supabase } from '../lib/supabase.js';
 
 const AuthModal = ({ isOpen, onClose, showToast }) => {
   const [email, setEmail] = useState('');
@@ -15,12 +14,32 @@ const AuthModal = ({ isOpen, onClose, showToast }) => {
     setIsLoading(true);
     try {
       if (isSignup) {
-        await createUserWithEmailAndPassword(auth, email, password);
-        showToast("Account created successfully!");
+        // Supabase Sign Up
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+        
+        if (error) throw error;
+
+        // Check if email confirmation is required (Supabase default)
+        if (data?.user && !data?.session) {
+            showToast("Please check your email to confirm your account.", "success");
+        } else {
+            showToast("Account created successfully!", "success");
+        }
+
       } else {
-        await signInWithEmailAndPassword(auth, email, password);
-        showToast("Logged in successfully!");
+        // Supabase Sign In
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error) throw error;
+        showToast("Logged in successfully!", "success");
       }
+      
       onClose();
       // Reset form
       setEmail('');

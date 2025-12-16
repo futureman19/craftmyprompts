@@ -1,42 +1,22 @@
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
+// --- DEPRECATED ---
+// This file is no longer used by the application.
+// "CraftMyPrompt" has migrated to Supabase (PostgreSQL).
 
-    // Helper: Check if the user is logged in
-    function isSignedIn() {
-      return request.auth != null;
-    }
+// SECURITY MIGRATION NOTE:
+// Data security is now enforced by PostgreSQL Row Level Security (RLS) policies.
+// You can view and manage these policies in your Supabase Dashboard -> Authentication -> Policies.
 
-    // Helper: Check if the user is the owner of the data
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
+// The equivalent logic for the old rules below has been implemented in SQL:
+// 1. PUBLIC FEED -> CREATE POLICY "Users can view public prompts" ON prompts FOR SELECT USING (visibility = 'public');
+// 2. USER LIBRARY -> CREATE POLICY "Users can view own prompts" ON prompts FOR ALL USING (auth.uid() = user_id);
 
-    // --- RULES FOR THE APP DATA ---
-    match /artifacts/{appId} {
-
-      // 1. PUBLIC FEED (Posts)
-      match /public/data/posts/{postId} {
-        allow read: if true;
-        allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
-        allow update: if isSignedIn();
-        allow delete: if false; 
-      }
-
-      // 2. USER LIBRARY (Saved Prompts)
-      match /users/{userId}/saved_prompts/{document=**} {
-        allow read, write: if isOwner(userId);
-      }
-
-      // 3. USER PRESETS (Custom Templates)
-      match /users/{userId}/presets/{document=**} {
-        allow read, write: if isOwner(userId);
-      }
-
-      // 4. USER SNIPPETS (Saved Results) -- NEW RULE
-      match /users/{userId}/snippets/{document=**} {
-        allow read, write: if isOwner(userId);
-      }
-    }
-  }
-}
+// Old Firestore Rules (Inactive):
+// rules_version = '2';
+// service cloud.firestore {
+//   match /databases/{database}/documents {
+//     match /artifacts/{appId} {
+//       match /public/data/posts/{postId} { allow read: if true; ... }
+//       match /users/{userId}/saved_prompts/{document=**} { allow read, write: if request.auth.uid == userId; }
+//     }
+//   }
+// }

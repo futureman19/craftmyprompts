@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { auth } from '../lib/firebase.js';
+import { supabase } from '../lib/supabase.js';
 
 export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
     // --- STATE ---
@@ -13,7 +13,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
     // GitHub State
     const [showGithub, setShowGithub] = useState(false);
     const [codeToShip, setCodeToShip] = useState('');
-    const [githubToken, setGithubToken] = useState(''); // New State
+    const [githubToken, setGithubToken] = useState('');
 
     // --- CONFIGURATIONS ---
     const [battleConfig, setBattleConfig] = useState({
@@ -27,7 +27,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         focus: 'general'
     });
 
-    // Dynamic Agents Array (Replaces hardcoded agentA/B)
+    // Dynamic Agents Array
     const [swarmConfig, setSwarmConfig] = useState({
         rounds: 3,
         agents: [
@@ -56,10 +56,16 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
     const [selectedModel, setSelectedModel] = useState('');
     const [availableModels, setAvailableModels] = useState([]);
 
-    // --- INITIALIZATION ---
+    // --- INITIALIZATION (SUPABASE) ---
     useEffect(() => {
-        const unsubscribe = auth.onAuthStateChanged((user) => {
-            setIsLoggedIn(!!user && user.uid !== 'demo');
+        // 1. Check initial session
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            setIsLoggedIn(!!session?.user);
+        });
+
+        // 2. Listen for changes
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            setIsLoggedIn(!!session?.user);
         });
 
         if (defaultApiKey) setGeminiKey(defaultApiKey);
@@ -70,12 +76,15 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
 
         setGroqKey(localStorage.getItem('craft_my_prompt_groq_key') || '');
         setAnthropicKey(localStorage.getItem('craft_my_prompt_anthropic_key') || '');
-        setGithubToken(localStorage.getItem('craft_my_prompt_github_key') || ''); // Load GitHub Token
+        setGithubToken(localStorage.getItem('craft_my_prompt_github_key') || '');
 
-        return () => unsubscribe();
+        return () => subscription.unsubscribe();
     }, [defaultApiKey, defaultOpenAIKey]);
 
-    useEffect(() => { if (geminiKey) fetchModels(geminiKey); }, [geminiKey]);
+    useEffect(() => { 
+        if (geminiKey) fetchModels(geminiKey); 
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [geminiKey]);
 
     // --- HELPERS ---
     const saveKey = (key, providerName) => {
@@ -96,7 +105,11 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         else if (providerName === 'github') setGithubToken('');
     };
 
-    const handleShipCode = (code) => { setCodeToShip(code); setShowGithub(true); };
+    const handleShipCode = (code) => { 
+        setCodeToShip(code); 
+        setShowGithub(true); 
+    };
+
     const handleViewChange = (mode) => {
         setViewMode(mode);
         if (mode === 'simple') setProvider('gemini');
@@ -113,7 +126,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         }
     };
 
-    // --- AGENT MANAGEMENT HANDLERS ---
+    // --- AGENT MANAGEMENT ---
     const addSwarmAgent = () => {
         if (swarmConfig.agents.length >= 4) return;
         setSwarmConfig(prev => ({
@@ -172,11 +185,10 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         } catch (err) { console.error("Failed to fetch models", err); }
     };
 
-    // --- NEW: SHIP TO GITHUB ---
+    // --- SHIP TO GITHUB ---
     const shipToGithub = async (token, filename, description, isPublic) => {
         if (!token) throw new Error("GitHub Token is required.");
         
-        // Save token locally for convenience
         saveKey(token, 'github');
         setGithubToken(token);
 
@@ -202,7 +214,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
 
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Failed to ship to GitHub.");
-        return data.html_url; // Return the URL of the new Gist
+        return data.html_url;
     };
 
     const callAIProvider = async (name, text, key) => {
@@ -226,7 +238,6 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
     const runTest = async (prompt) => {
         setLoading(true); setError(null); setResult(null); setBattleResults(null); setRefineSteps(null); setSwarmHistory([]);
         try {
-            // Save keys dynamically
             if (geminiKey) saveKey(geminiKey, 'gemini');
             if (openaiKey) saveKey(openaiKey, 'openai');
             if (groqKey) saveKey(groqKey, 'groq');
@@ -241,8 +252,11 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
                 for (let i = 0; i < swarmConfig.rounds; i++) {
                     for (const agent of swarmConfig.agents) {
                         setStatusMessage(`Round ${i+1}: ${agent.role} is speaking...`);
+                        
                         const context = `ROUNDTABLE DISCUSSION.\nTOPIC: "${prompt}"\nYOUR ROLE: ${agent.role}\nTRANSCRIPT:\n${history.map(m=>`${m.role}: ${m.text}`).join('\n')}\nINSTRUCTION: Provide your next response. Be concise.`;
+                        
                         const responseText = await callAIProvider(agent.provider, context, getKeyForProvider(agent.provider));
+                        
                         const newMsg = { role: agent.role, text: responseText, provider: agent.provider };
                         history.push(newMsg);
                         setSwarmHistory([...history]);
@@ -323,17 +337,13 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         geminiKey, openaiKey, groqKey, anthropicKey, battleConfig,
         loading, result, battleResults, refineSteps, statusMessage, error, selectedModel, availableModels,
         isLoggedIn,
-        // New Github State
-        githubToken, setGithubToken, 
+        githubToken, setGithubToken,
         
         setGeminiKey, setOpenaiKey, setGroqKey, setAnthropicKey,
         setProvider, setRefineView, setShowGithub, setRefineConfig, setSwarmConfig, setBattleConfig,
         setSelectedModel,
         
         runTest, fetchModels, clearKey, handleShipCode, handleViewChange, continueSwarm, compileSwarmCode,
-        addSwarmAgent, removeSwarmAgent, updateSwarmAgent,
-        
-        // New API Function
-        shipToGithub 
+        addSwarmAgent, removeSwarmAgent, updateSwarmAgent, shipToGithub
     };
 };

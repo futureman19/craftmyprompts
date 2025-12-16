@@ -1,23 +1,21 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+// --- DEPRECATED ---
+// This file is kept temporarily to prevent build errors during the migration phase.
+// The application has moved to Supabase (PostgreSQL).
+// Please use 'src/lib/supabase.js' for all database and auth operations.
 
-// Your web app's Firebase configuration
-const userFirebaseConfig = {
-  apiKey: "AIzaSyDPA3ub150UZqnf2tltnKU9Mh5HIJvw74I",
-  authDomain: "craft-my-prompt-app.firebaseapp.com",
-  projectId: "craft-my-prompt-app",
-  storageBucket: "craft-my-prompt-app.firebasestorage.app",
-  messagingSenderId: "222602005796",
-  appId: "1:222602005796:web:4100bd0dbd8b17883637b1"
+export const auth = {
+    currentUser: null,
+    onAuthStateChanged: () => {
+        console.warn("Firebase Auth is deprecated. Please use Supabase Auth.");
+        return () => {}; // Return dummy unsubscribe function
+    }
 };
 
-const firebaseConfig = (typeof __firebase_config !== 'undefined') 
-  ? JSON.parse(__firebase_config) 
-  : userFirebaseConfig;
+export const db = {
+    collection: () => {
+        console.warn("Firebase Firestore is deprecated. Please use Supabase Client.");
+    }
+};
 
-const app = initializeApp(firebaseConfig);
-
-export const auth = getAuth(app);
-export const db = getFirestore(app);
+// Kept for backward compatibility with any remaining imports
 export const APP_ID = (typeof __app_id !== 'undefined') ? __app_id : "craft-my-prompt-app";

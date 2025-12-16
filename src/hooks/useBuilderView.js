@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
-import { addDoc, collection, serverTimestamp, onSnapshot, query, orderBy } from 'firebase/firestore';
-import { updateProfile } from 'firebase/auth';
-import { db, auth, APP_ID } from '../lib/firebase.js';
+import { supabase } from '../lib/supabase.js';
+import { updateProfile } from 'firebase/auth'; // Note: If using Supabase Auth, we should eventually remove this. 
+// However, since App.jsx still maps user objects, we will use Supabase's update method below.
 import { usePromptBuilder } from './usePromptBuilder.js';
+import { APP_ID } from '../lib/firebase.js'; // Kept for ID reference if needed, but mostly unused now.
 
 export const useBuilderView = (user, initialData, clearInitialData, showToast, addToHistory, onLoginRequest) => {
     // 1. Initialize Core Logic (The Prompt Engine)
@@ -12,8 +13,7 @@ export const useBuilderView = (user, initialData, clearInitialData, showToast, a
     // 2. View State (UI Controls)
     const [mobileTab, setMobileTab] = useState('edit'); // 'edit' | 'preview'
     
-    // CTO UPDATE: Vibe Mode State
-    // false = Pro Mode (Full Control), true = Vibe Mode (Simple/Beginner)
+    // Vibe Mode State
     const [isSimpleMode, setIsSimpleMode] = useState(false);
 
     const [activeCategory, setActiveCategory] = useState(null);
@@ -50,21 +50,24 @@ export const useBuilderView = (user, initialData, clearInitialData, showToast, a
         }
     }, [initialData, dispatch, showToast, clearInitialData]);
 
-    // Fetch Custom Presets (Real-time)
-    useEffect(() => {
+    // Fetch Custom Presets (Supabase)
+    const fetchPresets = async () => {
         if (!user) {
             setCustomPresets([]);
             return;
         }
-        const q = query(
-            collection(db, 'artifacts', APP_ID, 'users', user.uid, 'presets'),
-            orderBy('createdAt', 'desc')
-        );
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const presets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            setCustomPresets(presets);
-        });
-        return () => unsubscribe();
+        const { data, error } = await supabase
+            .from('presets')
+            .select('*')
+            .eq('user_id', user.uid)
+            .order('created_at', { ascending: false });
+
+        if (error) console.error('Error loading presets:', error);
+        else setCustomPresets(data || []);
+    };
+
+    useEffect(() => {
+        fetchPresets();
     }, [user]);
 
     // --- ACTIONS ---
@@ -112,13 +115,17 @@ export const useBuilderView = (user, initialData, clearInitialData, showToast, a
             return;
         }
         try {
-            await addDoc(collection(db, 'artifacts', APP_ID, 'users', user.uid, 'snippets'), {
+            // Supabase Insert
+            const { error } = await supabase.from('snippets').insert({
+                user_id: user.uid,
                 content: content,
                 label: label,
                 type: state.mode,
-                promptUsed: generatedPrompt,
-                createdAt: serverTimestamp()
+                prompt_used: generatedPrompt,
+                created_at: new Date().toISOString()
             });
+
+            if (error) throw error;
             showToast("Result saved to Snippets!");
         } catch (e) {
             console.error("Error saving snippet:", e);
@@ -155,19 +162,18 @@ export const useBuilderView = (user, initialData, clearInitialData, showToast, a
         if (!name) return;
 
         try {
-            const presetData = {
+            const { error } = await supabase.from('presets').insert({
+                user_id: user.uid,
                 label: name,
                 mode: state.mode,
-                textSubMode: state.textSubMode || 'general',
-                selections: state.selections,
-                customTopic: state.customTopic || '',
-                codeContext: state.codeContext || '',
-                lang: state.selections.language?.[0]?.value || null,
-                avatar_style: state.selections.avatar_style?.[0]?.value || null,
-                createdAt: serverTimestamp()
-            };
-            await addDoc(collection(db, 'artifacts', APP_ID, 'users', user.uid, 'presets'), presetData);
+                selections: state.selections, // Automatically handled as JSONB
+                created_at: new Date().toISOString()
+            });
+
+            if (error) throw error;
+            
             showToast("Preset saved! Check the Presets menu.");
+            fetchPresets(); // Refresh list
         } catch (error) {
             console.error("Error saving preset:", error);
             showToast("Failed to save preset.", "error");
@@ -200,47 +206,51 @@ export const useBuilderView = (user, initialData, clearInitialData, showToast, a
             onLoginRequest();
             return;
         }
+        
+        // Handle Display Name Update (if public)
         if (saveVisibility === 'public' && !displayName && (!user.displayName || user.displayName === 'Guest')) {
              const name = prompt("Please enter a display name for the community:");
              if(name) { 
-                 setDisplayName(name); 
-                 if (auth.currentUser && user.uid !== 'demo') {
-                    await updateProfile(auth.currentUser, { displayName: name }); 
-                 }
+                 setDisplayName(name);
+                 // Update Supabase Meta
+                 await supabase.auth.updateUser({ data: { full_name: name } });
              } else { return; }
         }
         
         setIsSaving(true);
         try {
             const saveData = {
+                user_id: user.uid,
                 prompt: generatedPrompt,
-                selections: state.selections,
-                customTopic: state.customTopic,
                 type: state.mode,
-                textSubMode: state.mode === 'text' ? state.textSubMode : null,
-                chainOfThought: state.chainOfThought,
-                codeOnly: state.codeOnly,
-                codeContext: state.codeContext,
-                visibility: saveVisibility,
-                negativePrompt: state.negativePrompt,
-                referenceImage: state.referenceImage,
-                targetModel: state.targetModel,
-                loraName: state.loraName,
-                seed: state.seed,
-                createdAt: serverTimestamp()
+                sub_mode: state.mode === 'text' ? state.textSubMode : null,
+                selections: state.selections,
+                custom_topic: state.customTopic,
+                reference_image: state.referenceImage,
+                negative_prompt: state.negativePrompt,
+                visibility: saveVisibility, // 'public' or 'private'
+                author_name: displayName || user.displayName || 'Anonymous',
+                // Pack technical configs into JSONB
+                model_config: {
+                    loraName: state.loraName,
+                    seed: state.seed,
+                    chainOfThought: state.chainOfThought,
+                    codeOnly: state.codeOnly,
+                    codeContext: state.codeContext,
+                    targetModel: state.targetModel
+                },
+                created_at: new Date().toISOString()
             };
             
-            await addDoc(collection(db, 'artifacts', APP_ID, 'users', user.uid, 'saved_prompts'), saveData);
+            // Supabase Insert (One table for both public/private)
+            const { error } = await supabase.from('prompts').insert(saveData);
+
+            if (error) throw error;
+            
             addToHistory(generatedPrompt, state.mode);
             
             if (saveVisibility === 'public') {
-                await addDoc(collection(db, 'artifacts', APP_ID, 'public', 'data', 'posts'), { 
-                    ...saveData, 
-                    authorId: user.uid, 
-                    authorName: displayName || user.displayName || 'Anonymous', 
-                    likes: 0 
-                });
-                showToast("Published & Saved!");
+                showToast("Published to Feed & Saved!");
             } else {
                 showToast("Saved to Library!");
             }
@@ -266,7 +276,7 @@ export const useBuilderView = (user, initialData, clearInitialData, showToast, a
         // Core Data
         state, dispatch, generatedPrompt, currentData, detectedVars,
         // UI State
-        mobileTab, setMobileTab, isSimpleMode, setIsSimpleMode, // <--- Exported Here
+        mobileTab, setMobileTab, isSimpleMode, setIsSimpleMode,
         activeCategory, setActiveCategory, expandedCategories, toggleCategory,
         expandedSubcats, toggleSubcatExpansion, searchTerm, setSearchTerm,
         showTestModal, setShowTestModal, showWizard, setShowWizard,

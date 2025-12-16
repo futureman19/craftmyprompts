@@ -1,20 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, doc, deleteDoc, addDoc, query, orderBy, serverTimestamp } from 'firebase/firestore';
 import { RefreshCw, Save, Trash2, Copy, Check, Terminal, FileText, Bookmark, Play, Lock, Code, Zap, BookOpen, Plus, Github } from 'lucide-react';
-import { db, APP_ID } from '../lib/firebase.js';
+import { supabase } from '../lib/supabase.js';
 import { formatTimestamp } from '../utils/index.js';
 import GitHubModal from '../components/GitHubModal.jsx';
 
 const SavedView = ({ user, loadPrompt, showToast }) => {
-  const [activeTab, setActiveTab] = useState('prompts'); // 'prompts' | 'snippets' | 'presets' | 'knowledge'
-  
-  // Data State
+  const [activeTab, setActiveTab] = useState('prompts'); 
   const [prompts, setPrompts] = useState([]);
   const [snippets, setSnippets] = useState([]);
   const [presets, setPresets] = useState([]);
   const [knowledge, setKnowledge] = useState([]);
   
-  // UI State
   const [loading, setLoading] = useState(true);
   const [copiedId, setCopiedId] = useState(null);
   
@@ -27,66 +23,78 @@ const SavedView = ({ user, loadPrompt, showToast }) => {
   const [newKnowledgeTitle, setNewKnowledgeTitle] = useState('');
   const [newKnowledgeContent, setNewKnowledgeContent] = useState('');
 
-  // --- FETCH DATA ---
-  useEffect(() => {
+  // --- FETCH DATA (SUPABASE) ---
+  const fetchData = async () => {
     if (!user || user.uid === 'demo') {
         setLoading(false);
         return;
     }
-
     setLoading(true);
 
-    // 1. Fetch Saved Prompts
-    const promptsQuery = query(
-        collection(db, 'artifacts', APP_ID, 'users', user.uid, 'saved_prompts'),
-        orderBy('createdAt', 'desc')
-    );
-    const unsubPrompts = onSnapshot(promptsQuery, (snapshot) => {
-        setPrompts(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
-    });
+    try {
+        // 1. Prompts
+        const { data: promptsData } = await supabase
+            .from('prompts')
+            .select('*')
+            .eq('user_id', user.uid)
+            .order('created_at', { ascending: false });
+        if (promptsData) setPrompts(promptsData);
 
-    // 2. Fetch Snippets (Results)
-    const snippetsQuery = query(
-        collection(db, 'artifacts', APP_ID, 'users', user.uid, 'snippets'),
-        orderBy('createdAt', 'desc')
-    );
-    const unsubSnippets = onSnapshot(snippetsQuery, (snapshot) => {
-        setSnippets(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
-    });
+        // 2. Snippets
+        const { data: snippetsData } = await supabase
+            .from('snippets')
+            .select('*')
+            .eq('user_id', user.uid)
+            .order('created_at', { ascending: false });
+        if (snippetsData) setSnippets(snippetsData);
 
-    // 3. Fetch Presets (Tools)
-    const presetsQuery = query(
-        collection(db, 'artifacts', APP_ID, 'users', user.uid, 'presets'),
-        orderBy('createdAt', 'desc')
-    );
-    const unsubPresets = onSnapshot(presetsQuery, (snapshot) => {
-        setPresets(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
-    });
+        // 3. Presets
+        const { data: presetsData } = await supabase
+            .from('presets')
+            .select('*')
+            .eq('user_id', user.uid)
+            .order('created_at', { ascending: false });
+        if (presetsData) setPresets(presetsData);
 
-    // 4. Fetch Knowledge (User Library)
-    const knowledgeQuery = query(
-        collection(db, 'artifacts', APP_ID, 'users', user.uid, 'knowledge'),
-        orderBy('createdAt', 'desc')
-    );
-    const unsubKnowledge = onSnapshot(knowledgeQuery, (snapshot) => {
-        setKnowledge(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+        // 4. Knowledge
+        const { data: knowledgeData } = await supabase
+            .from('knowledge')
+            .select('*')
+            .eq('user_id', user.uid)
+            .order('created_at', { ascending: false });
+        if (knowledgeData) setKnowledge(knowledgeData);
+
+    } catch (err) {
+        console.error("Error fetching library:", err);
+        showToast("Failed to load library", "error");
+    } finally {
         setLoading(false);
-    });
+    }
+  };
 
-    return () => {
-        unsubPrompts();
-        unsubSnippets();
-        unsubPresets();
-        unsubKnowledge();
-    };
+  useEffect(() => {
+    fetchData();
   }, [user]);
 
   // --- ACTIONS ---
-  const handleDelete = async (collectionName, id) => {
+  const handleDelete = async (table, id) => {
       if(!window.confirm('Are you sure you want to delete this?')) return;
+      
+      // Map old collection names to new table names if necessary
+      const tableName = table === 'saved_prompts' ? 'prompts' : table;
+
       try {
-          await deleteDoc(doc(db, 'artifacts', APP_ID, 'users', user.uid, collectionName, id));
+          const { error } = await supabase
+            .from(tableName)
+            .delete()
+            .eq('id', id)
+            .eq('user_id', user.uid); // Security check
+
+          if (error) throw error;
+          
           showToast("Deleted successfully.");
+          // Refresh data to remove item from UI
+          fetchData(); 
       } catch(e) {
           console.error(e);
           showToast("Error deleting item", "error");
@@ -117,26 +125,30 @@ const SavedView = ({ user, loadPrompt, showToast }) => {
           return;
       }
       try {
-          await addDoc(collection(db, 'artifacts', APP_ID, 'users', user.uid, 'knowledge'), {
+          const { error } = await supabase.from('knowledge').insert({
+              user_id: user.uid,
               title: newKnowledgeTitle,
               content: newKnowledgeContent,
-              createdAt: serverTimestamp()
+              created_at: new Date().toISOString()
           });
+
+          if (error) throw error;
+
           showToast("Knowledge added!");
           setNewKnowledgeTitle('');
           setNewKnowledgeContent('');
           setShowAddKnowledge(false);
+          fetchData(); // Refresh list
       } catch (error) {
           console.error(error);
           showToast("Failed to save knowledge", "error");
       }
   };
 
-  // Helper to load a preset into the builder (maps 'mode' to 'type' for compatibility)
   const handleLoadPreset = (preset) => {
       const compatibleData = {
           ...preset,
-          type: preset.mode, // BuilderView expects 'type', Presets save 'mode'
+          type: preset.mode, 
       };
       loadPrompt(compatibleData);
   };
@@ -190,7 +202,7 @@ const SavedView = ({ user, loadPrompt, showToast }) => {
                           <span className={`text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider ${item.type === 'art' ? 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400' : (item.type === 'video' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400')}`}>
                               {item.type}
                           </span>
-                          <span className="text-xs text-slate-400 font-mono">{formatTimestamp(item.createdAt)}</span>
+                          <span className="text-xs text-slate-400 font-mono">{formatTimestamp(item.created_at)}</span>
                       </div>
                       <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-100 dark:border-slate-700 mb-4 flex-1">
                           <p className="font-mono text-xs text-slate-600 dark:text-slate-300 line-clamp-4 leading-relaxed">{item.prompt}</p>
@@ -224,7 +236,7 @@ const SavedView = ({ user, loadPrompt, showToast }) => {
                               </div>
                               <div>
                                   <h3 className="font-bold text-slate-800 dark:text-slate-200 text-sm">{item.label || 'Saved Result'}</h3>
-                                  <p className="text-xs text-slate-400">Generated on {formatTimestamp(item.createdAt)}</p>
+                                  <p className="text-xs text-slate-400">Generated on {formatTimestamp(item.created_at)}</p>
                               </div>
                           </div>
                           <div className="flex items-center gap-2">
@@ -234,7 +246,7 @@ const SavedView = ({ user, loadPrompt, showToast }) => {
                               </button>
                               
                               <button onClick={() => handleCopy(item.content, item.id)} className="px-3 py-1.5 text-xs font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors flex items-center gap-1">
-                                  {copiedId === item.id ? <Check size={14} className="text-emerald-500"/> : <Copy size={14} />} {copiedId === item.id ? 'Copied' : 'Copy'}
+                                  {copiedId === item.id ? <Check size={14} className="text-emerald-500"/> : <Copy size={14} />} {copiedId === item.id ? 'Copied' : 'Copy Code'}
                               </button>
                               <button onClick={() => handleDelete('snippets', item.id)} className="p-2 text-slate-400 hover:text-red-500 transition-colors">
                                   <Trash2 size={16} />
@@ -246,9 +258,9 @@ const SavedView = ({ user, loadPrompt, showToast }) => {
                               {item.content}
                           </pre>
                       </div>
-                      {item.promptUsed && (
+                      {item.prompt_used && (
                           <div className="p-3 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400 font-mono truncate">
-                              <strong>Prompt:</strong> {item.promptUsed}
+                              <strong>Prompt:</strong> {item.prompt_used}
                           </div>
                       )}
                   </div>
@@ -275,12 +287,12 @@ const SavedView = ({ user, loadPrompt, showToast }) => {
                       </div>
                       
                       <div className="flex flex-wrap gap-1 mb-6">
-                          {Object.keys(item.selections || {}).slice(0, 4).map(key => (
+                          {item.selections && Object.keys(item.selections || {}).slice(0, 4).map(key => (
                               <span key={key} className="text-[10px] bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-2 py-1 rounded border border-slate-200 dark:border-slate-600">
                                   {item.selections[key][0]?.value}
                               </span>
                           ))}
-                          {Object.keys(item.selections || {}).length > 4 && <span className="text-[10px] text-slate-400 px-1">...</span>}
+                          {item.selections && Object.keys(item.selections || {}).length > 4 && <span className="text-[10px] text-slate-400 px-1">...</span>}
                       </div>
 
                       <div className="flex gap-2">

@@ -1,31 +1,20 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  collection, 
-  query, 
-  orderBy, 
-  limit, 
-  startAfter, 
-  getDocs, 
-  doc, 
-  updateDoc, 
-  increment 
-} from 'firebase/firestore';
 import { Palette, Terminal, RefreshCw, Heart, Play, AlertTriangle, ArrowDown, Filter, FileText, Layers } from 'lucide-react';
-import { db, APP_ID } from '../lib/firebase.js';
+import { supabase } from '../lib/supabase.js';
 import { formatTimestamp } from '../utils/index.js';
 
-// Increased limit to ensure we have enough diversity for filters
+// Posts per page for pagination
 const POSTS_PER_PAGE = 50;
 
 const FeedView = ({ user, loadPrompt, onLoginRequest }) => {
   const [posts, setPosts] = useState([]);
-  const [lastDoc, setLastDoc] = useState(null); 
+  const [page, setPage] = useState(0); // Track pagination page
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState(null);
   
-  // --- CTO UPDATE: Filter State ---
+  // Filter State
   const [activeFilter, setActiveFilter] = useState('all');
 
   const fetchPosts = async (isInitial = false) => {
@@ -33,36 +22,41 @@ const FeedView = ({ user, loadPrompt, onLoginRequest }) => {
       if (isInitial) {
         setLoading(true);
         setError(null);
+        setPage(0); // Reset page on refresh
       } else {
         setLoadingMore(true);
       }
 
-      let q = query(
-        collection(db, 'artifacts', APP_ID, 'public', 'data', 'posts'),
-        orderBy('createdAt', 'desc'),
-        limit(POSTS_PER_PAGE)
-      );
+      // Calculate range for Supabase (SQL pagination)
+      const currentPage = isInitial ? 0 : page;
+      const from = currentPage * POSTS_PER_PAGE;
+      const to = from + POSTS_PER_PAGE - 1;
 
-      if (!isInitial && lastDoc) {
-        q = query(q, startAfter(lastDoc));
+      // Query the 'prompts' table where visibility is 'public'
+      const { data, error, count } = await supabase
+        .from('prompts')
+        .select('*', { count: 'exact' }) // Get count to determine if we have more
+        .eq('visibility', 'public')
+        .order('created_at', { ascending: false })
+        .range(from, to);
+
+      if (error) throw error;
+
+      if (isInitial) {
+        setPosts(data);
+      } else {
+        setPosts(prev => [...prev, ...data]);
       }
 
-      const snapshot = await getDocs(q);
-      
-      const lastVisible = snapshot.docs[snapshot.docs.length - 1];
-      setLastDoc(lastVisible);
-      
-      if (snapshot.docs.length < POSTS_PER_PAGE) {
+      // Check if we have reached the end
+      if (!data || data.length < POSTS_PER_PAGE) {
         setHasMore(false);
       }
-
-      const newPosts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       
-      if (isInitial) {
-        setPosts(newPosts);
-      } else {
-        setPosts(prev => [...prev, ...newPosts]);
-      }
+      // Update page for next fetch
+      if (!isInitial) setPage(prev => prev + 1);
+      else setPage(1); // Next page will be 1
+
     } catch (err) {
       console.error("Feed Error:", err);
       setError("Unable to load feed.");
@@ -76,35 +70,56 @@ const FeedView = ({ user, loadPrompt, onLoginRequest }) => {
     fetchPosts(true);
   }, []);
 
-  const handleLike = async (postId) => {
+  const handleLike = async (postId, currentLikes) => {
       if(!user || user.uid === 'demo') {
           onLoginRequest();
           return;
       }
       
+      // Optimistic UI update
       setPosts(prev => prev.map(p => 
         p.id === postId ? { ...p, likes: (p.likes || 0) + 1 } : p
       ));
 
-      const postRef = doc(db, 'artifacts', APP_ID, 'public', 'data', 'posts', postId);
       try {
-          await updateDoc(postRef, { likes: increment(1) });
+          // Update Supabase
+          const { error } = await supabase
+            .from('prompts')
+            .update({ likes: (currentLikes || 0) + 1 })
+            .eq('id', postId);
+            
+          if (error) throw error;
       } catch(e) {
           console.error("Like error", e);
+          // Revert on error could be implemented here
       }
   }
 
-  // --- CTO UPDATE: Client-Side Filter Logic ---
+  // Client-Side Filter Logic
   const filteredPosts = useMemo(() => {
       if (activeFilter === 'all') return posts;
       
       return posts.filter(post => {
           if (activeFilter === 'art') return post.type === 'art';
-          if (activeFilter === 'coding') return post.textSubMode === 'coding';
-          if (activeFilter === 'writing') return post.textSubMode === 'writing';
+          // Note: using 'sub_mode' (SQL column) instead of 'textSubMode'
+          if (activeFilter === 'coding') return post.sub_mode === 'coding';
+          if (activeFilter === 'writing') return post.sub_mode === 'writing';
           return true;
       });
   }, [posts, activeFilter]);
+
+  // Helper to load prompt into builder (mapping SQL fields back to Builder state)
+  const handleRemix = (post) => {
+      const builderData = {
+          ...post,
+          textSubMode: post.sub_mode,     // Map SQL 'sub_mode' -> Builder 'textSubMode'
+          customTopic: post.custom_topic, // Map SQL 'custom_topic' -> Builder 'customTopic'
+          codeContext: post.model_config?.codeContext,
+          // Map other config fields from JSONB model_config if needed
+          ...post.model_config 
+      };
+      loadPrompt(builderData);
+  };
 
   if (error) return <div className="flex-1 p-10 text-center text-red-400 w-full pl-16 md:pl-24 flex flex-col items-center gap-2"><AlertTriangle/> {error}</div>;
 
@@ -113,7 +128,7 @@ const FeedView = ({ user, loadPrompt, onLoginRequest }) => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Community Feed</h2>
           
-          {/* --- CTO UPDATE: Filter Chips UI --- */}
+          {/* Filter Chips UI */}
           <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 hide-scrollbar">
               <Filter size={16} className="text-slate-400 mr-1" />
               
@@ -154,13 +169,14 @@ const FeedView = ({ user, loadPrompt, onLoginRequest }) => {
             <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center gap-3">
                     <div className={`p-2 rounded-full ${post.type === 'art' ? 'bg-pink-100 text-pink-600 dark:bg-pink-900/30 dark:text-pink-400' : 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400'}`}>
-                    {post.type === 'art' ? <Palette size={16} /> : (post.textSubMode === 'coding' ? <Terminal size={16} /> : <FileText size={16} />)}
+                    {post.type === 'art' ? <Palette size={16} /> : (post.sub_mode === 'coding' ? <Terminal size={16} /> : <FileText size={16} />)}
                     </div>
                     <div>
-                    <p className="font-semibold text-slate-900 dark:text-slate-100 text-sm">{post.authorName || 'Anonymous'}</p>
+                    <p className="font-semibold text-slate-900 dark:text-slate-100 text-sm">{post.author_name || 'Anonymous'}</p>
                     <div className="flex items-center gap-2 text-[10px] text-slate-400 uppercase font-bold tracking-wide">
-                        <span>{formatTimestamp(post.createdAt)}</span>
-                        {post.targetModel && <span className="bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded capitalize">{post.targetModel.replace('-', ' ')}</span>}
+                        <span>{formatTimestamp(post.created_at)}</span>
+                        {/* Access targetModel via the JSONB column if needed, or fallback if it was top-level in early migrations */}
+                        {(post.model_config?.targetModel || post.targetModel) && <span className="bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded capitalize">{(post.model_config?.targetModel || post.targetModel).replace('-', ' ')}</span>}
                     </div>
                     </div>
                 </div>
@@ -173,10 +189,10 @@ const FeedView = ({ user, loadPrompt, onLoginRequest }) => {
             </div>
 
             <div className="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400 mt-auto">
-                <button onClick={() => handleLike(post.id)} className="flex items-center gap-1.5 hover:text-red-500 transition-colors group"><Heart size={18} className="group-hover:fill-red-500" /> {post.likes || 0}</button>
+                <button onClick={() => handleLike(post.id, post.likes)} className="flex items-center gap-1.5 hover:text-red-500 transition-colors group"><Heart size={18} className="group-hover:fill-red-500" /> {post.likes || 0}</button>
                 <div className="ml-auto flex items-center gap-2">
-                    {post.textSubMode && <span className="text-[10px] bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-full text-slate-500 dark:text-slate-400 capitalize">{post.textSubMode}</span>}
-                    <button onClick={() => loadPrompt(post)} className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-bold transition-colors text-xs uppercase tracking-wide"><Play size={14} /> Remix</button>
+                    {post.sub_mode && <span className="text-[10px] bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-full text-slate-500 dark:text-slate-400 capitalize">{post.sub_mode}</span>}
+                    <button onClick={() => handleRemix(post)} className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-bold transition-colors text-xs uppercase tracking-wide"><Play size={14} /> Remix</button>
                 </div>
             </div>
             </div>
