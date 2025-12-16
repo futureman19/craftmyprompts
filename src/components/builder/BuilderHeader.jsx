@@ -1,16 +1,17 @@
 import React from 'react';
 import { 
   Sparkles, MessageSquare, Palette, Video, Command, Search, Dices, 
-  Wand2, Bookmark, BookmarkPlus 
+  TrendingUp, Bookmark, BookmarkPlus 
 } from 'lucide-react';
 import { PRESETS } from '../../data/presets.js';
 
 const BuilderHeader = ({ 
     // State
     state, mobileTab, searchTerm, user, customPresets, currentData,
+    showTrendWidget, // <--- New Prop
     // Actions
-    dispatch, setMobileTab, setSearchTerm, setShowWizard, applyPreset, showToast,
-    handleSaveAsPreset // <--- New Prop for saving custom presets
+    dispatch, setMobileTab, setSearchTerm, setShowTrendWidget, applyPreset, showToast,
+    handleSaveAsPreset
 }) => {
 
     const handleRandomize = () => {
@@ -21,7 +22,7 @@ const BuilderHeader = ({
     return (
         <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 p-2 shadow-sm z-10 sticky top-0 transition-colors">
             
-            {/* Mobile Tab Switcher (Compacted) */}
+            {/* Mobile Tab Switcher */}
             <div className="md:hidden flex w-full bg-slate-100 dark:bg-slate-700 p-1 rounded-lg mb-2">
                 <button onClick={() => setMobileTab('edit')} className={`flex-1 py-1 text-xs font-bold rounded-md transition-all ${mobileTab === 'edit' ? 'bg-white dark:bg-slate-600 shadow text-indigo-600 dark:text-indigo-300' : 'text-slate-500 dark:text-slate-400'}`}>Edit</button>
                 <button onClick={() => setMobileTab('preview')} className={`flex-1 py-1 text-xs font-bold rounded-md transition-all ${mobileTab === 'preview' ? 'bg-white dark:bg-slate-600 shadow text-indigo-600 dark:text-indigo-300' : 'text-slate-500 dark:text-slate-400'}`}>Preview</button>
@@ -45,7 +46,6 @@ const BuilderHeader = ({
                 {/* Sub-Mode / Target Selectors */}
                 {state.mode === 'text' && (
                         <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
-                        {/* CTO UPDATE: New Tab Structure (General, Coding, Social) */}
                         {['general', 'coding', 'social'].map(m => (
                             <button key={m} onClick={() => dispatch({ type: 'SET_SUBMODE', payload: m })} className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] border whitespace-nowrap transition-colors capitalize ${state.textSubMode === m ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:border-slate-300'}`}>{m}</button>
                         ))}
@@ -56,9 +56,7 @@ const BuilderHeader = ({
                         {['general', 'avatar'].map(m => (
                             <button key={m} onClick={() => dispatch({ type: 'SET_SUBMODE', payload: m })} className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] border whitespace-nowrap transition-colors capitalize ${state.textSubMode === m || (m === 'general' && state.textSubMode !== 'avatar') ? 'bg-pink-600 text-white border-pink-600' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:border-slate-300'}`}>{m}</button>
                         ))}
-                        
                         <div className="w-px h-3 bg-slate-300 dark:bg-slate-600 mx-1"></div>
-                        
                         <span className="text-[10px] font-bold text-slate-400 uppercase whitespace-nowrap">Target:</span>
                         {['midjourney', 'stable-diffusion', 'dalle', 'gemini', 'flux'].map(m => (
                             <button key={m} onClick={() => dispatch({ type: 'SET_TARGET_MODEL', payload: m })} className={`px-2.5 py-1 rounded-full text-[10px] border whitespace-nowrap capitalize transition-colors ${state.targetModel === m ? 'bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 border-slate-800 dark:border-slate-200' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:border-slate-300'}`}>{m.replace('-', ' ')}</button>
@@ -68,8 +66,22 @@ const BuilderHeader = ({
             </div>
 
             <div className="flex gap-2">
-                <button onClick={() => setShowWizard(true)} className="px-3 py-1.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white rounded-lg flex items-center gap-1.5 text-xs font-bold shadow-md transition-all animate-in fade-in"><Wand2 size={14} /> <span className="hidden md:inline">Wizard</span></button>
+                {/* CTO UPDATE: Trending Button (Replaces Wizard) */}
+                {state.mode === 'text' && (
+                    <button 
+                        onClick={() => setShowTrendWidget(!showTrendWidget)} 
+                        className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs font-bold shadow-md transition-all animate-in fade-in ${
+                            showTrendWidget 
+                            ? 'bg-indigo-600 text-white' 
+                            : 'bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400 text-white'
+                        }`}
+                        title="Viral Trends"
+                    >
+                        <TrendingUp size={14} /> <span className="hidden md:inline">Trending</span>
+                    </button>
+                )}
 
+                {/* Presets Dropdown */}
                 <div className="relative group">
                     <button className="px-3 py-1.5 bg-slate-800 dark:bg-slate-700 text-white rounded-lg flex items-center gap-1.5 text-xs font-medium"><Command size={14} /> <span className="hidden md:inline">Presets</span></button>
                     <div className="absolute top-full left-0 w-64 pt-2 hidden group-hover:block z-50">
@@ -97,7 +109,7 @@ const BuilderHeader = ({
                     </div>
                 </div>
 
-                {/* Save Preset Button (Placed right after Presets) */}
+                {/* Save Preset Button */}
                 <button 
                     onClick={handleSaveAsPreset} 
                     className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-lg transition-colors flex items-center gap-1.5" 
@@ -106,7 +118,7 @@ const BuilderHeader = ({
                     <BookmarkPlus size={16} />
                 </button>
 
-                {/* Search Bar (Compacted to save space) */}
+                {/* Search Bar */}
                 <div className="relative w-40 focus-within:w-64 transition-all duration-300">
                     <Search className="absolute left-2.5 top-2 text-slate-400" size={14} />
                     <input 

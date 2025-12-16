@@ -21,7 +21,9 @@ export const useBuilderView = (user, initialData, clearInitialData, showToast, a
     const [expandedSubcats, setExpandedSubcats] = useState({});
     const [searchTerm, setSearchTerm] = useState('');
     const [showTestModal, setShowTestModal] = useState(false);
-    const [showWizard, setShowWizard] = useState(false);
+    
+    // CTO UPDATE: Replaced Wizard state with Trend Widget state
+    const [showTrendWidget, setShowTrendWidget] = useState(false);
     
     // 3. Save/Export State
     const [displayName, setDisplayName] = useState('');
@@ -279,7 +281,11 @@ export const useBuilderView = (user, initialData, clearInitialData, showToast, a
         mobileTab, setMobileTab, isSimpleMode, setIsSimpleMode,
         activeCategory, setActiveCategory, expandedCategories, toggleCategory,
         expandedSubcats, toggleSubcatExpansion, searchTerm, setSearchTerm,
-        showTestModal, setShowTestModal, showWizard, setShowWizard,
+        showTestModal, setShowTestModal, 
+        
+        // CTO UPDATE: Exporting Trend State instead of Wizard
+        showTrendWidget, setShowTrendWidget,
+        
         displayName, setDisplayName, saveVisibility, setSaveVisibility, isSaving, copied, copiedJson,
         customPresets, contextUrl, setContextUrl, isFetchingContext,
         globalApiKey, globalOpenAIKey,
