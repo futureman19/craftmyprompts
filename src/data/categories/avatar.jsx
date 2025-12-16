@@ -5,10 +5,24 @@ import {
   Smile, 
   Glasses, 
   Layers, 
-  Terminal 
+  Terminal,
+  Share2,
+  Aperture, // For Lighting
+  Box       // For Material
 } from 'lucide-react';
 
 export const AVATAR_DATA = [
+  {
+    id: 'platform',
+    title: 'Platform',
+    icon: <Share2 size={20} />,
+    description: 'Where will this avatar be used?',
+    subcategories: [
+      { name: 'Social Profiles', options: ['LinkedIn PFP', 'Twitter/X NFT', 'Discord Avatar', 'Instagram Profile', 'YouTube Channel Icon'] },
+      { name: 'Gaming/Metaverse', options: ['VRChat', 'Roblox', 'Minecraft Skin', 'Unity Asset', 'Ready Player Me'] },
+      { name: 'Branding', options: ['Company Mascot', 'Chatbot Avatar', 'Sticker Pack', 'Favicon'] }
+    ]
+  },
   {
     id: 'avatar_style',
     title: 'Art Style',
@@ -52,6 +66,26 @@ export const AVATAR_DATA = [
       { name: 'Eyewear', options: ['Round Glasses', 'Sunglasses', 'Aviators', 'VR Headset', 'Cybernetic Eye', 'Monocle'] },
       { name: 'Headwear', options: ['Beanie', 'Baseball Cap', 'Crown', 'Headphones', 'Cat Ears', 'Bandana', 'Space Helmet'] },
       { name: 'Features', options: ['Freckles', 'Scar', 'Tattoo', 'Piercings', 'Beard', 'Mustache', 'Glowing Eyes'] }
+    ]
+  },
+  {
+    id: 'lighting',
+    title: 'Lighting',
+    icon: <Aperture size={20} />,
+    description: 'Mood & Illumination',
+    subcategories: [
+      { name: 'Studio', options: ['Three-Point Lighting', 'Rim Lighting', 'Softbox', 'Butterfly Lighting', 'Rembrandt'] },
+      { name: 'Environmental', options: ['Volumetric Fog', 'Bioluminescence', 'Neon Glow', 'Golden Hour', 'Moonlight'] }
+    ]
+  },
+  {
+    id: 'material',
+    title: 'Material & Texture',
+    icon: <Box size={20} />,
+    description: 'Skin & Surface details',
+    subcategories: [
+      { name: 'Skin/Organic', options: ['Subsurface Scattering', 'Porous Skin', 'Hyper-realistic', 'Scales', 'Fur'] },
+      { name: 'Artificial', options: ['Plasticine', 'Matte Plastic', 'Brushed Metal', 'Holographic', 'Porcelain'] }
     ]
   },
   {

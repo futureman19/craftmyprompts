@@ -3,10 +3,22 @@ import {
   Move, 
   Activity, 
   Film, 
-  Ban 
+  Ban,
+  Share2,
+  Wind // For Physics/Atmosphere
 } from 'lucide-react';
 
 export const VIDEO_DATA = [
+    {
+      id: 'platform',
+      title: 'Platform',
+      icon: <Share2 size={20} />,
+      description: 'Where is this video going?',
+      subcategories: [
+        { name: 'Short Form', options: ['TikTok', 'Instagram Reels', 'YouTube Shorts'] },
+        { name: 'Long Form', options: ['YouTube Video', 'Vimeo', 'TV Commercial', 'Film Festival'] }
+      ]
+    },
     {
       id: 'camera_move',
       title: 'Camera Movement',
@@ -19,6 +31,16 @@ export const VIDEO_DATA = [
       ]
     },
     {
+      id: 'physics',
+      title: 'Physics & Atmosphere', // NEW: High Impact for Gen-2/Pika
+      icon: <Wind size={20} />,
+      description: 'World behavior & FX',
+      subcategories: [
+        { name: 'Environment', options: ['Zero Gravity', 'Underwater Physics', 'Windy/Stormy', 'Slow Motion Fluid', 'Explosion/Destruction'] },
+        { name: 'Atmosphere', options: ['Foggy', 'Smoky', 'Hazy', 'Heat Wave Distortion', 'Rain/Snow'] }
+      ]
+    },
+    {
       id: 'motion_strength',
       title: 'Motion Strength',
       icon: <Activity size={20} />,
@@ -28,13 +50,13 @@ export const VIDEO_DATA = [
       ]
     },
     {
-      id: 'aesthetics',
-      title: 'Aesthetics & FPS',
+      id: 'film_stock', // RENAMED: More specific
+      title: 'Film Stock & Grade',
       icon: <Film size={20} />,
       description: 'Visual style of the footage',
       subcategories: [
-        { name: 'Frame Rate', options: ['24fps (Cinematic)', '30fps (Standard)', '60fps (Smooth)'] },
-        { name: 'Look', options: ['VHS Glitch', '8mm Film Grain', '4k Digital Clean', 'CCTV Footage', 'GoPro Fisheye', 'Anime Style'] }
+        { name: 'Frame Rate', options: ['24fps (Cinematic)', '30fps (Standard)', '60fps (Smooth)', '12fps (Stop Motion)'] },
+        { name: 'Look', options: ['VHS Glitch', '8mm Film Grain', '16mm Vintage', '4k Digital Clean', 'CCTV Footage', 'GoPro Fisheye', 'Anime Style'] }
       ]
     },
     {
@@ -43,7 +65,7 @@ export const VIDEO_DATA = [
       icon: <Ban size={20} />,
       description: 'Avoid these artifacts',
       subcategories: [
-        { name: 'Artifacts', options: ['Blurry', 'Distortion', 'Morphing', 'Static', 'Watermark', 'Text', 'Bad anatomy'] }
+        { name: 'Artifacts', options: ['Blurry', 'Distortion', 'Morphing', 'Static', 'Watermark', 'Text', 'Bad anatomy', 'Shaky Camera'] }
       ]
     }
 ];

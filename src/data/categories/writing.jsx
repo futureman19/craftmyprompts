@@ -3,10 +3,22 @@ import {
   Layout, 
   PenTool, 
   Zap, 
-  Feather 
+  Feather,
+  Share2
 } from 'lucide-react';
 
 export const WRITING_DATA = [
+  {
+    id: 'platform',
+    title: 'Platform',
+    icon: <Share2 size={20} />,
+    description: 'Where will this be published?',
+    subcategories: [
+      { name: 'Blogging', options: ['Medium', 'Substack', 'WordPress', 'Ghost'] },
+      { name: 'Professional', options: ['LinkedIn Article', 'White Paper', 'Press Release'] },
+      { name: 'Academic', options: ['Research Paper', 'Thesis', 'Grant Proposal'] }
+    ]
+  },
   {
     id: 'author',
     title: 'Emulate Author',

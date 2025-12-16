@@ -7,10 +7,44 @@ import {
   MonitorPlay, 
   Aperture,
   Settings,
-  Terminal
+  Terminal,
+  Share2,
+  Layers, // For Composition/Layout
+  Box     // For Material
 } from 'lucide-react';
 
 export const ART_DATA = [
+  {
+    id: 'platform',
+    title: 'Platform',
+    icon: <Share2 size={20} />,
+    description: 'Where is this image going?',
+    subcategories: [
+      { name: 'Social', options: ['Instagram Post', 'Instagram Story', 'Pinterest Pin', 'Twitter Header', 'LinkedIn Banner'] },
+      { name: 'Content', options: ['YouTube Thumbnail', 'Blog Header', 'Podcast Cover', 'E-Book Cover'] },
+      { name: 'Print', options: ['Poster', 'Wallpaper', 'Sticker', 'T-Shirt Design'] }
+    ]
+  },
+  {
+    id: 'composition',
+    title: 'Composition', // NEW: High Impact
+    icon: <Layers size={20} />,
+    description: 'Framing & Geometry',
+    subcategories: [
+      { name: 'Geometry', options: ['Rule of Thirds', 'Golden Ratio', 'Symmetrical', 'Knolling', 'Fibonacci Spiral'] },
+      { name: 'Perspective', options: ['Isometric', 'One-Point Perspective', 'Birds-Eye View', 'Worm-Eye View', 'T-Pose (Character)'] }
+    ]
+  },
+  {
+    id: 'material',
+    title: 'Material & Texture', // NEW: High Impact
+    icon: <Box size={20} />,
+    description: 'Surface properties',
+    subcategories: [
+      { name: '3D/Tactile', options: ['Voxel Art', 'Claymation', 'Plasticine', 'Origami', 'Paper Cutout', 'Knitted', 'Felt'] },
+      { name: 'Traditional', options: ['Oil Impasto', 'Charcoal', 'Watercolor', 'Ink Wash', 'Marble', 'Bronze', 'Liquid Metal'] }
+    ]
+  },
   {
     id: 'genre',
     title: 'Genre & Vibe',

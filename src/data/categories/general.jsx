@@ -5,70 +5,98 @@ import {
   FileText, 
   BookOpen,
   Ruler,
-  Languages
+  Languages,
+  Mic,
+  AlertCircle,
+  Share2
 } from 'lucide-react';
 
 export const GENERAL_DATA = [
   {
+    id: 'platform',
+    title: 'Platform',
+    icon: <Share2 size={20} />,
+    description: 'Where will this be published?',
+    subcategories: [
+      { name: 'Blogging', options: ['Medium', 'Substack', 'WordPress', 'Ghost'] },
+      { name: 'Professional', options: ['LinkedIn Article', 'White Paper', 'Press Release', 'Internal Memo'] },
+      { name: 'Academic', options: ['Research Paper', 'Thesis', 'Grant Proposal'] }
+    ]
+  },
+  {
+    id: 'target_audience',
+    title: 'Target Audience', // NEW: The "Who"
+    icon: <Users size={20} />,
+    description: 'Who is reading this?',
+    subcategories: [
+      { name: 'Professional', options: ['C-Suite Executives', 'Software Engineers', 'Investors (VCs)', 'Hiring Managers'] },
+      { name: 'General', options: ['Complete Beginners', '5-Year Olds (ELI5)', 'Gen Z', 'Retirees'] },
+      { name: 'Niche', options: ['Academics', 'Gamers', 'Fitness Enthusiasts', 'Crypto Natives'] }
+    ]
+  },
+  {
     id: 'persona',
     title: 'Persona',
-    icon: <Users size={20} />,
-    description: 'Who is the AI?',
+    icon: <BookOpen size={20} />,
+    description: 'Who is the AI acting as?',
     subcategories: [
-      { name: 'Professional', options: ['Project Manager', 'CEO', 'Marketing Strategist', 'HR Specialist'] },
-      { name: 'Academic', options: ['Research Scientist', 'Historian', 'Mathematician', 'Physics Tutor'] },
-      { name: 'Lifestyle', options: ['Personal Trainer', 'Nutritionist', 'Life Coach', 'Travel Guide'] }
+      { name: 'Business', options: ['Fortune 500 CEO', 'Project Manager', 'Marketing Strategist', 'HR Specialist', 'Startup Founder'] },
+      { name: 'Academic', options: ['Research Scientist', 'Historian', 'Mathematician', 'Physics Tutor', 'Debate Coach'] },
+      { name: 'Lifestyle', options: ['Personal Trainer', 'Nutritionist', 'Life Coach', 'Travel Guide', 'Chef'] }
+    ]
+  },
+  {
+    id: 'voice_mimicry',
+    title: 'Voice & Mimicry', // MERGED: Author + Style
+    icon: <Mic size={20} />,
+    description: 'Emulate specific styles',
+    subcategories: [
+      { name: 'Authors', options: ['Hemingway (Concise)', 'Shakespearean', 'Malcolm Gladwell', 'Seth Godin', 'Oscar Wilde'] },
+      { name: 'Media Brands', options: ['TechCrunch Style', 'BuzzFeed Style', 'New York Times', 'The Onion (Satire)'] },
+      { name: 'POV', options: ['First Person (I/Me)', 'Second Person (You)', 'Third Person Objective'] }
     ]
   },
   {
     id: 'tone',
     title: 'Tone',
     icon: <MessageSquare size={20} />,
-    description: 'Voice & Style',
+    description: 'Emotional resonance',
     subcategories: [
-      { name: 'Professional', options: ['Formal', 'Diplomatic', 'Concise', 'Objective'] },
-      { name: 'Casual', options: ['Friendly', 'Humorous', 'Witty', 'Sarcastic', 'Enthusiastic'] }
+      { name: 'Professional', options: ['Formal', 'Diplomatic', 'Concise', 'Objective', 'Persuasive'] },
+      { name: 'Casual', options: ['Friendly', 'Humorous', 'Witty', 'Sarcastic', 'Enthusiastic', 'Empathetic'] }
+    ]
+  },
+  {
+    id: 'constraints',
+    title: 'Constraints', // NEW: Hard limits
+    icon: <AlertCircle size={20} />,
+    description: 'What to avoid or enforce',
+    subcategories: [
+      { name: 'Length', options: ['Under 280 characters', 'Under 100 words', 'One Sentence', 'Deep Dive (1000+ words)'] },
+      { name: 'Content', options: ['No Fluff/Yapping', 'No Jargon', 'Strictly Factual', 'Use Analogies', 'No Moralizing'] },
+      { name: 'Formatting', options: ['Markdown', 'Plain Text', 'CSV Format', 'JSON Output'] }
+    ]
+  },
+  {
+    id: 'framework',
+    title: 'Frameworks',
+    icon: <Ruler size={20} />,
+    description: 'Proven Structures',
+    subcategories: [
+      { name: 'Marketing', options: ['AIDA (Attention, Interest, Desire, Action)', 'PAS (Problem, Agitate, Solution)', 'FAB (Features, Advantages, Benefits)'] },
+      { name: 'Storytelling', options: ['Hero\'s Journey', 'In Medias Res', 'Three-Act Structure', 'Star-Chain-Hook'] },
+      { name: 'Business', options: ['STAR (Situation, Task, Action, Result)', 'SWOT Analysis'] }
     ]
   },
   {
     id: 'format',
-    title: 'Format',
+    title: 'Output Format',
     icon: <FileText size={20} />,
-    description: 'Output Structure',
+    description: 'Visual structure',
     subcategories: [
-      { name: 'Structured', options: ['Bullet Points', 'Table', 'Step-by-Step', 'Pros & Cons'] },
-      { name: 'Long Form', options: ['Essay', 'Article', 'Report', 'Memo'] }
-    ]
-  },
-  {
-    id: 'context',
-    title: 'Context',
-    icon: <BookOpen size={20} />,
-    description: 'Background & Setting',
-    subcategories: [
-      { name: 'Audience', options: ['Beginner', 'Expert', 'Child', 'Colleague', 'Public'] },
-      { name: 'Situation', options: ['Corporate Meeting', 'Viral Social Post', 'Academic Paper', 'Casual Conversation'] }
-    ]
-  },
-  {
-    id: 'length',
-    title: 'Length',
-    icon: <Ruler size={20} />,
-    description: 'Word Count & Depth',
-    subcategories: [
-      { name: 'Brief', options: ['< 100 words', 'One Sentence', 'Elevator Pitch'] },
-      { name: 'Medium', options: ['300 words', 'One Paragraph', 'Standard Email'] },
-      { name: 'Extensive', options: ['Deep Dive', '1000+ words', 'Comprehensive Guide'] }
-    ]
-  },
-  {
-    id: 'language_style',
-    title: 'Language Style',
-    icon: <Languages size={20} />,
-    description: 'Vocabulary & Complexity',
-    subcategories: [
-      { name: 'Complexity', options: ['Simple English', 'Technical Jargon', 'Academic', 'Explain Like I\'m 5'] },
-      { name: 'Creative', options: ['Metaphorical', 'Storytelling', 'Persuasive', 'Descriptive'] }
+      { name: 'Lists', options: ['Bullet Points', 'Numbered List', 'Checklist'] },
+      { name: 'Data', options: ['Table', 'Comparison Chart', 'Pros & Cons'] },
+      { name: 'Prose', options: ['Essay', 'Email', 'Memo', 'Script'] }
     ]
   }
 ];
