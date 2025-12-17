@@ -7,7 +7,7 @@ import {
 import { KNOWLEDGE_BASE } from '../data/knowledgeBase.js';
 import { INSTRUCTIONS } from '../data/instructions.js';
 
-// --- NEW: Import The Rules Engine ---
+// --- Rules Engine ---
 import { SOCIAL_RULES } from '../data/rules/socialRules.js';
 import { ART_RULES } from '../data/rules/artRules.js';
 import { CODING_RULES } from '../data/rules/codingRules.js';
@@ -114,8 +114,10 @@ function builderReducer(state, action) {
         return { 
             ...state, 
             selections: newSels, 
-            customTopic: p.topic || '', 
-            codeContext: p.codeContext || '', 
+            // CTO FIX: Check all possible keys (Snake_Case from DB, CamelCase from JS, Legacy 'topic')
+            customTopic: p.custom_topic || p.customTopic || p.topic || '', 
+            codeContext: p.code_context || p.codeContext || '', 
+            
             variables: {},
             mode: p.camera_move ? 'video' : (p.avatar_style ? 'art' : (p.genre ? 'art' : 'text')),
             textSubMode: p.avatar_style ? 'avatar' : (p.lang ? 'coding' : (p.platform ? 'social' : (p.framework ? 'writing' : 'general')))
@@ -169,15 +171,17 @@ function builderReducer(state, action) {
             mode: data.type || 'text',
             textSubMode: data.textSubMode || 'general',
             selections: data.selections || {},
-            customTopic: data.customTopic || '',
-            codeContext: data.codeContext || '', 
-            negativePrompt: data.negativePrompt || '',
-            referenceImage: data.referenceImage || '',
-            targetModel: data.targetModel || 'midjourney',
-            loraName: data.loraName || '',
-            seed: data.seed || '',
-            chainOfThought: data.chainOfThought || false,
-            codeOnly: data.codeOnly || false
+            // CTO FIX: Consistent mapping for Remix feature too
+            customTopic: data.custom_topic || data.customTopic || '',
+            codeContext: data.code_context || data.codeContext || '', 
+            negativePrompt: data.negative_prompt || data.negativePrompt || '',
+            referenceImage: data.reference_image || data.referenceImage || '',
+            
+            targetModel: data.model_config?.targetModel || data.targetModel || 'midjourney',
+            loraName: data.model_config?.loraName || data.loraName || '',
+            seed: data.model_config?.seed || data.seed || '',
+            chainOfThought: data.model_config?.chainOfThought || data.chainOfThought || false,
+            codeOnly: data.model_config?.codeOnly || data.codeOnly || false
         };
     default:
       return state;
@@ -227,7 +231,7 @@ export const usePromptBuilder = (initialData) => {
           return ART_DATA;
       }
       if (state.textSubMode === 'coding') return CODING_DATA;
-      if (state.textSubMode === 'writing') return WRITING_DATA; // Fallback for old presets
+      if (state.textSubMode === 'writing') return WRITING_DATA; // Fallback
       if (state.textSubMode === 'social') return SOCIAL_DATA;
       return GENERAL_DATA;
   }, [state.mode, state.textSubMode]);
@@ -259,7 +263,6 @@ export const usePromptBuilder = (initialData) => {
         const frameworks = getVals('framework_version');
         const tasks = getVals('task');
         
-        // Inject Instructions
         injectInstruction(langs);
         
         // --- RULES ENGINE: CODING ---
@@ -307,13 +310,12 @@ export const usePromptBuilder = (initialData) => {
         if (principles) parts.push(`Adhere to these principles: ${principles}.`);
 
     } else if (state.textSubMode === 'social') {
-        // --- SOCIAL PROMPT STRUCTURE ---
+        // --- SOCIAL RULES & KNOWLEDGE ---
         const platforms = getVals('platform');
         
-        // Inject rich instructions based on Platform
         injectInstruction(platforms); 
 
-        // --- RULES ENGINE: SOCIAL ---
+        // Check Social Rules
         platforms.forEach(plat => {
             if (SOCIAL_RULES[plat]) {
                 const limits = SOCIAL_RULES[plat];
