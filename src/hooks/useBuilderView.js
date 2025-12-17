@@ -164,11 +164,14 @@ export const useBuilderView = (user, initialData, clearInitialData, showToast, a
         if (!name) return;
 
         try {
+            // CTO FIX: Added custom_topic and code_context to the insert payload
             const { error } = await supabase.from('presets').insert({
                 user_id: user.uid,
                 label: name,
                 mode: state.mode,
-                selections: state.selections, // Automatically handled as JSONB
+                selections: state.selections, 
+                custom_topic: state.customTopic, // <--- Fixed: Saving Topic
+                code_context: state.codeContext, // <--- Fixed: Saving Context
                 created_at: new Date().toISOString()
             });
 
