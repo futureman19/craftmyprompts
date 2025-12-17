@@ -79,37 +79,43 @@ function builderReducer(state, action) {
         const addSel = (cat, val) => { newSels[cat] = [{ value: val, weight: 1 }]; };
         const p = action.payload;
         
-        // Parse preset keys...
-        if (p.lang) addSel('language', p.lang);
-        if (p.task) addSel('task', p.task);
-        if (p.framework) addSel('framework', p.framework);
-        if (p.intent) addSel('intent', p.intent);
-        if (p.style) addSel('style', p.style);
-        if (p.persona) addSel('persona', p.persona);
-        if (p.tone) addSel('tone', p.tone);
-        if (p.author) addSel('author', p.author);
-        
-        // Social keys
-        if (p.platform) addSel('platform', p.platform);
-        if (p.hook_type) addSel('hook_type', p.hook_type);
-        if (p.content_type) addSel('content_type', p.content_type);
-        if (p.goal) addSel('goal', p.goal);
+        // Handle explicit selections object (Saved Preset) or flat keys (Quick Start)
+        if (p.selections) {
+            // Direct load from Saved Preset object
+            Object.assign(newSels, p.selections);
+        } else {
+            // Parse legacy/flat preset keys...
+            if (p.lang) addSel('language', p.lang);
+            if (p.task) addSel('task', p.task);
+            if (p.framework) addSel('framework', p.framework);
+            if (p.intent) addSel('intent', p.intent);
+            if (p.style) addSel('style', p.style);
+            if (p.persona) addSel('persona', p.persona);
+            if (p.tone) addSel('tone', p.tone);
+            if (p.author) addSel('author', p.author);
+            
+            // Social keys
+            if (p.platform) addSel('platform', p.platform);
+            if (p.hook_type) addSel('hook_type', p.hook_type);
+            if (p.content_type) addSel('content_type', p.content_type);
+            if (p.goal) addSel('goal', p.goal);
 
-        // Art keys
-        if (p.genre) addSel('genre', p.genre);
-        if (p.shot) addSel('shots', p.shot);
-        
-        // Avatar keys
-        if (p.avatar_style) addSel('avatar_style', p.avatar_style);
-        if (p.framing) addSel('framing', p.framing);
-        if (p.expression) addSel('expression', p.expression);
-        if (p.accessories) addSel('accessories', p.accessories);
-        if (p.background) addSel('background', p.background);
+            // Art keys
+            if (p.genre) addSel('genre', p.genre);
+            if (p.shot) addSel('shots', p.shot);
+            
+            // Avatar keys
+            if (p.avatar_style) addSel('avatar_style', p.avatar_style);
+            if (p.framing) addSel('framing', p.framing);
+            if (p.expression) addSel('expression', p.expression);
+            if (p.accessories) addSel('accessories', p.accessories);
+            if (p.background) addSel('background', p.background);
 
-        // Video keys
-        if (p.camera_move) addSel('camera_move', p.camera_move);
-        if (p.motion_strength) addSel('motion_strength', p.motion_strength);
-        if (p.aesthetics) addSel('aesthetics', p.aesthetics);
+            // Video keys
+            if (p.camera_move) addSel('camera_move', p.camera_move);
+            if (p.motion_strength) addSel('motion_strength', p.motion_strength);
+            if (p.aesthetics) addSel('aesthetics', p.aesthetics);
+        }
 
         return { 
             ...state, 
@@ -119,8 +125,9 @@ function builderReducer(state, action) {
             codeContext: p.code_context || p.codeContext || '', 
             
             variables: {},
-            mode: p.camera_move ? 'video' : (p.avatar_style ? 'art' : (p.genre ? 'art' : 'text')),
-            textSubMode: p.avatar_style ? 'avatar' : (p.lang ? 'coding' : (p.platform ? 'social' : (p.framework ? 'writing' : 'general')))
+            // Use explicit values from DB if available, otherwise infer from content
+            mode: p.mode || (p.camera_move ? 'video' : (p.avatar_style ? 'art' : (p.genre ? 'art' : 'text'))),
+            textSubMode: p.textSubMode || (p.avatar_style ? 'avatar' : (p.lang ? 'coding' : (p.platform ? 'social' : (p.framework ? 'writing' : 'general'))))
         };
     case 'RANDOMIZE': {
         const dataSrc = action.payload; 
