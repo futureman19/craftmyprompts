@@ -2,7 +2,7 @@ import React from 'react';
 import { 
     Key, RefreshCw, Zap, Bot, Sparkles, Swords, GitCompare, 
     Layers, MonitorPlay, ArrowRight, Target, ShieldCheck, Users, 
-    Activity, Brain, Lock, Plus, X
+    Activity, Brain, Lock, Plus, X, HelpCircle
 } from 'lucide-react';
 
 const TestRunnerControls = ({
@@ -20,8 +20,8 @@ const TestRunnerControls = ({
     onGeminiKeyChange, onOpenaiKeyChange, onGroqKeyChange, onAnthropicKeyChange,
     onClearKey, onFetchModels, onModelChange, 
     onRefineConfigChange, onSwarmConfigChange, onBattleConfigChange,
-    // CTO UPDATE: New Handlers for Dynamic Agents
-    addSwarmAgent, removeSwarmAgent, updateSwarmAgent
+    // CTO UPDATE: New Handlers
+    addSwarmAgent, removeSwarmAgent, updateSwarmAgent, setShowHelpModal
 }) => {
 
     const renderLockedButton = (label, icon) => (
@@ -33,6 +33,15 @@ const TestRunnerControls = ({
             <div className="absolute -top-1 -right-1 bg-slate-100 dark:bg-slate-800 rounded-full p-0.5">
                  <Lock size={10} className="text-slate-400" />
             </div>
+        </button>
+    );
+
+    const renderHelpLink = () => (
+        <button 
+            onClick={() => setShowHelpModal(true)} 
+            className="text-[10px] flex items-center gap-1 text-indigo-500 hover:text-indigo-600 hover:underline transition-colors"
+        >
+            <HelpCircle size={10} /> Get Key
         </button>
     );
 
@@ -279,7 +288,12 @@ const TestRunnerControls = ({
                 {/* Gemini Input */}
                 {(provider === 'gemini' || provider === 'battle' || provider === 'swarm' || (provider === 'refine' && (refineConfig.drafter === 'gemini' || refineConfig.critiquer === 'gemini'))) && (
                     <div className="space-y-2">
-                        <div className="flex justify-between items-center"><label className="text-[10px] font-bold uppercase text-indigo-500 flex items-center gap-1"><Key size={12} /> Gemini Key</label>{provider === 'gemini' && <button onClick={onFetchModels} disabled={!geminiKey} className="text-[10px] flex items-center gap-1 text-slate-400 hover:text-indigo-500 hover:underline disabled:opacity-30"><RefreshCw size={10} /> Refresh Models</button>}</div>
+                        <div className="flex justify-between items-center">
+                            <label className="text-[10px] font-bold uppercase text-indigo-500 flex items-center gap-1">
+                                <Key size={12} /> Gemini Key {renderHelpLink()}
+                            </label>
+                            {provider === 'gemini' && <button onClick={onFetchModels} disabled={!geminiKey} className="text-[10px] flex items-center gap-1 text-slate-400 hover:text-indigo-500 hover:underline disabled:opacity-30"><RefreshCw size={10} /> Refresh Models</button>}
+                        </div>
                         {isUsingGlobalGemini ? <div className="flex items-center gap-2 p-2 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg text-indigo-700 dark:text-indigo-400 text-sm font-medium"><Zap size={16} fill="currentColor" /> <span>Connected via App Key (Free)</span></div> : <div className="flex gap-2"><input type="password" value={geminiKey} onChange={(e) => onGeminiKeyChange(e.target.value)} placeholder="Paste Google API Key..." className="flex-1 px-3 py-2 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-1 focus:ring-indigo-500 outline-none" />{geminiKey && <button onClick={() => onClearKey('gemini')} className="text-xs text-red-400 hover:underline px-1">Clear</button>}</div>}
                         {provider === 'gemini' && availableModels.length > 0 && <select value={selectedModel} onChange={(e) => onModelChange(e.target.value)} className="w-full px-2 py-1.5 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs outline-none">{availableModels.map(m => <option key={m.name} value={m.name}>{m.displayName}</option>)}</select>}
                     </div>
@@ -288,7 +302,9 @@ const TestRunnerControls = ({
                 {/* OpenAI Input */}
                 {(provider === 'openai' || provider === 'battle' || provider === 'swarm' || (provider === 'refine' && (refineConfig.drafter === 'openai' || refineConfig.critiquer === 'openai'))) && (
                     <div className="space-y-2">
-                        <label className="text-[10px] font-bold uppercase text-emerald-500 flex items-center gap-1"><Key size={12} /> OpenAI Key</label>
+                        <label className="text-[10px] font-bold uppercase text-emerald-500 flex items-center gap-1">
+                            <Key size={12} /> OpenAI Key {renderHelpLink()}
+                        </label>
                         {isUsingGlobalOpenAI ? <div className="flex items-center gap-2 p-2 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg text-emerald-700 dark:text-emerald-400 text-sm font-medium"><Zap size={16} fill="currentColor" /> <span>Connected via App Key</span></div> : <div className="flex gap-2"><input type="password" value={openaiKey} onChange={(e) => onOpenaiKeyChange(e.target.value)} placeholder="sk-..." className="flex-1 px-3 py-2 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-1 focus:ring-emerald-500 outline-none" />{openaiKey && <button onClick={() => onClearKey('openai')} className="text-xs text-red-400 hover:underline px-1">Clear</button>}</div>}
                     </div>
                 )}
@@ -296,7 +312,9 @@ const TestRunnerControls = ({
                 {/* Groq Input */}
                 {isLoggedIn && (provider === 'groq' || (provider === 'refine' && (refineConfig.drafter === 'groq' || refineConfig.critiquer === 'groq')) || (provider === 'swarm') || (provider === 'battle' && (battleConfig?.fighterA === 'groq' || battleConfig?.fighterB === 'groq'))) && (
                     <div className="space-y-2">
-                        <label className="text-[10px] font-bold uppercase text-orange-500 flex items-center gap-1"><Key size={12} /> Groq Key (Llama 4)</label>
+                        <label className="text-[10px] font-bold uppercase text-orange-500 flex items-center gap-1">
+                            <Key size={12} /> Groq Key (Llama 4) {renderHelpLink()}
+                        </label>
                         {isUsingGlobalGroq ? <div className="flex items-center gap-2 p-2 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg text-orange-700 dark:text-orange-400 text-sm font-medium"><Zap size={16} fill="currentColor" /> <span>Connected via App Key</span></div> : (
                             <div className="flex gap-2">
                                 <input type="password" value={groqKey || ''} onChange={(e) => onGroqKeyChange(e.target.value)} placeholder="gsk_..." className="flex-1 px-3 py-2 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-1 focus:ring-orange-500 outline-none" />
@@ -309,7 +327,9 @@ const TestRunnerControls = ({
                 {/* Anthropic Input */}
                 {isLoggedIn && (provider === 'anthropic' || (provider === 'refine' && (refineConfig.drafter === 'anthropic' || refineConfig.critiquer === 'anthropic')) || (provider === 'swarm') || (provider === 'battle' && (battleConfig?.fighterA === 'anthropic' || battleConfig?.fighterB === 'anthropic'))) && (
                     <div className="space-y-2">
-                        <label className="text-[10px] font-bold uppercase text-rose-500 flex items-center gap-1"><Key size={12} /> Anthropic Key (Claude)</label>
+                        <label className="text-[10px] font-bold uppercase text-rose-500 flex items-center gap-1">
+                            <Key size={12} /> Anthropic Key (Claude) {renderHelpLink()}
+                        </label>
                         {isUsingGlobalAnthropic ? <div className="flex items-center gap-2 p-2 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-lg text-rose-700 dark:text-rose-400 text-sm font-medium"><Zap size={16} fill="currentColor" /> <span>Connected via App Key</span></div> : (
                             <div className="flex gap-2">
                                 <input type="password" value={anthropicKey || ''} onChange={(e) => onAnthropicKeyChange(e.target.value)} placeholder="sk-ant-..." className="flex-1 px-3 py-2 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-1 focus:ring-rose-500 outline-none" />

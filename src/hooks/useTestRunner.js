@@ -15,6 +15,9 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
     const [codeToShip, setCodeToShip] = useState('');
     const [githubToken, setGithubToken] = useState('');
 
+    // Help Modal State (New)
+    const [showHelpModal, setShowHelpModal] = useState(false);
+
     // --- CONFIGURATIONS ---
     const [battleConfig, setBattleConfig] = useState({
         fighterA: 'gemini',
@@ -238,6 +241,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
     const runTest = async (prompt) => {
         setLoading(true); setError(null); setResult(null); setBattleResults(null); setRefineSteps(null); setSwarmHistory([]);
         try {
+            // Save keys dynamically
             if (geminiKey) saveKey(geminiKey, 'gemini');
             if (openaiKey) saveKey(openaiKey, 'openai');
             if (groqKey) saveKey(groqKey, 'groq');
@@ -252,11 +256,8 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
                 for (let i = 0; i < swarmConfig.rounds; i++) {
                     for (const agent of swarmConfig.agents) {
                         setStatusMessage(`Round ${i+1}: ${agent.role} is speaking...`);
-                        
                         const context = `ROUNDTABLE DISCUSSION.\nTOPIC: "${prompt}"\nYOUR ROLE: ${agent.role}\nTRANSCRIPT:\n${history.map(m=>`${m.role}: ${m.text}`).join('\n')}\nINSTRUCTION: Provide your next response. Be concise.`;
-                        
                         const responseText = await callAIProvider(agent.provider, context, getKeyForProvider(agent.provider));
-                        
                         const newMsg = { role: agent.role, text: responseText, provider: agent.provider };
                         history.push(newMsg);
                         setSwarmHistory([...history]);
@@ -338,6 +339,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         loading, result, battleResults, refineSteps, statusMessage, error, selectedModel, availableModels,
         isLoggedIn,
         githubToken, setGithubToken,
+        showHelpModal, setShowHelpModal, // <--- New State Export
         
         setGeminiKey, setOpenaiKey, setGroqKey, setAnthropicKey,
         setProvider, setRefineView, setShowGithub, setRefineConfig, setSwarmConfig, setBattleConfig,
