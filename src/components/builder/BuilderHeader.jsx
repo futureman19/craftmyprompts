@@ -1,26 +1,43 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Sparkles, MessageSquare, Palette, Video, Command, Search, Dices, 
-  TrendingUp, Bookmark, BookmarkPlus, BookOpen 
+  Wand2, Bookmark, BookmarkPlus, BookOpen, TrendingUp 
 } from 'lucide-react';
-import { PRESETS } from '../../data/presets.js';
+// FIX: Removed .js extension for cleaner module resolution in Vite/React environment
+import { PRESETS } from '../../data/presets'; 
 
 const BuilderHeader = ({ 
     // State
     state, mobileTab, searchTerm, user, customPresets, currentData,
-    showTrendWidget, customKnowledge, // <--- New Prop: Knowledge Data
+    showTrendWidget, customKnowledge, 
     // Actions
     dispatch, setMobileTab, setSearchTerm, setShowTrendWidget, applyPreset, showToast,
-    handleSaveAsPreset, applyKnowledge // <--- New Prop: Apply Action
+    handleSaveAsPreset, applyKnowledge, setShowWizard
 }) => {
-
+    // NEW STATE: Tracks which menu is open for mobile accessibility
+    const [activeMenu, setActiveMenu] = useState(null); 
+    
     const handleRandomize = () => {
         dispatch({ type: 'RANDOMIZE', payload: currentData });
         showToast("Randomized selections!");
     };
 
+    const handleToggleMenu = (menuName) => {
+        setActiveMenu(prev => (prev === menuName ? null : menuName));
+    };
+
+    const handleApplyPreset = (preset) => {
+        applyPreset(preset);
+        setActiveMenu(null); // Close menu after selection
+    };
+
+    const handleApplyKnowledge = (k) => {
+        applyKnowledge(k);
+        setActiveMenu(null); // Close menu after selection
+    };
+
     return (
-        <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 p-2 shadow-sm z-10 sticky top-0 transition-colors">
+        <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 p-2 shadow-sm z-30 sticky top-0 transition-colors">
             
             {/* Mobile Tab Switcher */}
             <div className="md:hidden flex w-full bg-slate-100 dark:bg-slate-700 p-1 rounded-lg mb-2">
@@ -81,53 +98,69 @@ const BuilderHeader = ({
                     </button>
                 )}
 
-                {/* Presets Dropdown */}
-                <div className="relative group">
-                    <button className="px-3 py-1.5 bg-slate-800 dark:bg-slate-700 text-white rounded-lg flex items-center gap-1.5 text-xs font-medium"><Command size={14} /> <span className="hidden md:inline">Presets</span></button>
-                    <div className="absolute top-full left-0 w-64 pt-2 hidden group-hover:block z-50">
-                        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-600 p-2 max-h-96 overflow-y-auto">
-                            {user && customPresets.length > 0 && (
-                                <div className="mb-2 pb-2 border-b border-slate-100 dark:border-slate-700">
-                                    <div className="text-[10px] font-bold text-indigo-500 uppercase px-2 py-1 flex items-center gap-1"><Bookmark size={10} /> My Presets</div>
-                                    {customPresets.map((p) => (
-                                        <button key={p.id} onClick={() => applyPreset(p)} className="w-full text-left px-2 py-2 text-xs hover:bg-indigo-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg flex items-center justify-between group">
-                                            <span>{p.label}</span>
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                            <div className="text-[10px] font-bold text-slate-400 uppercase px-2 py-1">Quick Start</div>
-                            {((state.mode === 'text' ? PRESETS[state.textSubMode] || PRESETS.general : (state.mode === 'video' ? PRESETS.video : (state.textSubMode === 'avatar' ? PRESETS.avatar : PRESETS.art))) || []).map((p, i) => (
-                                <button key={i} onClick={() => applyPreset(p)} className="w-full text-left px-2 py-2 text-xs hover:bg-indigo-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg">{p.label}</button>
-                            ))}
+                {/* Presets Dropdown (Click Menu) */}
+                <div className="relative">
+                    <button 
+                        onClick={() => handleToggleMenu('presets')} 
+                        className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs font-medium transition-colors ${activeMenu === 'presets' ? 'bg-slate-700 text-white' : 'bg-slate-800 dark:bg-slate-700 text-white'}`}
+                    >
+                        <Command size={14} /> <span className="hidden md:inline">Presets</span>
+                    </button>
+                    
+                    {activeMenu === 'presets' && (
+                        // Added simple click handler to close the menu if the user taps the backdrop area (which is implicitly the outer div)
+                        <div className="absolute top-full left-0 w-64 pt-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200" onMouseLeave={() => setActiveMenu(null)}>
+                            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-600 p-2 max-h-96 overflow-y-auto">
+                                {user && customPresets.length > 0 && (
+                                    <div className="mb-2 pb-2 border-b border-slate-100 dark:border-slate-700">
+                                        <div className="text-[10px] font-bold text-indigo-500 uppercase px-2 py-1 flex items-center gap-1"><Bookmark size={10} /> My Presets</div>
+                                        {customPresets.map((p) => (
+                                            <button key={p.id} onClick={() => handleApplyPreset(p)} className="w-full text-left px-2 py-2 text-xs hover:bg-indigo-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg flex items-center justify-between">
+                                                <span>{p.label}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                                <div className="text-[10px] font-bold text-slate-400 uppercase px-2 py-1">Quick Start</div>
+                                {((state.mode === 'text' ? PRESETS[state.textSubMode] || PRESETS.general : (state.mode === 'video' ? PRESETS.video : (state.textSubMode === 'avatar' ? PRESETS.avatar : PRESETS.art))) || []).map((p, i) => (
+                                    <button key={i} onClick={() => handleApplyPreset(p)} className="w-full text-left px-2 py-2 text-xs hover:bg-indigo-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg">{p.label}</button>
+                                ))}
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
 
-                {/* CTO UPDATE: Knowledge Dropdown */}
-                <div className="relative group">
-                    <button className="px-3 py-1.5 bg-slate-800 dark:bg-slate-700 text-white rounded-lg flex items-center gap-1.5 text-xs font-medium">
+                {/* Knowledge Dropdown (Click Menu) */}
+                <div className="relative">
+                    <button 
+                        onClick={() => handleToggleMenu('knowledge')} 
+                        className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs font-medium transition-colors ${activeMenu === 'knowledge' ? 'bg-slate-700 text-white' : 'bg-slate-800 dark:bg-slate-700 text-white'}`}
+                    >
                         <BookOpen size={14} /> <span className="hidden md:inline">Knowledge</span>
                     </button>
-                    <div className="absolute top-full left-0 w-64 pt-2 hidden group-hover:block z-50">
-                        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-600 p-2 max-h-96 overflow-y-auto">
-                            {user && customKnowledge && customKnowledge.length > 0 ? (
-                                <>
-                                    <div className="text-[10px] font-bold text-violet-500 uppercase px-2 py-1 flex items-center gap-1"><BookOpen size={10} /> My Knowledge</div>
-                                    {customKnowledge.map((k) => (
-                                        <button key={k.id} onClick={() => applyKnowledge(k)} className="w-full text-left px-2 py-2 text-xs hover:bg-violet-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg group">
-                                            <div className="font-bold">{k.title}</div>
-                                            <div className="text-[9px] text-slate-400 line-clamp-1">{k.content}</div>
-                                        </button>
-                                    ))}
-                                </>
-                            ) : (
-                                <div className="p-4 text-center text-xs text-slate-400">
-                                    No knowledge snippets saved.<br/>Go to Library to add some.
-                                </div>
-                            )}
+                    
+                    {activeMenu === 'knowledge' && (
+                         // Added simple click handler to close the menu if the user taps the backdrop area (which is implicitly the outer div)
+                        <div className="absolute top-full left-0 w-64 pt-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200" onMouseLeave={() => setActiveMenu(null)}>
+                            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-600 p-2 max-h-96 overflow-y-auto">
+                                {user && customKnowledge && customKnowledge.length > 0 ? (
+                                    <>
+                                        <div className="text-[10px] font-bold text-violet-500 uppercase px-2 py-1 flex items-center gap-1"><BookOpen size={10} /> My Knowledge</div>
+                                        {customKnowledge.map((k) => (
+                                            <button key={k.id} onClick={() => handleApplyKnowledge(k)} className="w-full text-left px-2 py-2 text-xs hover:bg-violet-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg group">
+                                                <div className="font-bold">{k.title}</div>
+                                                <div className="text-[9px] text-slate-400 line-clamp-1">{k.content}</div>
+                                            </button>
+                                        ))}
+                                    </>
+                                ) : (
+                                    <div className="p-4 text-center text-xs text-slate-400">
+                                        No knowledge snippets saved.<br/>Go to Library to add some.
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
 
                 {/* Save Preset Button */}
