@@ -1,17 +1,17 @@
 import React from 'react';
 import { 
   Sparkles, MessageSquare, Palette, Video, Command, Search, Dices, 
-  TrendingUp, Bookmark, BookmarkPlus 
+  TrendingUp, Bookmark, BookmarkPlus, BookOpen 
 } from 'lucide-react';
 import { PRESETS } from '../../data/presets.js';
 
 const BuilderHeader = ({ 
     // State
     state, mobileTab, searchTerm, user, customPresets, currentData,
-    showTrendWidget, // <--- New Prop
+    showTrendWidget, customKnowledge, // <--- New Prop: Knowledge Data
     // Actions
     dispatch, setMobileTab, setSearchTerm, setShowTrendWidget, applyPreset, showToast,
-    handleSaveAsPreset
+    handleSaveAsPreset, applyKnowledge // <--- New Prop: Apply Action
 }) => {
 
     const handleRandomize = () => {
@@ -66,7 +66,7 @@ const BuilderHeader = ({
             </div>
 
             <div className="flex gap-2">
-                {/* CTO UPDATE: Trending Button (Replaces Wizard) */}
+                {/* Trend Button */}
                 {state.mode === 'text' && (
                     <button 
                         onClick={() => setShowTrendWidget(!showTrendWidget)} 
@@ -86,7 +86,6 @@ const BuilderHeader = ({
                     <button className="px-3 py-1.5 bg-slate-800 dark:bg-slate-700 text-white rounded-lg flex items-center gap-1.5 text-xs font-medium"><Command size={14} /> <span className="hidden md:inline">Presets</span></button>
                     <div className="absolute top-full left-0 w-64 pt-2 hidden group-hover:block z-50">
                         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-600 p-2 max-h-96 overflow-y-auto">
-                            
                             {user && customPresets.length > 0 && (
                                 <div className="mb-2 pb-2 border-b border-slate-100 dark:border-slate-700">
                                     <div className="text-[10px] font-bold text-indigo-500 uppercase px-2 py-1 flex items-center gap-1"><Bookmark size={10} /> My Presets</div>
@@ -97,39 +96,48 @@ const BuilderHeader = ({
                                     ))}
                                 </div>
                             )}
-
                             <div className="text-[10px] font-bold text-slate-400 uppercase px-2 py-1">Quick Start</div>
-                            {((state.mode === 'text' 
-                                ? PRESETS[state.textSubMode] || PRESETS.general 
-                                : (state.mode === 'video' ? PRESETS.video : (state.textSubMode === 'avatar' ? PRESETS.avatar : PRESETS.art))
-                            ) || []).map((p, i) => (
+                            {((state.mode === 'text' ? PRESETS[state.textSubMode] || PRESETS.general : (state.mode === 'video' ? PRESETS.video : (state.textSubMode === 'avatar' ? PRESETS.avatar : PRESETS.art))) || []).map((p, i) => (
                                 <button key={i} onClick={() => applyPreset(p)} className="w-full text-left px-2 py-2 text-xs hover:bg-indigo-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg">{p.label}</button>
                             ))}
                         </div>
                     </div>
                 </div>
 
-                {/* Save Preset Button */}
-                <button 
-                    onClick={handleSaveAsPreset} 
-                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-lg transition-colors flex items-center gap-1.5" 
-                    title="Save as Preset"
-                >
-                    <BookmarkPlus size={16} />
-                </button>
-
-                {/* Search Bar */}
-                <div className="relative w-40 focus-within:w-64 transition-all duration-300">
-                    <Search className="absolute left-2.5 top-2 text-slate-400" size={14} />
-                    <input 
-                        type="text" 
-                        placeholder="Search..." 
-                        className="w-full pl-8 pr-3 py-1.5 bg-slate-100 dark:bg-slate-700 border-none rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none dark:text-slate-200 dark:placeholder-slate-400" 
-                        value={searchTerm} 
-                        onChange={(e) => setSearchTerm(e.target.value)} 
-                    />
+                {/* CTO UPDATE: Knowledge Dropdown */}
+                <div className="relative group">
+                    <button className="px-3 py-1.5 bg-slate-800 dark:bg-slate-700 text-white rounded-lg flex items-center gap-1.5 text-xs font-medium">
+                        <BookOpen size={14} /> <span className="hidden md:inline">Knowledge</span>
+                    </button>
+                    <div className="absolute top-full left-0 w-64 pt-2 hidden group-hover:block z-50">
+                        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-600 p-2 max-h-96 overflow-y-auto">
+                            {user && customKnowledge && customKnowledge.length > 0 ? (
+                                <>
+                                    <div className="text-[10px] font-bold text-violet-500 uppercase px-2 py-1 flex items-center gap-1"><BookOpen size={10} /> My Knowledge</div>
+                                    {customKnowledge.map((k) => (
+                                        <button key={k.id} onClick={() => applyKnowledge(k)} className="w-full text-left px-2 py-2 text-xs hover:bg-violet-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg group">
+                                            <div className="font-bold">{k.title}</div>
+                                            <div className="text-[9px] text-slate-400 line-clamp-1">{k.content}</div>
+                                        </button>
+                                    ))}
+                                </>
+                            ) : (
+                                <div className="p-4 text-center text-xs text-slate-400">
+                                    No knowledge snippets saved.<br/>Go to Library to add some.
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
 
+                {/* Save Preset Button */}
+                <button onClick={handleSaveAsPreset} className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-lg transition-colors flex items-center gap-1.5" title="Save as Preset"><BookmarkPlus size={16} /></button>
+
+                {/* Search */}
+                <div className="relative w-40 focus-within:w-64 transition-all duration-300">
+                    <Search className="absolute left-2.5 top-2 text-slate-400" size={14} />
+                    <input type="text" placeholder="Search..." className="w-full pl-8 pr-3 py-1.5 bg-slate-100 dark:bg-slate-700 border-none rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none dark:text-slate-200 dark:placeholder-slate-400" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                </div>
                 <button onClick={handleRandomize} className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-lg transition-colors shadow-sm flex items-center gap-2" title="Randomize"><Dices size={16} /></button>
             </div>
         </header>

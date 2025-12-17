@@ -24,15 +24,18 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                 customPresets={builder.customPresets}
                 currentData={builder.currentData}
                 isSimpleMode={builder.isSimpleMode}
-                // CTO UPDATE: Passing Trend State to Header
+                
+                // CTO UPDATE: Passing Trend & Knowledge Data
                 showTrendWidget={builder.showTrendWidget}
                 setShowTrendWidget={builder.setShowTrendWidget}
+                customKnowledge={builder.customKnowledge}
                 
                 dispatch={builder.dispatch}
                 setMobileTab={builder.setMobileTab}
                 setSearchTerm={builder.setSearchTerm}
                 setShowWizard={builder.setShowWizard}
                 applyPreset={builder.applyPreset}
+                applyKnowledge={builder.applyKnowledge}
                 showToast={showToast}
                 handleSaveAsPreset={builder.handleSaveAsPreset}
                 setIsSimpleMode={builder.setIsSimpleMode}
