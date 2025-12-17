@@ -4,6 +4,7 @@ import { useTestRunner } from '../../hooks/useTestRunner.js';
 import TestRunnerControls from './TestRunnerControls.jsx';
 import TestRunnerResults from './TestRunnerResults.jsx';
 import GitHubModal from '../GitHubModal.jsx'; 
+import ApiKeyHelpModal from './ApiKeyHelpModal.jsx'; // 1. Import the missing modal
 
 const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippet, isSocialMode }) => {
     
@@ -69,6 +70,9 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
                     addSwarmAgent={runner.addSwarmAgent}
                     removeSwarmAgent={runner.removeSwarmAgent}
                     updateSwarmAgent={runner.updateSwarmAgent}
+
+                    // CTO FIX: Wiring the button to the state
+                    setShowHelpModal={runner.setShowHelpModal} 
                 />
 
                 {/* 2. RESULTS DISPLAY */}
@@ -125,9 +129,14 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
                 isOpen={runner.showGithub} 
                 onClose={() => runner.setShowGithub(false)} 
                 codeToPush={runner.codeToShip}
-                // CTO UPDATE: Wiring up the ship function and existing token
                 onShip={runner.shipToGithub}
                 initialToken={runner.githubToken}
+            />
+
+            {/* 3. Render the Help Modal */}
+            <ApiKeyHelpModal 
+                isOpen={runner.showHelpModal} 
+                onClose={() => runner.setShowHelpModal(false)} 
             />
         </div>
     );
