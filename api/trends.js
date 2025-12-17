@@ -1,15 +1,22 @@
 // This function runs on Vercel's servers.
 // It acts as a secure proxy to the YouTube Data API v3.
+import { checkRateLimit } from './_utils/rate-limiter.js';
 
 export default async function handler(req, res) {
-  // 1. Only allow POST requests
+  // 1. Rate Limit Check (Protect YouTube Quota)
+  const limitStatus = checkRateLimit(req);
+  if (!limitStatus.success) {
+      return res.status(429).json({ error: limitStatus.error });
+  }
+
+  // 2. Only allow POST requests
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   const { categoryId, region } = req.body;
 
-  // 2. Determine API Key
+  // 3. Determine API Key
   const apiKey = process.env.YOUTUBE_API_KEY;
 
   if (!apiKey) {
@@ -25,7 +32,7 @@ export default async function handler(req, res) {
   };
 
   try {
-    // 3. Construct YouTube API URL
+    // 4. Construct YouTube API URL
     const baseUrl = 'https://www.googleapis.com/youtube/v3/videos';
     const params = new URLSearchParams({
         part: 'snippet,statistics',
@@ -41,7 +48,7 @@ export default async function handler(req, res) {
         params.append('videoCategoryId', categoryId);
     }
 
-    // 4. Call YouTube API
+    // 5. Call YouTube API
     const response = await fetch(`${baseUrl}?${params.toString()}`);
     const data = await response.json();
 
@@ -50,7 +57,7 @@ export default async function handler(req, res) {
         throw new Error(data.error?.message || "Failed to fetch trends");
     }
 
-    // 5. Transform Data for Frontend
+    // 6. Transform Data for Frontend
     // We strip out the heavy JSON and return only what the UI needs
     const trends = data.items.map(item => ({
         id: item.id,

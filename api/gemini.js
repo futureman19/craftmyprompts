@@ -1,17 +1,24 @@
 // This function runs on Vercel's servers.
 // It securely handles requests to Google's Gemini API.
+import { checkRateLimit } from './_utils/rate-limiter.js';
 
 export default async function handler(req, res) {
-  // 1. Only allow POST requests
+  // 1. Rate Limit Check (Protect Wallet)
+  const limitStatus = checkRateLimit(req);
+  if (!limitStatus.success) {
+      return res.status(429).json({ error: limitStatus.error });
+  }
+
+  // 2. Only allow POST requests
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // 2. Parse the body
+  // 3. Parse the body
   // endpoint: 'generateContent' or 'listModels'
   const { apiKey: userKey, prompt, model, endpoint } = req.body;
 
-  // 3. Determine which Key to use
+  // 4. Determine which Key to use
   // Priority: User's manual key -> Global Environment Variable
   const apiKey = userKey || process.env.VITE_GEMINI_API_KEY;
 

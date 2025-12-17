@@ -1,15 +1,22 @@
 // This function runs on Vercel's servers.
 // It acts as a secure proxy to the GitHub API.
+import { checkRateLimit } from './_utils/rate-limiter.js';
 
 export default async function handler(req, res) {
-  // 1. Only allow POST requests
+  // 1. Rate Limit Check (Prevent abuse of your server bandwidth)
+  const limitStatus = checkRateLimit(req);
+  if (!limitStatus.success) {
+      return res.status(429).json({ error: limitStatus.error });
+  }
+
+  // 2. Only allow POST requests
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   const { token, action, payload } = req.body;
 
-  // 2. Validate Inputs
+  // 3. Validate Inputs
   if (!token) {
     return res.status(401).json({ error: "GitHub Access Token is missing." });
   }
@@ -28,7 +35,7 @@ export default async function handler(req, res) {
     let method = 'POST';
     let body = {};
 
-    // 3. Route Actions
+    // 4. Route Actions
     switch (action) {
         case 'create_gist':
             endpoint = 'https://api.github.com/gists';
@@ -53,7 +60,7 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: "Invalid action specified." });
     }
 
-    // 4. Call GitHub API
+    // 5. Call GitHub API
     const response = await fetch(endpoint, {
       method: method,
       headers: {
@@ -72,7 +79,7 @@ export default async function handler(req, res) {
         throw new Error(errorMsg);
     }
 
-    // 5. Success
+    // 6. Success
     return res.status(200).json(data);
 
   } catch (error) {

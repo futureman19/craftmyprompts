@@ -1,15 +1,23 @@
 // This file runs on Vercel's servers, not in the user's browser.
 // It acts as a secure proxy to talk to OpenAI.
+import { checkRateLimit } from './_utils/rate-limiter.js';
 
 export default async function handler(req, res) {
-  // 1. Check for POST method
+  // 1. Rate Limit Check
+  const limitStatus = checkRateLimit(req);
+  if (!limitStatus.success) {
+      return res.status(429).json({ error: limitStatus.error });
+  }
+
+  // 2. Check for POST method
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // 2. Get the API Key
+  // 3. Get the API Key
   // Priority: User's manual key (passed in body) -> Global Environment Variable
-  const apiKey = req.body.apiKey || process.env.VITE_OPENAI_API_KEY;
+  // Checks both standard and VITE_ prefixed env vars for maximum compatibility
+  const apiKey = req.body.apiKey || process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
 
   if (!apiKey) {
     return res.status(500).json({ error: "OpenAI API Key is missing. Please enter one in settings." });
@@ -24,11 +32,11 @@ export default async function handler(req, res) {
     return msg;
   };
 
-  // 3. Extract prompt from request
+  // 4. Extract prompt from request
   const { prompt, model } = req.body;
 
   try {
-    // 4. Call OpenAI
+    // 5. Call OpenAI
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -50,7 +58,7 @@ export default async function handler(req, res) {
         throw new Error(data.error?.message || "OpenAI API Error");
     }
 
-    // 5. Send result back to frontend
+    // 6. Send result back to frontend
     return res.status(200).json(data);
 
   } catch (error) {
