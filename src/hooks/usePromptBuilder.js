@@ -81,7 +81,6 @@ function builderReducer(state, action) {
         
         // Handle explicit selections object (Saved Preset) or flat keys (Quick Start)
         if (p.selections) {
-            // Direct load from Saved Preset object
             Object.assign(newSels, p.selections);
         } else {
             // Parse legacy/flat preset keys...
@@ -120,12 +119,9 @@ function builderReducer(state, action) {
         return { 
             ...state, 
             selections: newSels, 
-            // CTO FIX: Check all possible keys (Snake_Case from DB, CamelCase from JS, Legacy 'topic')
             customTopic: p.custom_topic || p.customTopic || p.topic || '', 
             codeContext: p.code_context || p.codeContext || '', 
-            
             variables: {},
-            // Use explicit values from DB if available, otherwise infer from content
             mode: p.mode || (p.camera_move ? 'video' : (p.avatar_style ? 'art' : (p.genre ? 'art' : 'text'))),
             textSubMode: p.textSubMode || (p.avatar_style ? 'avatar' : (p.lang ? 'coding' : (p.platform ? 'social' : (p.framework ? 'writing' : 'general'))))
         };
@@ -178,12 +174,10 @@ function builderReducer(state, action) {
             mode: data.type || 'text',
             textSubMode: data.textSubMode || 'general',
             selections: data.selections || {},
-            // CTO FIX: Consistent mapping for Remix feature too
             customTopic: data.custom_topic || data.customTopic || '',
             codeContext: data.code_context || data.codeContext || '', 
             negativePrompt: data.negative_prompt || data.negativePrompt || '',
             referenceImage: data.reference_image || data.referenceImage || '',
-            
             targetModel: data.model_config?.targetModel || data.targetModel || 'midjourney',
             loraName: data.model_config?.loraName || data.loraName || '',
             seed: data.model_config?.seed || data.seed || '',
@@ -426,8 +420,15 @@ export const usePromptBuilder = (initialData) => {
         parts.push(`\n[EXPERT KNOWLEDGE BASE - STRICT ADHERENCE REQUIRED]:\n${contextDocs.join('\n\n')}\n`);
     }
 
-    if (state.textSubMode === 'coding' && state.codeContext?.trim()) {
-        parts.push(`\n[USER CODE CONTEXT]:\n\`\`\`\n${state.codeContext}\n\`\`\`\n`);
+    // --- CTO FIX: UNIVERSAL CONTEXT INJECTION ---
+    // This allows knowledge to be applied in ALL modes, not just coding.
+    if (state.codeContext?.trim()) {
+        const label = state.textSubMode === 'coding' ? 'USER CODE CONTEXT' : 'ADDITIONAL CONTEXT / KNOWLEDGE';
+        const formattedContext = state.textSubMode === 'coding' 
+            ? `\`\`\`\n${state.codeContext}\n\`\`\`` // Wrapped for code
+            : state.codeContext; // Plain text for social/writing
+            
+        parts.push(`\n[${label}]:\n${formattedContext}\n`);
     }
 
     if (state.chainOfThought) parts.push("Take a deep breath and think step-by-step to ensure the highest quality response.");
