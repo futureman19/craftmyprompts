@@ -32,6 +32,7 @@ export const useBuilderView = (user, initialData, clearInitialData, showToast, a
     const [copied, setCopied] = useState(false);
     const [copiedJson, setCopiedJson] = useState(false);
     const [customPresets, setCustomPresets] = useState([]);
+    const [customKnowledge, setCustomKnowledge] = useState([]); // New State for Knowledge
     
     // 4. Context Fetching State
     const [contextUrl, setContextUrl] = useState('');
@@ -52,24 +53,37 @@ export const useBuilderView = (user, initialData, clearInitialData, showToast, a
         }
     }, [initialData, dispatch, showToast, clearInitialData]);
 
-    // Fetch Custom Presets (Supabase)
-    const fetchPresets = async () => {
+    // Fetch Custom Presets & Knowledge (Supabase)
+    const fetchUserData = async () => {
         if (!user) {
             setCustomPresets([]);
+            setCustomKnowledge([]);
             return;
         }
-        const { data, error } = await supabase
+
+        // Fetch Presets
+        const { data: presetsData, error: presetsError } = await supabase
             .from('presets')
             .select('*')
             .eq('user_id', user.uid)
             .order('created_at', { ascending: false });
 
-        if (error) console.error('Error loading presets:', error);
-        else setCustomPresets(data || []);
+        if (presetsError) console.error('Error loading presets:', presetsError);
+        else setCustomPresets(presetsData || []);
+
+        // Fetch Knowledge
+        const { data: knowledgeData, error: knowledgeError } = await supabase
+            .from('knowledge')
+            .select('*')
+            .eq('user_id', user.uid)
+            .order('created_at', { ascending: false });
+
+        if (knowledgeError) console.error('Error loading knowledge:', knowledgeError);
+        else setCustomKnowledge(knowledgeData || []);
     };
 
     useEffect(() => {
-        fetchPresets();
+        fetchUserData();
     }, [user]);
 
     // --- ACTIONS ---
@@ -155,6 +169,15 @@ export const useBuilderView = (user, initialData, clearInitialData, showToast, a
         showToast(`Loaded preset: ${preset.label || 'Custom'}`);
     };
 
+    const applyKnowledge = (item) => {
+        // Appends the knowledge snippet to the "Code Context" field (used for general context)
+        const header = `\n// --- KNOWLEDGE: ${item.title} ---\n`;
+        const newContent = (state.codeContext || '') + header + item.content;
+        
+        dispatch({ type: 'UPDATE_FIELD', field: 'codeContext', value: newContent });
+        showToast(`Applied knowledge: ${item.title}`);
+    };
+
     const handleSaveAsPreset = async () => {
         if (!user) {
             onLoginRequest();
@@ -178,7 +201,7 @@ export const useBuilderView = (user, initialData, clearInitialData, showToast, a
             if (error) throw error;
             
             showToast("Preset saved! Check the Presets menu.");
-            fetchPresets(); // Refresh list
+            fetchUserData(); // Refresh list
         } catch (error) {
             console.error("Error saving preset:", error);
             showToast("Failed to save preset.", "error");
@@ -290,10 +313,10 @@ export const useBuilderView = (user, initialData, clearInitialData, showToast, a
         showTrendWidget, setShowTrendWidget,
         
         displayName, setDisplayName, saveVisibility, setSaveVisibility, isSaving, copied, copiedJson,
-        customPresets, contextUrl, setContextUrl, isFetchingContext,
+        customPresets, customKnowledge, contextUrl, setContextUrl, isFetchingContext,
         globalApiKey, globalOpenAIKey,
         // Actions
-        handleTestClick, handleFetchContext, handleSaveSnippet, toggleSelection, applyPreset, 
+        handleTestClick, handleFetchContext, handleSaveSnippet, toggleSelection, applyPreset, applyKnowledge, 
         handleSaveAsPreset, handleCopy, handleCopyJSON, handleUnifiedSave, filteredData
     };
 };
