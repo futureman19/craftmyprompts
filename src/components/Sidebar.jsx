@@ -1,8 +1,8 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Layout, Globe, Bookmark, List, LogOut, LogIn, Sparkles, Moon, Sun } from 'lucide-react';
+import { Layout, Globe, Bookmark, List, LogOut, LogIn, Sparkles, Moon, Sun, Bot } from 'lucide-react';
 
-const Sidebar = ({ handleLogin, handleLogout, user, darkMode, toggleDarkMode }) => {
+const Sidebar = ({ handleLogin, handleLogout, user, darkMode, toggleDarkMode, onOpenAgent }) => {
     const navigate = useNavigate();
     const location = useLocation();
     
@@ -24,6 +24,19 @@ const Sidebar = ({ handleLogin, handleLogout, user, darkMode, toggleDarkMode }) 
            
            {/* Navigation Items */}
            <div className="flex flex-row md:flex-col justify-around md:justify-start w-full md:w-auto gap-1 md:gap-6 items-center flex-1 md:flex-none">
+               
+               {/* CTO UPDATE: Global Agent Button */}
+               <button 
+                    onClick={onOpenAgent} 
+                    className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl transition-all w-16 md:w-14 text-fuchsia-600 dark:text-fuchsia-400 bg-fuchsia-50 dark:bg-fuchsia-900/20 hover:bg-fuchsia-100 dark:hover:bg-fuchsia-900/40"
+                    title="Open CraftOS Agent"
+               >
+                   <Bot size={20} className="md:w-6 md:h-6" />
+                   <span className="text-[10px] font-bold">Agent</span>
+               </button>
+
+               <div className="hidden md:block w-8 h-px bg-slate-200 dark:bg-slate-800 my-2"></div>
+
                <button onClick={() => navigate('/')} className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl transition-all w-16 md:w-14 ${isActive('/')}`}>
                    <Layout size={20} className="md:w-6 md:h-6" /><span className="text-[10px] font-medium">Create</span>
                </button>

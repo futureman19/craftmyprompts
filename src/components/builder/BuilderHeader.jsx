@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { 
   Sparkles, MessageSquare, Palette, Video, Command, Search, Dices, 
-  TrendingUp, Bookmark, BookmarkPlus, BookOpen, Bot 
+  TrendingUp, Bookmark, BookmarkPlus, BookOpen 
 } from 'lucide-react';
-// FIX: Import from 'presets' without extension for better module resolution in Vite
 import { PRESETS } from '../../data/presets';
 
 const BuilderHeader = ({ 
@@ -12,9 +11,8 @@ const BuilderHeader = ({
     showTrendWidget, customKnowledge, 
     // Actions
     dispatch, setMobileTab, setSearchTerm, setShowTrendWidget, applyPreset, showToast,
-    handleSaveAsPreset, applyKnowledge, setShowAgent 
+    handleSaveAsPreset, applyKnowledge 
 }) => {
-    // NEW STATE: Tracks which menu is open for mobile accessibility
     const [activeMenu, setActiveMenu] = useState(null); 
     
     const handleRandomize = () => {
@@ -83,15 +81,6 @@ const BuilderHeader = ({
             </div>
 
             <div className="flex gap-2">
-                {/* Agent Button */}
-                <button 
-                    onClick={() => setShowAgent(true)} 
-                    className="px-3 py-1.5 bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 hover:to-purple-500 text-white rounded-lg flex items-center gap-1.5 text-xs font-bold shadow-md transition-all animate-in fade-in"
-                    title="Open CraftOS Agent"
-                >
-                    <Bot size={14} /> <span className="hidden md:inline">Agent</span>
-                </button>
-
                 {/* Trend Button */}
                 {state.mode === 'text' && (
                     <button 

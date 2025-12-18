@@ -1,23 +1,14 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useBuilderView } from '../hooks/useBuilderView.js';
-import { useOrchestrator } from '../hooks/useOrchestrator.js'; // 1. Import Orchestrator
 import BuilderHeader from '../components/builder/BuilderHeader.jsx';
 import BuilderInputPanel from '../components/builder/BuilderInputPanel.jsx';
 import BuilderPreviewPanel from '../components/builder/BuilderPreviewPanel.jsx';
 import TestRunnerModal from '../components/TestRunnerModal.jsx';
 import WizardMode from '../components/WizardMode.jsx'; 
-import AgentModal from '../components/AgentModal.jsx'; 
 
 const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHistory, onLoginRequest }) => {
   // 1. Initialize the "Builder Logic" (Prompt Engine)
   const builder = useBuilderView(user, initialData, clearInitialData, showToast, addToHistory, onLoginRequest);
-
-  // 2. Initialize the "Context OS" (Memory Engine)
-  // This hook manages long-term memory and task state
-  const orchestrator = useOrchestrator(user);
-
-  // 3. Local State for Agent Modal (UI Toggle)
-  const [showAgent, setShowAgent] = useState(false);
 
   return (
       <div className="flex flex-col md:flex-row h-full w-full relative">
@@ -39,9 +30,6 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                 setShowTrendWidget={builder.setShowTrendWidget}
                 customKnowledge={builder.customKnowledge}
                 
-                // Agent Toggle
-                setShowAgent={setShowAgent}
-
                 dispatch={builder.dispatch}
                 setMobileTab={builder.setMobileTab}
                 setSearchTerm={builder.setSearchTerm}
@@ -118,19 +106,6 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
             selections={builder.state.selections} 
             onToggle={builder.toggleSelection} 
             mode={builder.state.mode}
-        />
-
-        {/* CTO UPDATE: Agent Modal with Memory Connection */}
-        <AgentModal 
-            isOpen={showAgent} 
-            onClose={() => setShowAgent(false)} 
-            apiKey={builder.globalApiKey} // Using Gemini key by default
-            
-            // Memory Wiring
-            memories={orchestrator.memories}
-            onSaveMemory={orchestrator.remember}
-            onDeleteMemory={orchestrator.forget}
-            loadingMemory={orchestrator.loading}
         />
       </div>
   );

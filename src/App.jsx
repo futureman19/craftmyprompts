@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
-// Removed Firebase imports
 import { supabase } from './lib/supabase.js';
 
 import Sidebar from './components/Sidebar.jsx';
@@ -11,6 +10,10 @@ import SavedView from './views/SavedView.jsx';
 import HistoryView from './views/HistoryView.jsx';
 import BuilderView from './views/BuilderView.jsx';
 
+// CTO UPDATE: Importing Agent & Orchestrator for Global Access
+import { useOrchestrator } from './hooks/useOrchestrator.js';
+import AgentModal from './components/AgentModal.jsx';
+
 const App = () => {
   // --- STATE ---
   const [user, setUser] = useState(null);
@@ -19,18 +22,21 @@ const App = () => {
   const [promptToLoad, setPromptToLoad] = useState(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
   
-  // Initialize Dark Mode from local storage or system preference
+  // Agent State (Lifted from BuilderView)
+  const [showAgent, setShowAgent] = useState(false);
+  
+  // Initialize Dark Mode
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('craft-my-prompt-theme');
     return saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
   });
   
-  // Navigation Hook
   const navigate = useNavigate();
 
-  // --- EFFECTS ---
+  // --- INITIALIZE CONTEXT OS (Memory Engine) ---
+  const orchestrator = useOrchestrator(user);
 
-  // Handle Dark Mode Class on HTML element
+  // --- EFFECTS ---
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add('dark');
@@ -41,20 +47,17 @@ const App = () => {
     }
   }, [darkMode]);
 
-  // Check auth state on mount (Supabase Version)
   useEffect(() => {
-    // 1. Check active session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser({
-            uid: session.user.id, // Map Supabase 'id' to 'uid' for compatibility
+            uid: session.user.id,
             email: session.user.email,
             displayName: session.user.user_metadata?.full_name || session.user.email?.split('@')[0]
         });
       }
     });
 
-    // 2. Listen for changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
         if (session?.user) {
             setUser({
@@ -102,8 +105,10 @@ const App = () => {
 
   const toggleDarkMode = () => setDarkMode(prev => !prev);
 
+  // Global API Key (Fallback)
+  const globalApiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+
   return (
-    // Standard flex-col for mobile, flex-row for desktop
     <div className="flex flex-col md:flex-row w-full h-screen md:h-dvh bg-slate-100 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 overflow-hidden transition-colors duration-200">
         
         {/* Sidebar Component */}
@@ -113,12 +118,12 @@ const App = () => {
             user={user} 
             darkMode={darkMode}
             toggleDarkMode={toggleDarkMode}
+            onOpenAgent={() => setShowAgent(true)} // <--- Passing Agent Handler
         />
         
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative pb-20 md:pb-0">
             <Routes>
-                {/* Public Route: Builder is now accessible to everyone */}
                 <Route path="/" element={
                     <BuilderView 
                         user={user} 
@@ -129,24 +134,13 @@ const App = () => {
                         onLoginRequest={handleLoginRequest}
                     />
                 } />
-                
-                {/* Public Route: Feed is visible to everyone (read-only for guests) */}
-                <Route path="/feed" element={
-                    <FeedView 
-                        user={user} 
-                        loadPrompt={loadPrompt} 
-                        onLoginRequest={handleLoginRequest}
-                    />
-                } />
-
-                {/* Private Routes: Require User */}
+                <Route path="/feed" element={<FeedView user={user} loadPrompt={loadPrompt} onLoginRequest={handleLoginRequest} />} />
                 {user ? (
                     <>
                         <Route path="/library" element={<SavedView user={user} loadPrompt={loadPrompt} showToast={showToast} />} />
                         <Route path="/history" element={<HistoryView sessionHistory={sessionHistory} showToast={showToast} />} />
                     </>
                 ) : (
-                    // Redirect guests trying to access private routes to Builder or show a restricted view
                     <>
                         <Route path="/library" element={<div className="flex items-center justify-center h-full"><div className="text-center p-8"><h2 className="text-xl font-bold text-slate-700 dark:text-slate-200 mb-2">Library is locked</h2><p className="text-slate-500 dark:text-slate-400 mb-4">Please sign in to save your prompts.</p><button onClick={handleLoginRequest} className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">Sign In</button></div></div>} />
                         <Route path="/history" element={<div className="flex items-center justify-center h-full"><div className="text-center p-8"><h2 className="text-xl font-bold text-slate-700 dark:text-slate-200 mb-2">History is locked</h2><p className="text-slate-500 dark:text-slate-400 mb-4">Sign in to track your session history.</p><button onClick={handleLoginRequest} className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">Sign In</button></div></div>} />
@@ -168,6 +162,17 @@ const App = () => {
                 onClose={() => setNotification(null)} 
             />
         )}
+
+        {/* CTO UPDATE: Global Agent Modal */}
+        <AgentModal 
+            isOpen={showAgent} 
+            onClose={() => setShowAgent(false)} 
+            apiKey={globalApiKey}
+            memories={orchestrator.memories}
+            onSaveMemory={orchestrator.remember}
+            onDeleteMemory={orchestrator.forget}
+            loadingMemory={orchestrator.loading}
+        />
     </div>
   );
 };
