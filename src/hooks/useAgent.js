@@ -5,8 +5,48 @@ export const useAgent = (apiKey, provider = 'gemini') => {
     const [messages, setMessages] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
 
-    // 1. Dynamic System Prompt (A2UI Protocol)
-    // We instruct the AI to "speak" in JSON when it wants to render UI.
+    // --- A2UI SCHEMA DEFINITION ---
+    // This teaches the AI how to use the 'render_ui' tool to build custom interfaces.
+    const A2UI_SCHEMA_GUIDE = `
+    ### ATOMIC COMPONENT LIBRARY (For 'render_ui' tool)
+    When using the "render_ui" tool, your 'content' prop must be a JSON object (or array of objects) following this structure:
+    
+    { "type": "ComponentType", "props": { ... }, "children": [ ... ] }
+
+    AVAILABLE ATOMS:
+    1. Container
+       - props: { layout: 'col' | 'row', style: { className: '...' } }
+       - children: []
+    2. Card
+       - props: { title: 'String', variant: 'default' | 'outlined' | 'elevated' }
+       - children: []
+    3. Text
+       - props: { content: 'String', variant: 'h1' | 'h2' | 'body' | 'caption', color: 'default' | 'primary' | 'danger' }
+    4. Button
+       - props: { label: 'String', variant: 'primary' | 'secondary' | 'ghost' | 'danger', icon: 'arrow' | 'send' }
+       - action: You can define an 'actionId' prop to track clicks.
+    5. Image
+       - props: { src: 'url', alt: 'description', aspectRatio: 'video' | 'square' | 'portrait' }
+    6. Input
+       - props: { label: 'String', name: 'field_name', placeholder: '...' }
+
+    EXAMPLE PAYLOAD for 'render_ui':
+    {
+      "tool": "render_ui",
+      "props": {
+        "content": {
+          "type": "Card",
+          "props": { "title": "Generated Plan" },
+          "children": [
+            { "type": "Text", "props": { "content": "Here is your strategy:", "variant": "body" } },
+            { "type": "Button", "props": { "label": "Accept", "variant": "primary", "actionId": "accept_plan" } }
+          ]
+        }
+      }
+    }
+    `;
+
+    // 1. Dynamic System Prompt
     const toolList = Object.keys(COMPONENT_REGISTRY).map(key => 
         `- "${key}": ${COMPONENT_REGISTRY[key].description}`
     ).join('\n');
@@ -15,31 +55,30 @@ export const useAgent = (apiKey, provider = 'gemini') => {
 You are CraftOS, an intelligent interface assistant.
 You can render rich UI components to help the user by outputting a JSON block.
 
-AVAILABLE TOOLS (UI COMPONENTS):
+AVAILABLE TOOLS:
 ${toolList}
+
+${A2UI_SCHEMA_GUIDE}
 
 PROTOCOL:
 1. To render a component, output a MARKDOWN CODE BLOCK containing a JSON object.
-2. The JSON must follow this schema:
+2. The JSON must follow this structure:
    \`\`\`json
    {
-     "tool": "tool_name_from_list",
-     "props": { "key": "value" } // Optional properties to configure the component
+     "tool": "tool_name",
+     "props": { ... } 
    }
    \`\`\`
-3. Example: If user asks "Search for cyberpunk images", reply with:
-   \`\`\`json
-   { "tool": "visual_search", "props": { "initialQuery": "cyberpunk" } }
-   \`\`\`
-4. Do not provide extra conversational text when rendering a tool unless necessary.
+3. Do not provide extra conversational text when rendering a tool unless necessary.
+4. If the user asks for a complex UI (like a dashboard, list, or plan), use 'render_ui' to build it.
+5. If you receive a [USER_ACTION: action_id] message, it means the user clicked a button in your UI. Respond accordingly.
     `.trim();
 
-    // 2. Response Parser (A2UI Renderer Logic)
-    // Scans the response for JSON blocks and resolves them to Components.
+    // 2. Response Parser
     const parseResponse = (text) => {
         if (!text) return { type: 'text', content: '' };
 
-        // Look for JSON code blocks: ```json { ... } ```
+        // Look for JSON code blocks
         const jsonRegex = /```json\s*([\s\S]*?)\s*```/;
         const match = text.match(jsonRegex);
 
@@ -55,23 +94,17 @@ PROTOCOL:
                     return {
                         type: 'component',
                         component: toolDef.component,
-                        // Merge default props with AI-generated props
                         props: { ...toolDef.defaultProps, ...aiProps },
                         rawText: text
                     };
                 }
             } catch (e) {
                 console.warn("Failed to parse A2UI JSON:", e);
-                // Fallback to text if JSON is broken
                 return { type: 'text', content: text };
             }
         }
 
-        // Default to standard text response
-        return {
-            type: 'text',
-            content: text
-        };
+        return { type: 'text', content: text };
     };
 
     // 3. Message Handler
@@ -80,13 +113,18 @@ PROTOCOL:
 
         setIsLoading(true);
         
-        // Optimistically add user message
-        const newHistory = [...messages, { role: 'user', type: 'text', content: userText }];
-        setMessages(newHistory);
+        // Optimistically add user message locally
+        const newLocalHistory = [...messages, { role: 'user', type: 'text', content: userText }];
+        setMessages(newLocalHistory);
 
         try {
-            // Combine System Instruction + User Prompt
-            const finalPrompt = `${systemInstruction}\n\nUser Query: ${userText}`;
+            // Build Context Aware Prompt
+            // We stitch previous messages to give the AI memory
+            const historyContext = messages.map(m => 
+                `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.rawText || m.content}`
+            ).join('\n\n');
+
+            const finalPrompt = `${systemInstruction}\n\nPREVIOUS CHAT HISTORY:\n${historyContext}\n\nCURRENT QUERY:\nUser: ${userText}`;
 
             const response = await fetch(`/api/${provider}`, {
                 method: 'POST',
@@ -94,9 +132,8 @@ PROTOCOL:
                 body: JSON.stringify({ 
                     apiKey, 
                     prompt: finalPrompt,
-                    // Default generic models for chat
-                    // CTO FIX: Explicitly set Gemini model to 'gemini-1.5-flash-latest' to resolve version errors
-                    model: provider === 'openai' ? 'gpt-4o' : (provider === 'gemini' ? 'gemini-1.5-flash-latest' : undefined) 
+                    // Use standard model for compatibility
+                    model: provider === 'openai' ? 'gpt-4o' : (provider === 'gemini' ? 'gemini-1.5-flash' : undefined) 
                 })
             });
 
@@ -104,15 +141,12 @@ PROTOCOL:
             
             if (!response.ok) throw new Error(data.error || 'Failed to fetch response');
 
-            // Extract text based on provider
             let aiText = '';
             if (provider === 'gemini') aiText = data.candidates?.[0]?.content?.parts?.[0]?.text;
             else if (provider === 'openai') aiText = data.choices?.[0]?.message?.content;
             else if (provider === 'anthropic') aiText = data.content?.[0]?.text;
             else if (provider === 'groq') aiText = data.choices?.[0]?.message?.content;
-            else aiText = "Response format not recognized.";
 
-            // Parse and Add AI Response
             const parsed = parseResponse(aiText || '');
 
             setMessages(prev => [...prev, { 
@@ -122,7 +156,6 @@ PROTOCOL:
 
         } catch (error) {
             console.error("Agent Error:", error);
-            // CTO UPDATE: Detailed error logging for debugging
             setMessages(prev => [...prev, { 
                 role: 'assistant', 
                 type: 'text', 
@@ -133,10 +166,18 @@ PROTOCOL:
         }
     };
 
+    // 4. Action Handler (For UI Buttons)
+    const handleAction = (actionId, payload = {}) => {
+        const actionString = `[USER_ACTION: ${actionId}] ${JSON.stringify(payload)}`;
+        // We feed this back into the chat as a user message so the AI sees it
+        sendMessage(actionString);
+    };
+
     return {
         messages,
         isLoading,
         sendMessage,
+        handleAction, // Export this so the UI can use it
         clearHistory: () => setMessages([])
     };
 };

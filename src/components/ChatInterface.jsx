@@ -4,7 +4,10 @@ import { useAgent } from '../hooks/useAgent.js';
 
 const ChatInterface = ({ apiKey, provider = 'gemini' }) => {
     const [input, setInput] = useState('');
-    const { messages, isLoading, sendMessage, clearHistory } = useAgent(apiKey, provider);
+    
+    // Destructuring handleAction from the hook
+    const { messages, isLoading, sendMessage, handleAction, clearHistory } = useAgent(apiKey, provider);
+    
     const bottomRef = useRef(null);
 
     // Auto-scroll to bottom on new message
@@ -19,9 +22,9 @@ const ChatInterface = ({ apiKey, provider = 'gemini' }) => {
     };
 
     return (
-        <div className="flex flex-col h-[600px] bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+        <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
             {/* Header */}
-            <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 flex justify-between items-center">
+            <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 flex justify-between items-center flex-shrink-0">
                 <h3 className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
                     <Sparkles size={18} className="text-indigo-500" /> CraftOS Agent
                 </h3>
@@ -34,7 +37,7 @@ const ChatInterface = ({ apiKey, provider = 'gemini' }) => {
             </div>
 
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-6">
+            <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-slate-50 dark:bg-slate-900">
                 {messages.length === 0 && (
                     <div className="h-full flex flex-col items-center justify-center text-slate-400 text-center opacity-50 px-8">
                         <Bot size={48} className="mb-4 text-indigo-300" />
@@ -71,8 +74,11 @@ const ChatInterface = ({ apiKey, provider = 'gemini' }) => {
                                         <Sparkles size={10} /> Generated Interface
                                     </div>
                                     <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden bg-slate-50 dark:bg-slate-900/50">
-                                        {/* Render the component dynamically with props */}
-                                        <msg.component {...msg.props} />
+                                        {/* Render the component dynamically with props AND action handler */}
+                                        <msg.component 
+                                            {...msg.props} 
+                                            onAction={handleAction} 
+                                        />
                                     </div>
                                 </div>
                             )}
@@ -105,7 +111,7 @@ const ChatInterface = ({ apiKey, provider = 'gemini' }) => {
             </div>
 
             {/* Input Area */}
-            <div className="p-4 bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800">
+            <div className="p-4 bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex-shrink-0">
                 <div className="flex gap-2">
                     <input
                         type="text"

@@ -1,6 +1,7 @@
 import TrendWidget from '../components/TrendWidget.jsx';
 import VisualSearchModal from '../components/VisualSearchModal.jsx';
 import GitHubModal from '../components/GitHubModal.jsx';
+import A2UIRenderer from '../components/a2ui/A2UIRenderer.jsx';
 
 // --- A2UI COMPONENT REGISTRY ---
 // This file maps "Tool Names" (Intents) to actual React Components.
@@ -25,7 +26,6 @@ export const COMPONENT_REGISTRY = {
         component: VisualSearchModal,
         defaultProps: {
             isOpen: true, // Modals need to be open to be seen
-            // Handlers (onSelectImage) will be injected by the runtime hook
         },
         description: "Search interface for high-quality stock photos (Pexels) to use as references."
     },
@@ -36,8 +36,15 @@ export const COMPONENT_REGISTRY = {
         component: GitHubModal,
         defaultProps: {
             isOpen: true,
-            // codeToPush will be injected from the agent's current context
         },
         description: "Deployment interface to save code snippets to GitHub Gists."
+    },
+
+    // 4. Generative UI (The "CraftUI" Engine)
+    // This allows the AI to build custom layouts using atomic components.
+    "render_ui": {
+        component: A2UIRenderer,
+        defaultProps: {},
+        description: "Renders a custom UI layout. REQUIRED PROP: 'content' (JSON tree of atoms: Container, Card, Text, Button, Image, Input)."
     }
 };
