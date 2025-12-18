@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { COMPONENT_REGISTRY } from '../data/componentRegistry.jsx';
 
-export const useAgent = (apiKey, provider = 'gemini') => {
+export const useAgent = (apiKey, provider = 'gemini', modelOverride) => {
     const [messages, setMessages] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -119,12 +119,18 @@ PROTOCOL:
 
         try {
             // Build Context Aware Prompt
-            // We stitch previous messages to give the AI memory
             const historyContext = messages.map(m => 
                 `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.rawText || m.content}`
             ).join('\n\n');
 
             const finalPrompt = `${systemInstruction}\n\nPREVIOUS CHAT HISTORY:\n${historyContext}\n\nCURRENT QUERY:\nUser: ${userText}`;
+
+            // Determine Model
+            let selectedModel = modelOverride;
+            if (!selectedModel) {
+                // CTO UPDATE: Using Gemini 2.5 Flash Lite (fastest/cheapest for UI gen)
+                selectedModel = provider === 'openai' ? 'gpt-4o' : (provider === 'gemini' ? 'gemini-2.5-flash-lite' : undefined);
+            }
 
             const response = await fetch(`/api/${provider}`, {
                 method: 'POST',
@@ -132,8 +138,7 @@ PROTOCOL:
                 body: JSON.stringify({ 
                     apiKey, 
                     prompt: finalPrompt,
-                    // Use standard model for compatibility
-                    model: provider === 'openai' ? 'gpt-4o' : (provider === 'gemini' ? 'gemini-1.5-flash' : undefined) 
+                    model: selectedModel
                 })
             });
 
@@ -166,10 +171,9 @@ PROTOCOL:
         }
     };
 
-    // 4. Action Handler (For UI Buttons)
+    // 4. Action Handler
     const handleAction = (actionId, payload = {}) => {
         const actionString = `[USER_ACTION: ${actionId}] ${JSON.stringify(payload)}`;
-        // We feed this back into the chat as a user message so the AI sees it
         sendMessage(actionString);
     };
 
@@ -177,7 +181,7 @@ PROTOCOL:
         messages,
         isLoading,
         sendMessage,
-        handleAction, // Export this so the UI can use it
+        handleAction,
         clearHistory: () => setMessages([])
     };
 };
