@@ -2,7 +2,7 @@ import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Layout, Globe, Bookmark, List, LogOut, LogIn, Sparkles, Moon, Sun, Bot } from 'lucide-react';
 
-const Sidebar = ({ handleLogin, handleLogout, user, darkMode, toggleDarkMode, onOpenAgent }) => {
+const Sidebar = ({ handleLogin, handleLogout, user, darkMode, toggleDarkMode }) => {
     const navigate = useNavigate();
     const location = useLocation();
     
@@ -10,6 +10,11 @@ const Sidebar = ({ handleLogin, handleLogout, user, darkMode, toggleDarkMode, on
     const isActive = (path) => location.pathname === path 
         ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20' 
         : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800';
+
+    // Agent specific active state (Fuchsia theme)
+    const isAgentActive = location.pathname === '/agent'
+        ? 'text-fuchsia-600 dark:text-fuchsia-400 bg-fuchsia-100 dark:bg-fuchsia-900/40 border-2 border-fuchsia-200 dark:border-fuchsia-800'
+        : 'text-fuchsia-600 dark:text-fuchsia-400 bg-fuchsia-50 dark:bg-fuchsia-900/20 hover:bg-fuchsia-100 dark:hover:bg-fuchsia-900/40 border-2 border-transparent';
 
     return (
         // Container: 
@@ -25,10 +30,10 @@ const Sidebar = ({ handleLogin, handleLogout, user, darkMode, toggleDarkMode, on
            {/* Navigation Items */}
            <div className="flex flex-row md:flex-col justify-around md:justify-start w-full md:w-auto gap-1 md:gap-6 items-center flex-1 md:flex-none">
                
-               {/* CTO UPDATE: Global Agent Button */}
+               {/* CTO UPDATE: Agent Navigation Link */}
                <button 
-                    onClick={onOpenAgent} 
-                    className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl transition-all w-16 md:w-14 text-fuchsia-600 dark:text-fuchsia-400 bg-fuchsia-50 dark:bg-fuchsia-900/20 hover:bg-fuchsia-100 dark:hover:bg-fuchsia-900/40"
+                    onClick={() => navigate('/agent')} 
+                    className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl transition-all w-16 md:w-14 ${isAgentActive}`}
                     title="Open CraftOS Agent"
                >
                    <Bot size={20} className="md:w-6 md:h-6" />
@@ -51,7 +56,7 @@ const Sidebar = ({ handleLogin, handleLogout, user, darkMode, toggleDarkMode, on
                </button>
            </div>
     
-           {/* Bottom Actions - Desktop Only (Mobile users use profile/settings elsewhere if needed, or we can add a menu later) */}
+           {/* Bottom Actions - Desktop Only */}
            <div className="hidden md:flex flex-col gap-4 pb-4 items-center w-full mt-auto">
                 <button 
                     onClick={toggleDarkMode} 

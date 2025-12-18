@@ -9,10 +9,10 @@ import FeedView from './views/FeedView.jsx';
 import SavedView from './views/SavedView.jsx';
 import HistoryView from './views/HistoryView.jsx';
 import BuilderView from './views/BuilderView.jsx';
+import AgentView from './views/AgentView.jsx'; // 1. Import new View
 
-// CTO UPDATE: Importing Agent & Orchestrator for Global Access
+// Import Orchestrator Hook
 import { useOrchestrator } from './hooks/useOrchestrator.js';
-import AgentModal from './components/AgentModal.jsx';
 
 const App = () => {
   // --- STATE ---
@@ -21,9 +21,6 @@ const App = () => {
   const [sessionHistory, setSessionHistory] = useState([]);
   const [promptToLoad, setPromptToLoad] = useState(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
-  
-  // Agent State (Lifted from BuilderView)
-  const [showAgent, setShowAgent] = useState(false);
   
   // Initialize Dark Mode
   const [darkMode, setDarkMode] = useState(() => {
@@ -35,6 +32,9 @@ const App = () => {
 
   // --- INITIALIZE CONTEXT OS (Memory Engine) ---
   const orchestrator = useOrchestrator(user);
+
+  // Global API Key (Fallback)
+  const globalApiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
 
   // --- EFFECTS ---
   useEffect(() => {
@@ -105,9 +105,6 @@ const App = () => {
 
   const toggleDarkMode = () => setDarkMode(prev => !prev);
 
-  // Global API Key (Fallback)
-  const globalApiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
-
   return (
     <div className="flex flex-col md:flex-row w-full h-screen md:h-dvh bg-slate-100 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 overflow-hidden transition-colors duration-200">
         
@@ -118,7 +115,7 @@ const App = () => {
             user={user} 
             darkMode={darkMode}
             toggleDarkMode={toggleDarkMode}
-            onOpenAgent={() => setShowAgent(true)} // <--- Passing Agent Handler
+            onOpenAgent={() => navigate('/agent')} // <--- CTO UPDATE: Navigate to Workspace
         />
         
         {/* Main Content Area */}
@@ -134,7 +131,18 @@ const App = () => {
                         onLoginRequest={handleLoginRequest}
                     />
                 } />
+                
+                {/* CTO UPDATE: Agent Workspace Route */}
+                <Route path="/agent" element={
+                    <AgentView 
+                        user={user}
+                        globalApiKey={globalApiKey}
+                        orchestrator={orchestrator}
+                    />
+                } />
+
                 <Route path="/feed" element={<FeedView user={user} loadPrompt={loadPrompt} onLoginRequest={handleLoginRequest} />} />
+                
                 {user ? (
                     <>
                         <Route path="/library" element={<SavedView user={user} loadPrompt={loadPrompt} showToast={showToast} />} />
@@ -162,17 +170,6 @@ const App = () => {
                 onClose={() => setNotification(null)} 
             />
         )}
-
-        {/* CTO UPDATE: Global Agent Modal */}
-        <AgentModal 
-            isOpen={showAgent} 
-            onClose={() => setShowAgent(false)} 
-            apiKey={globalApiKey}
-            memories={orchestrator.memories}
-            onSaveMemory={orchestrator.remember}
-            onDeleteMemory={orchestrator.forget}
-            loadingMemory={orchestrator.loading}
-        />
     </div>
   );
 };
