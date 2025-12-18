@@ -66,7 +66,6 @@ RULES:
 
         try {
             // Combine System Instruction + User Prompt
-            // (For a production chat, we would send the full conversation history array)
             const finalPrompt = `${systemInstruction}\n\nUser Query: ${userText}`;
 
             const response = await fetch(`/api/${provider}`, {
@@ -102,10 +101,11 @@ RULES:
 
         } catch (error) {
             console.error("Agent Error:", error);
+            // CTO UPDATE: Detailed error logging for debugging
             setMessages(prev => [...prev, { 
                 role: 'assistant', 
                 type: 'text', 
-                content: "I'm having trouble connecting to the brain. Please check your API Key." 
+                content: `I'm having trouble connecting to the brain. Error: ${error.message || 'Unknown error'}` 
             }]);
         } finally {
             setIsLoading(false);
