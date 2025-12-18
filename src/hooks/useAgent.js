@@ -75,7 +75,8 @@ RULES:
                     apiKey, 
                     prompt: finalPrompt,
                     // Default generic models for chat
-                    model: provider === 'openai' ? 'gpt-4o' : undefined 
+                    // CTO FIX: Explicitly set Gemini model to 'gemini-1.5-flash-latest' to resolve version errors
+                    model: provider === 'openai' ? 'gpt-4o' : (provider === 'gemini' ? 'gemini-1.5-flash-latest' : undefined) 
                 })
             });
 
