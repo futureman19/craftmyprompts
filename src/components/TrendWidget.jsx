@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, RefreshCw, Youtube, ExternalLink, Plus, Loader } from 'lucide-react';
+import { TrendingUp, RefreshCw, Youtube, Plus, Loader, AlertTriangle } from 'lucide-react';
 
 const TrendWidget = ({ onSelectTopic, onClose }) => {
     const [trends, setTrends] = useState([]);
@@ -33,7 +33,7 @@ const TrendWidget = ({ onSelectTopic, onClose }) => {
             setTrends(data.trends || []);
         } catch (err) {
             console.error(err);
-            // Fallback mock data if API fails (good for demos without API key)
+            // Fallback mock data if API fails (useful if API key isn't set up yet)
             if (err.message.includes("API Key")) {
                 setError("Missing API Key. Showing demo data.");
                 setTrends(DEMO_DATA);
@@ -51,15 +51,16 @@ const TrendWidget = ({ onSelectTopic, onClose }) => {
 
     // Helper to format view count (e.g. 1,200,000 -> 1.2M)
     const formatViews = (num) => {
+        if (!num) return '0';
         if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
         if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
         return num;
     };
 
     return (
-        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg flex flex-col h-96 w-full animate-in slide-in-from-top-2 fade-in duration-200">
+        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg flex flex-col h-80 md:h-96 w-full animate-in slide-in-from-top-2 fade-in duration-200">
             {/* Header */}
-            <div className="p-3 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-950/50 rounded-t-xl">
+            <div className="p-3 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-950/50 rounded-t-xl flex-shrink-0">
                 <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
                     <TrendingUp size={16} />
                     <span>Viral Intelligence</span>
@@ -67,27 +68,27 @@ const TrendWidget = ({ onSelectTopic, onClose }) => {
                 <div className="flex items-center gap-2">
                     <button 
                         onClick={fetchTrends} 
-                        className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-400 hover:text-indigo-500"
+                        className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-400 hover:text-indigo-500"
                         title="Refresh Trends"
                     >
                         <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
                     </button>
                     {onClose && (
-                         <button onClick={onClose} className="text-xs text-slate-400 hover:text-slate-600">Close</button>
+                         <button onClick={onClose} className="p-2 text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">Close</button>
                     )}
                 </div>
             </div>
 
-            {/* Filter Tabs */}
-            <div className="p-2 flex gap-1 overflow-x-auto border-b border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-900 scrollbar-hide">
+            {/* Filter Tabs - Scrollable for mobile */}
+            <div className="p-2 flex gap-2 overflow-x-auto border-b border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-900 scrollbar-hide snap-x flex-shrink-0">
                 {CATEGORIES.map(cat => (
                     <button
                         key={cat.id}
                         onClick={() => setCategory(cat.id)}
-                        className={`px-3 py-1 rounded-full text-[10px] font-bold whitespace-nowrap transition-colors ${
+                        className={`snap-start px-4 py-1.5 md:py-1 rounded-full text-xs font-bold whitespace-nowrap transition-colors flex-shrink-0 ${
                             category === cat.id 
                             ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' 
-                            : 'bg-slate-50 dark:bg-slate-800 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700'
+                            : 'bg-slate-50 dark:bg-slate-800 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 dark:text-slate-400'
                         }`}
                     >
                         {cat.label}
@@ -98,8 +99,8 @@ const TrendWidget = ({ onSelectTopic, onClose }) => {
             {/* List */}
             <div className="flex-1 overflow-y-auto p-2 space-y-2 bg-slate-50 dark:bg-slate-950/30">
                 {error && (
-                    <div className="p-3 text-xs text-center text-red-400 bg-red-50 dark:bg-red-900/10 rounded-lg border border-red-100 dark:border-red-900">
-                        {error}
+                    <div className="p-3 text-xs text-center text-red-400 bg-red-50 dark:bg-red-900/10 rounded-lg border border-red-100 dark:border-red-900 flex items-center justify-center gap-2">
+                        <AlertTriangle size={12} /> {error}
                     </div>
                 )}
                 
@@ -110,9 +111,9 @@ const TrendWidget = ({ onSelectTopic, onClose }) => {
                     </div>
                 ) : (
                     trends.map((video) => (
-                        <div key={video.id} className="group bg-white dark:bg-slate-800 p-2 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-700 transition-all shadow-sm flex gap-3 items-start">
+                        <div key={video.id} className="group bg-white dark:bg-slate-800 p-2 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-700 transition-all shadow-sm flex gap-3 items-center">
                             {/* Thumbnail */}
-                            <div className="w-20 h-12 flex-shrink-0 rounded overflow-hidden bg-slate-200 relative">
+                            <div className="w-20 h-12 flex-shrink-0 rounded overflow-hidden bg-slate-200 dark:bg-slate-700 relative">
                                 <img src={video.thumbnail} alt="" className="w-full h-full object-cover" />
                                 <div className="absolute bottom-0 right-0 bg-black/70 text-[8px] text-white px-1 rounded-tl">
                                     {formatViews(video.views)}
@@ -126,19 +127,19 @@ const TrendWidget = ({ onSelectTopic, onClose }) => {
                                 </h4>
                                 <div className="flex items-center gap-2 mt-1">
                                     <span className="text-[9px] text-slate-400 truncate max-w-[80px]">{video.channel}</span>
-                                    <a href={`https://www.youtube.com/watch?v=${video.id}`} target="_blank" rel="noreferrer" className="text-slate-300 hover:text-red-500">
-                                        <Youtube size={10} />
+                                    <a href={`https://www.youtube.com/watch?v=${video.id}`} target="_blank" rel="noreferrer" className="text-slate-300 hover:text-red-500 p-1">
+                                        <Youtube size={12} />
                                     </a>
                                 </div>
                             </div>
 
-                            {/* Action */}
+                            {/* Action - Larger touch target */}
                             <button 
                                 onClick={() => onSelectTopic(video.title)}
-                                className="mt-1 p-1.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 rounded-lg transition-colors"
+                                className="p-3 md:p-1.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 rounded-lg transition-colors flex-shrink-0"
                                 title="Use as Topic"
                             >
-                                <Plus size={14} />
+                                <Plus size={16} />
                             </button>
                         </div>
                     ))
@@ -152,7 +153,7 @@ const TrendWidget = ({ onSelectTopic, onClose }) => {
     );
 };
 
-// Fallback data in case API key is missing during dev
+// Fallback data in case API key is missing during dev or rate limited
 const DEMO_DATA = [
     { id: '1', title: "I Built a Neural Network from Scratch in C++", thumbnail: "https://i.ytimg.com/vi/L1bXjF7V4G8/mqdefault.jpg", views: "1200000", channel: "CodeMaster" },
     { id: '2', title: "Why Everyone is Switching to Linux in 2025", thumbnail: "https://i.ytimg.com/vi/e123/mqdefault.jpg", views: "850000", channel: "TechDaily" },
