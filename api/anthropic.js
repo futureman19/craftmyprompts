@@ -39,11 +39,11 @@ export default async function handler(req, res) {
       method: 'POST',
       headers: {
         'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01', // Required header for Claude
+        'anthropic-version': '2024-10-22', // Required header for Claude
         'content-type': 'application/json'
       },
       body: JSON.stringify({
-        model: model || "claude-3-5-sonnet-latest", 
+        model: model || "claude-3-5-sonnet-20241022", 
         max_tokens: 1024,
         messages: [
             { role: "user", content: prompt }
