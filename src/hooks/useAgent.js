@@ -5,45 +5,65 @@ export const useAgent = (apiKey, provider = 'gemini') => {
     const [messages, setMessages] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
 
-    // 1. Dynamic System Prompt
-    // This tells the AI what tools it has access to based on the Registry.
+    // 1. Dynamic System Prompt (A2UI Protocol)
+    // We instruct the AI to "speak" in JSON when it wants to render UI.
     const toolList = Object.keys(COMPONENT_REGISTRY).map(key => 
         `- "${key}": ${COMPONENT_REGISTRY[key].description}`
     ).join('\n');
 
     const systemInstruction = `
 You are CraftOS, an intelligent interface assistant.
-You can render UI components to help the user.
-AVAILABLE TOOLS:
+You can render rich UI components to help the user by outputting a JSON block.
+
+AVAILABLE TOOLS (UI COMPONENTS):
 ${toolList}
 
-RULES:
-1. If the user asks for a specific tool or functionality listed above, reply ONLY with the tool tag.
-2. Format: [TOOL: tool_name]
-3. Example: If user asks "Show me trending topics", reply: [TOOL: show_trends]
-4. Do not provide extra text when invoking a tool. Just the tag.
-5. If no tool matches, reply with helpful text as normal.
+PROTOCOL:
+1. To render a component, output a MARKDOWN CODE BLOCK containing a JSON object.
+2. The JSON must follow this schema:
+   \`\`\`json
+   {
+     "tool": "tool_name_from_list",
+     "props": { "key": "value" } // Optional properties to configure the component
+   }
+   \`\`\`
+3. Example: If user asks "Search for cyberpunk images", reply with:
+   \`\`\`json
+   { "tool": "visual_search", "props": { "initialQuery": "cyberpunk" } }
+   \`\`\`
+4. Do not provide extra conversational text when rendering a tool unless necessary.
     `.trim();
 
-    // 2. Response Parser
-    // Detects if the AI wants to render a component
+    // 2. Response Parser (A2UI Renderer Logic)
+    // Scans the response for JSON blocks and resolves them to Components.
     const parseResponse = (text) => {
         if (!text) return { type: 'text', content: '' };
 
-        const toolRegex = /\[TOOL:\s*(.*?)\]/;
-        const match = text.match(toolRegex);
+        // Look for JSON code blocks: ```json { ... } ```
+        const jsonRegex = /```json\s*([\s\S]*?)\s*```/;
+        const match = text.match(jsonRegex);
 
         if (match) {
-            const toolName = match[1].trim();
-            const toolDef = COMPONENT_REGISTRY[toolName];
-            
-            if (toolDef) {
-                return {
-                    type: 'component',
-                    component: toolDef.component,
-                    props: toolDef.defaultProps,
-                    rawText: text // Keep original just in case
-                };
+            try {
+                const payload = JSON.parse(match[1]);
+                const toolName = payload.tool;
+                const aiProps = payload.props || {};
+
+                const toolDef = COMPONENT_REGISTRY[toolName];
+                
+                if (toolDef) {
+                    return {
+                        type: 'component',
+                        component: toolDef.component,
+                        // Merge default props with AI-generated props
+                        props: { ...toolDef.defaultProps, ...aiProps },
+                        rawText: text
+                    };
+                }
+            } catch (e) {
+                console.warn("Failed to parse A2UI JSON:", e);
+                // Fallback to text if JSON is broken
+                return { type: 'text', content: text };
             }
         }
 
