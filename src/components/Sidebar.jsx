@@ -40,8 +40,6 @@ const Sidebar = ({ handleLogin, handleLogout, user, darkMode, toggleDarkMode }) 
                    <span className="text-[10px] font-bold">Agent</span>
                </button>
 
-               <div className="hidden md:block w-8 h-px bg-slate-200 dark:bg-slate-800 my-2"></div>
-
                <button onClick={() => navigate('/')} className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl transition-all w-16 md:w-14 ${isActive('/')}`}>
                    <Layout size={20} className="md:w-6 md:h-6" /><span className="text-[10px] font-medium">Create</span>
                </button>
