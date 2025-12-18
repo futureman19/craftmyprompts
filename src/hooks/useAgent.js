@@ -125,10 +125,9 @@ PROTOCOL:
 
             const finalPrompt = `${systemInstruction}\n\nPREVIOUS CHAT HISTORY:\n${historyContext}\n\nCURRENT QUERY:\nUser: ${userText}`;
 
-            // Determine Model
+            // Determine Model - Defaulting to stable Flash model
             let selectedModel = modelOverride;
             if (!selectedModel) {
-                // CTO UPDATE: Using Gemini 2.5 Flash Lite (fastest/cheapest for UI gen)
                 selectedModel = provider === 'openai' ? 'gpt-4o' : (provider === 'gemini' ? 'gemini-2.5-flash-lite' : undefined);
             }
 
@@ -171,9 +170,10 @@ PROTOCOL:
         }
     };
 
-    // 4. Action Handler
+    // 4. Action Handler (For UI Buttons)
     const handleAction = (actionId, payload = {}) => {
         const actionString = `[USER_ACTION: ${actionId}] ${JSON.stringify(payload)}`;
+        // We feed this back into the chat as a user message so the AI sees it
         sendMessage(actionString);
     };
 

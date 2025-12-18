@@ -26,6 +26,7 @@ export const COMPONENT_REGISTRY = {
         component: VisualSearchModal,
         defaultProps: {
             isOpen: true, // Modals need to be open to be seen
+            // Handlers (onSelectImage) will be injected by the runtime hook
         },
         description: "Search interface for high-quality stock photos (Pexels) to use as references."
     },
@@ -36,6 +37,7 @@ export const COMPONENT_REGISTRY = {
         component: GitHubModal,
         defaultProps: {
             isOpen: true,
+            // codeToPush will be injected from the agent's current context
         },
         description: "Deployment interface to save code snippets to GitHub Gists."
     },
