@@ -6,7 +6,6 @@ export const useAgent = (apiKey, provider = 'gemini', modelOverride) => {
     const [isLoading, setIsLoading] = useState(false);
 
     // --- A2UI SCHEMA DEFINITION ---
-    // This teaches the AI how to use the 'render_ui' tool to build custom interfaces.
     const A2UI_SCHEMA_GUIDE = `
     ### ATOMIC COMPONENT LIBRARY (For 'render_ui' tool)
     When using the "render_ui" tool, your 'content' prop must be a JSON object (or array of objects) following this structure:
@@ -108,29 +107,52 @@ PROTOCOL:
         return { type: 'text', content: text };
     };
 
-    // 3. Message Handler
+    // 3. Message Handler (RAG Enabled)
     const sendMessage = async (userText) => {
         if (!userText.trim()) return;
 
         setIsLoading(true);
-        
-        // Optimistically add user message locally
         const newLocalHistory = [...messages, { role: 'user', type: 'text', content: userText }];
         setMessages(newLocalHistory);
 
         try {
-            // Build Context Aware Prompt
+            // STEP A: RETRIEVAL (RAG)
+            // Ask our vector DB for relevant knowledge before answering
+            let retrievedContext = "";
+            try {
+                const contextResponse = await fetch('/api/retrieve-context', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        query: userText,
+                        apiKey // Pass key for embedding generation
+                    })
+                });
+                
+                if (contextResponse.ok) {
+                    const contextData = await contextResponse.json();
+                    if (contextData.results && contextData.results.length > 0) {
+                        const snippets = contextData.results.map(r => `[Source: ${r.topic}]\n${r.content}`).join('\n\n');
+                        retrievedContext = `\n\n### RELEVANT KNOWLEDGE (RAG):\nUse this expert context to answer the user if relevant:\n${snippets}\n`;
+                    }
+                }
+            } catch (err) {
+                console.warn("RAG Retrieval Failed (Non-critical):", err);
+                // We continue without context if RAG fails
+            }
+
+            // STEP B: BUILD PROMPT
             const historyContext = messages.map(m => 
                 `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.rawText || m.content}`
             ).join('\n\n');
 
-            const finalPrompt = `${systemInstruction}\n\nPREVIOUS CHAT HISTORY:\n${historyContext}\n\nCURRENT QUERY:\nUser: ${userText}`;
+            const finalPrompt = `${systemInstruction}\n\nPREVIOUS CHAT HISTORY:\n${historyContext}${retrievedContext}\n\nCURRENT QUERY:\nUser: ${userText}`;
 
-            // Determine Model
+            // STEP C: GENERATION
             let selectedModel = modelOverride;
             if (!selectedModel) {
-                // CTO UPDATE: Using Gemini 2.5 Flash Lite as the new standard
-                selectedModel = provider === 'openai' ? 'gpt-4o' : (provider === 'gemini' ? 'gemini-2.5-flash-lite' : undefined);
+                // CTO UPDATE: Using Gemini 2.0 Flash Lite Preview (fastest/cheapest for UI gen)
+                selectedModel = provider === 'openai' ? 'gpt-4o' : (provider === 'gemini' ? 'gemini-2.0-flash-lite-preview-02-05' : undefined);
             }
 
             const response = await fetch(`/api/${provider}`, {

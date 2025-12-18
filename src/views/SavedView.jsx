@@ -3,6 +3,7 @@ import { RefreshCw, Save, Trash2, Copy, Check, Terminal, FileText, Bookmark, Pla
 import { supabase } from '../lib/supabase.js';
 import { formatTimestamp } from '../utils/index.js';
 import GitHubModal from '../components/GitHubModal.jsx';
+import KnowledgeSeeder from '../components/KnowledgeSeeder.jsx'; // 1. Import Seeder
 
 const SavedView = ({ user, loadPrompt, showToast }) => {
   const [activeTab, setActiveTab] = useState('prompts'); 
@@ -214,7 +215,7 @@ const SavedView = ({ user, loadPrompt, showToast }) => {
                           <button onClick={() => handleCopy(item.prompt, item.id)} className="p-2 text-slate-400 hover:text-indigo-500 transition-colors rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700" title="Copy Prompt">
                               {copiedId === item.id ? <Check size={16} /> : <Copy size={16} />}
                           </button>
-                          <button onClick={() => handleDelete('saved_prompts', item.id)} className="p-2 text-slate-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20" title="Delete">
+                          <button onClick={() => handleDelete('prompts', item.id)} className="p-2 text-slate-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20" title="Delete">
                               <Trash2 size={16} />
                           </button>
                       </div>
@@ -311,6 +312,11 @@ const SavedView = ({ user, loadPrompt, showToast }) => {
       {/* 4. KNOWLEDGE LIST */}
       {activeTab === 'knowledge' && (
           <div className="space-y-6">
+              {/* --- NEW: SYSTEM VECTOR SEEDER --- */}
+              <div className="mb-4">
+                  <KnowledgeSeeder />
+              </div>
+
               <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
                   {showAddKnowledge ? (
                       <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
