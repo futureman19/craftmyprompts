@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { 
   Sparkles, MessageSquare, Palette, Video, Command, Search, Dices, 
-  Wand2, Bookmark, BookmarkPlus, BookOpen, TrendingUp 
+  TrendingUp, Bookmark, BookmarkPlus, BookOpen, Bot 
 } from 'lucide-react';
-// FIX: Removed .js extension for cleaner module resolution in Vite/React environment
-import { PRESETS } from '../../data/presets'; 
+import { PRESETS } from '../../data/presets.js';
 
 const BuilderHeader = ({ 
     // State
@@ -12,7 +11,7 @@ const BuilderHeader = ({
     showTrendWidget, customKnowledge, 
     // Actions
     dispatch, setMobileTab, setSearchTerm, setShowTrendWidget, applyPreset, showToast,
-    handleSaveAsPreset, applyKnowledge, setShowWizard
+    handleSaveAsPreset, applyKnowledge, setShowAgent // <--- New Prop: Agent Toggle
 }) => {
     // NEW STATE: Tracks which menu is open for mobile accessibility
     const [activeMenu, setActiveMenu] = useState(null); 
@@ -83,6 +82,15 @@ const BuilderHeader = ({
             </div>
 
             <div className="flex gap-2">
+                {/* Agent Button (New) */}
+                <button 
+                    onClick={() => setShowAgent(true)} 
+                    className="px-3 py-1.5 bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 hover:to-purple-500 text-white rounded-lg flex items-center gap-1.5 text-xs font-bold shadow-md transition-all animate-in fade-in"
+                    title="Open CraftOS Agent"
+                >
+                    <Bot size={14} /> <span className="hidden md:inline">Agent</span>
+                </button>
+
                 {/* Trend Button */}
                 {state.mode === 'text' && (
                     <button 
@@ -90,11 +98,11 @@ const BuilderHeader = ({
                         className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs font-bold shadow-md transition-all animate-in fade-in ${
                             showTrendWidget 
                             ? 'bg-indigo-600 text-white' 
-                            : 'bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400 text-white'
+                            : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300'
                         }`}
                         title="Viral Trends"
                     >
-                        <TrendingUp size={14} /> <span className="hidden md:inline">Trending</span>
+                        <TrendingUp size={14} /> <span className="hidden md:inline">Trends</span>
                     </button>
                 )}
 
@@ -108,7 +116,6 @@ const BuilderHeader = ({
                     </button>
                     
                     {activeMenu === 'presets' && (
-                        // Added simple click handler to close the menu if the user taps the backdrop area (which is implicitly the outer div)
                         <div className="absolute top-full left-0 w-64 pt-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200" onMouseLeave={() => setActiveMenu(null)}>
                             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-600 p-2 max-h-96 overflow-y-auto">
                                 {user && customPresets.length > 0 && (
@@ -140,7 +147,6 @@ const BuilderHeader = ({
                     </button>
                     
                     {activeMenu === 'knowledge' && (
-                         // Added simple click handler to close the menu if the user taps the backdrop area (which is implicitly the outer div)
                         <div className="absolute top-full left-0 w-64 pt-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200" onMouseLeave={() => setActiveMenu(null)}>
                             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-600 p-2 max-h-96 overflow-y-auto">
                                 {user && customKnowledge && customKnowledge.length > 0 ? (

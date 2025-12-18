@@ -1,14 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useBuilderView } from '../hooks/useBuilderView.js';
 import BuilderHeader from '../components/builder/BuilderHeader.jsx';
 import BuilderInputPanel from '../components/builder/BuilderInputPanel.jsx';
 import BuilderPreviewPanel from '../components/builder/BuilderPreviewPanel.jsx';
 import TestRunnerModal from '../components/TestRunnerModal.jsx';
 import WizardMode from '../components/WizardMode.jsx'; 
+import AgentModal from '../components/AgentModal.jsx'; // 1. Import Agent Modal
 
 const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHistory, onLoginRequest }) => {
   // 1. Initialize the "Brain"
   const builder = useBuilderView(user, initialData, clearInitialData, showToast, addToHistory, onLoginRequest);
+
+  // 2. Local State for Agent Modal (UI Toggle)
+  const [showAgent, setShowAgent] = useState(false);
 
   return (
       <div className="flex flex-col md:flex-row h-full w-full relative">
@@ -25,11 +29,14 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                 currentData={builder.currentData}
                 isSimpleMode={builder.isSimpleMode}
                 
-                // CTO UPDATE: Passing Trend & Knowledge Data
+                // Trend & Knowledge Data
                 showTrendWidget={builder.showTrendWidget}
                 setShowTrendWidget={builder.setShowTrendWidget}
                 customKnowledge={builder.customKnowledge}
                 
+                // Agent Toggle (CTO UPDATE)
+                setShowAgent={setShowAgent}
+
                 dispatch={builder.dispatch}
                 setMobileTab={builder.setMobileTab}
                 setSearchTerm={builder.setSearchTerm}
@@ -52,7 +59,7 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
                     isFetchingContext={builder.isFetchingContext}
                     isSimpleMode={builder.isSimpleMode}
                     
-                    // CTO UPDATE: Passing Trend State to Panel so it opens when Header button is clicked
+                    // Trend State
                     showTrendWidget={builder.showTrendWidget}
                     setShowTrendWidget={builder.setShowTrendWidget}
 
@@ -106,6 +113,13 @@ const BuilderView = ({ user, initialData, clearInitialData, showToast, addToHist
             selections={builder.state.selections} 
             onToggle={builder.toggleSelection} 
             mode={builder.state.mode}
+        />
+
+        {/* CTO UPDATE: Agent Modal */}
+        <AgentModal 
+            isOpen={showAgent} 
+            onClose={() => setShowAgent(false)} 
+            apiKey={builder.globalApiKey} // Using Gemini key by default
         />
       </div>
   );
