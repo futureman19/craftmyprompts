@@ -2,6 +2,7 @@ import TrendWidget from '../components/TrendWidget.jsx';
 import VisualSearchModal from '../components/VisualSearchModal.jsx';
 import GitHubModal from '../components/GitHubModal.jsx';
 import A2UIRenderer from '../components/a2ui/A2UIRenderer.jsx';
+import LivePreview from '../components/LivePreview.jsx';
 
 // --- A2UI COMPONENT REGISTRY ---
 // This file maps "Tool Names" (Intents) to actual React Components.
@@ -43,10 +44,21 @@ export const COMPONENT_REGISTRY = {
     },
 
     // 4. Generative UI (The "CraftUI" Engine)
-    // This allows the AI to build custom layouts using atomic components.
+    // This allows the AI to build custom layouts using atomic components (Cards, Buttons).
     "render_ui": {
         component: A2UIRenderer,
         defaultProps: {},
         description: "Renders a custom UI layout. REQUIRED PROP: 'content' (JSON tree of atoms: Container, Card, Text, Button, Image, Input)."
+    },
+
+    // 5. Live Website Rendering
+    // Used when the user asks to "build a website", "create a landing page", or "write code".
+    "render_website": {
+        component: LivePreview,
+        defaultProps: {
+            isChatMode: true, // Optimize for chat display
+            title: "Generated Website"
+        },
+        description: "Renders a live website preview from HTML/React code. REQUIRED PROP: 'content' (The raw code string)."
     }
 };

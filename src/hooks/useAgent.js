@@ -71,7 +71,8 @@ PROTOCOL:
    \`\`\`
 3. Do not provide extra conversational text when rendering a tool unless necessary.
 4. If the user asks for a complex UI (like a dashboard, list, or plan), use 'render_ui' to build it.
-5. If you receive a [USER_ACTION: action_id] message, it means the user clicked a button in your UI. Respond accordingly.
+5. If the user asks to build a "website", "landing page", or "web app", use the 'render_website' tool. Pass the raw HTML/React code string into the 'content' prop.
+6. If you receive a [USER_ACTION: action_id] message, it means the user clicked a button in your UI. Respond accordingly.
     `.trim();
 
     // 2. Response Parser
@@ -125,9 +126,10 @@ PROTOCOL:
 
             const finalPrompt = `${systemInstruction}\n\nPREVIOUS CHAT HISTORY:\n${historyContext}\n\nCURRENT QUERY:\nUser: ${userText}`;
 
-            // Determine Model - Defaulting to stable Flash model
+            // Determine Model
             let selectedModel = modelOverride;
             if (!selectedModel) {
+                // CTO UPDATE: Using Gemini 2.5 Flash Lite as the new standard
                 selectedModel = provider === 'openai' ? 'gpt-4o' : (provider === 'gemini' ? 'gemini-2.5-flash-lite' : undefined);
             }
 
@@ -170,10 +172,9 @@ PROTOCOL:
         }
     };
 
-    // 4. Action Handler (For UI Buttons)
+    // 4. Action Handler
     const handleAction = (actionId, payload = {}) => {
         const actionString = `[USER_ACTION: ${actionId}] ${JSON.stringify(payload)}`;
-        // We feed this back into the chat as a user message so the AI sees it
         sendMessage(actionString);
     };
 
