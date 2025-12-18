@@ -4,7 +4,7 @@ import { useTestRunner } from '../../hooks/useTestRunner.js';
 import TestRunnerControls from './TestRunnerControls.jsx';
 import TestRunnerResults from './TestRunnerResults.jsx';
 import GitHubModal from '../GitHubModal.jsx'; 
-import ApiKeyHelpModal from './ApiKeyHelpModal.jsx'; // 1. Import the missing modal
+import ApiKeyHelpModal from './ApiKeyHelpModal.jsx';
 
 const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippet, isSocialMode }) => {
     
@@ -71,8 +71,11 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
                     removeSwarmAgent={runner.removeSwarmAgent}
                     updateSwarmAgent={runner.updateSwarmAgent}
 
-                    // CTO FIX: Wiring the button to the state
-                    setShowHelpModal={runner.setShowHelpModal} 
+                    // Help Modal Wiring
+                    setShowHelpModal={runner.setShowHelpModal}
+
+                    // CTO UPDATE: Passing the Router Reasoning to UI
+                    routerReasoning={runner.routerReasoning}
                 />
 
                 {/* 2. RESULTS DISPLAY */}
@@ -94,7 +97,7 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
                     onContinueSwarm={runner.continueSwarm}
                     onCompileSwarm={runner.compileSwarmCode}
                     
-                    // CTO UPDATE: Passing the Social Mode Flag
+                    // Social Mode Flag
                     isSocialMode={isSocialMode}
                 />
             </div>
@@ -113,13 +116,17 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
                         runner.provider === 'battle' ? 'bg-gradient-to-r from-indigo-600 to-emerald-600 hover:opacity-90' : 
                         (runner.provider === 'refine' ? 'bg-gradient-to-r from-amber-500 to-orange-600' : 
                         (runner.provider === 'swarm' ? 'bg-gradient-to-r from-violet-600 to-indigo-600' :
-                        (runner.provider === 'openai' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-indigo-600 hover:bg-indigo-700')))
+                        (runner.provider === 'openai' ? 'bg-emerald-600 hover:bg-emerald-700' : 
+                        (runner.provider === 'groq' ? 'bg-orange-600 hover:bg-orange-700' :
+                        (runner.provider === 'anthropic' ? 'bg-rose-600 hover:bg-rose-700' : 
+                        (runner.provider === 'auto' ? 'bg-fuchsia-600 hover:bg-fuchsia-700' : 'bg-indigo-600 hover:bg-indigo-700'))))))
                     }`}
                 >
                     {runner.loading ? 'Running...' : (
                         runner.provider === 'battle' ? 'Start Versus' : 
                         (runner.provider === 'refine' ? 'Start Loop' : 
-                        (runner.provider === 'swarm' ? 'Start Collab' : 'Run Test'))
+                        (runner.provider === 'swarm' ? 'Start Collab' : 
+                        (runner.provider === 'auto' ? 'Auto-Run' : 'Run Test')))
                     )}
                 </button>
             </div>
@@ -133,7 +140,7 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
                 initialToken={runner.githubToken}
             />
 
-            {/* 3. Render the Help Modal */}
+            {/* Render the Help Modal */}
             <ApiKeyHelpModal 
                 isOpen={runner.showHelpModal} 
                 onClose={() => runner.setShowHelpModal(false)} 
