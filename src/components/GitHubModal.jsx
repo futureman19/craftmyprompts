@@ -33,9 +33,40 @@ const GitHubModal = ({ isOpen, onClose, codeToPush, onShip, initialToken }) => {
         setError(null);
 
         try {
-            const url = await onShip(token, filename, description, isPublic);
-            setGistUrl(url);
-            setStep('success');
+            // Reuse the logic from useTestRunner directly here for standalone usage
+            const payload = {
+                description: description || "Snippet from CraftMyPrompt",
+                public: isPublic,
+                files: {
+                    [filename || 'snippet.txt']: {
+                        content: codeToPush
+                    }
+                }
+            };
+
+            // Usually onShip is passed from the parent hook which handles the fetch
+            if (onShip) {
+                const url = await onShip(token, filename, description, isPublic);
+                setGistUrl(url);
+                setStep('success');
+            } else {
+                // Fallback direct call if onShip prop isn't available
+                const response = await fetch('/api/github', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        token: token, 
+                        action: 'create_gist', 
+                        payload: payload 
+                    })
+                });
+        
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || "Failed to ship to GitHub.");
+                setGistUrl(data.html_url);
+                setStep('success');
+            }
+            
         } catch (err) {
             console.error(err);
             setError(err.message || "Failed to create Gist.");
@@ -50,8 +81,9 @@ const GitHubModal = ({ isOpen, onClose, codeToPush, onShip, initialToken }) => {
     };
 
     return (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[150] p-4 animate-in fade-in duration-200">
-            <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 flex flex-col overflow-hidden">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[150] p-0 md:p-4 animate-in fade-in duration-200">
+            {/* Responsive Container: Full screen on mobile, modal card on desktop */}
+            <div className="bg-white dark:bg-slate-900 w-full md:max-w-lg h-full md:h-auto rounded-none md:rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 flex flex-col overflow-hidden">
                 
                 {/* Header */}
                 <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-950">
@@ -64,7 +96,7 @@ const GitHubModal = ({ isOpen, onClose, codeToPush, onShip, initialToken }) => {
                 </div>
                 
                 {/* Body Content */}
-                <div className="p-6 space-y-4">
+                <div className="p-6 space-y-4 overflow-y-auto flex-1">
                     {step === 'config' && (
                         <div className="space-y-4">
                             {/* Token Input */}

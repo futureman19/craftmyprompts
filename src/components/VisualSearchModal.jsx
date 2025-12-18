@@ -21,7 +21,6 @@ const VisualSearchModal = ({ isOpen, onClose, onSelectImage }) => {
     // Reset on open
     useEffect(() => {
         if (isOpen && !images.length) {
-            // Optional: Load some default "Trending" visuals
             handleSearch('Abstract'); 
         }
     }, [isOpen]);
@@ -59,8 +58,12 @@ const VisualSearchModal = ({ isOpen, onClose, onSelectImage }) => {
     };
 
     return (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[150] p-4 animate-in fade-in duration-200">
-            <div className="bg-white dark:bg-slate-900 w-full max-w-4xl h-[80vh] rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 flex flex-col overflow-hidden">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[150] p-0 md:p-4 animate-in fade-in duration-200">
+            {/* Responsive Container:
+                - Mobile: w-full h-full rounded-none (Full Screen)
+                - Desktop: max-w-4xl h-[80vh] rounded-2xl (Card)
+            */}
+            <div className="bg-white dark:bg-slate-900 w-full md:max-w-4xl h-full md:h-[80vh] rounded-none md:rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 flex flex-col overflow-hidden">
                 
                 {/* Header */}
                 <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-950">
@@ -91,7 +94,7 @@ const VisualSearchModal = ({ isOpen, onClose, onSelectImage }) => {
                             disabled={loading}
                             className="px-6 py-2 bg-slate-900 hover:bg-slate-800 dark:bg-pink-600 dark:hover:bg-pink-700 text-white rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
                         >
-                            {loading ? 'Searching...' : 'Search'}
+                            {loading ? '...' : 'Search'}
                         </button>
                     </div>
 
