@@ -14,11 +14,10 @@ const AtomContainer = ({ children, style = {}, layout = 'col' }) => (
 );
 
 const AtomCard = ({ title, children, variant = 'default' }) => (
-    <div className={`rounded-xl border p-4 shadow-sm transition-all ${
-        variant === 'outlined' ? 'bg-transparent border-slate-300 dark:border-slate-600' :
+    <div className={`rounded-xl border p-4 shadow-sm transition-all ${variant === 'outlined' ? 'bg-transparent border-slate-300 dark:border-slate-600' :
         variant === 'elevated' ? 'bg-white dark:bg-slate-800 shadow-md border-transparent' :
-        'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'
-    }`}>
+            'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'
+        }`}>
         {title && <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-3 border-b border-slate-200 dark:border-slate-700 pb-2">{title}</h4>}
         <div className="space-y-3">{children}</div>
     </div>
@@ -33,7 +32,7 @@ const AtomText = ({ content, variant = 'body', color = 'default' }) => {
         caption: "text-xs text-slate-400 uppercase tracking-wider font-bold",
         label: "text-xs font-medium text-slate-500 dark:text-slate-400"
     };
-    
+
     const colors = {
         default: "",
         primary: "text-indigo-600 dark:text-indigo-400",
@@ -54,7 +53,7 @@ const AtomButton = ({ label, actionId, payload, variant = 'primary', icon, onAct
     };
 
     return (
-        <button 
+        <button
             onClick={() => onAction && onAction(actionId, payload)}
             className={`${baseClass} ${variants[variant] || variants.secondary}`}
         >
@@ -66,10 +65,9 @@ const AtomButton = ({ label, actionId, payload, variant = 'primary', icon, onAct
 };
 
 const AtomImage = ({ src, alt, aspectRatio = 'video' }) => (
-    <div className={`relative overflow-hidden rounded-lg bg-slate-200 dark:bg-slate-700 ${
-        aspectRatio === 'square' ? 'aspect-square' : 
+    <div className={`relative overflow-hidden rounded-lg bg-slate-200 dark:bg-slate-700 ${aspectRatio === 'square' ? 'aspect-square' :
         aspectRatio === 'portrait' ? 'aspect-[4/5]' : 'aspect-video'
-    }`}>
+        }`}>
         {src ? (
             <img src={src} alt={alt} className="w-full h-full object-cover" loading="lazy" />
         ) : (
@@ -83,7 +81,7 @@ const AtomImage = ({ src, alt, aspectRatio = 'video' }) => (
 const AtomInput = ({ label, name, placeholder, value, onChange }) => (
     <div className="space-y-1">
         {label && <label className="text-xs font-bold text-slate-500 uppercase">{label}</label>}
-        <input 
+        <input
             type="text"
             name={name}
             value={value || ''}
@@ -94,12 +92,59 @@ const AtomInput = ({ label, name, placeholder, value, onChange }) => (
     </div>
 );
 
+const AtomTable = ({ headers, rows }) => (
+    <div className="overflow-x-auto border border-slate-200 dark:border-slate-700 rounded-lg">
+        <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+            <thead className="bg-slate-50 dark:bg-slate-800">
+                <tr>
+                    {headers && headers.map((h, i) => (
+                        <th key={i} className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                            {h}
+                        </th>
+                    ))}
+                </tr>
+            </thead>
+            <tbody className="bg-white dark:bg-slate-900 divide-y divide-slate-200 dark:divide-slate-700">
+                {rows && rows.map((row, i) => (
+                    <tr key={i} className={i % 2 === 0 ? 'bg-white dark:bg-slate-900' : 'bg-slate-50 dark:bg-slate-800/50'}>
+                        {Array.isArray(row) ? row.map((cell, j) => (
+                            <td key={j} className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
+                                {cell}
+                            </td>
+                        )) : Object.values(row).map((cell, j) => (
+                            <td key={j} className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
+                                {cell}
+                            </td>
+                        ))}
+                    </tr>
+                ))}
+            </tbody>
+        </table>
+    </div>
+);
+
+const AtomSelect = ({ label, name, options, value, onChange }) => (
+    <div className="space-y-1">
+        {label && <label className="text-xs font-bold text-slate-500 uppercase">{label}</label>}
+        <select
+            name={name}
+            value={value || ''}
+            onChange={(e) => onChange && onChange(name, e.target.value)}
+            className="w-full p-2 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none dark:text-white"
+        >
+            {options && options.map((opt, i) => (
+                <option key={i} value={opt}>{opt}</option>
+            ))}
+        </select>
+    </div>
+);
+
 /**
  * --- MAIN RENDERER COMPONENT ---
  * Traverses the JSON tree and renders the corresponding atoms.
  */
 const A2UIRenderer = ({ content, onAction, onInputChange }) => {
-    
+
     // Recursive render function
     const renderComponent = (node, index) => {
         if (!node) return null;
@@ -124,6 +169,10 @@ const A2UIRenderer = ({ content, onAction, onInputChange }) => {
                 return <AtomImage key={key} {...props} />;
             case 'Input':
                 return <AtomInput key={key} {...props} onChange={onInputChange} />;
+            case 'Table':
+                return <AtomTable key={key} {...props} />;
+            case 'Select':
+                return <AtomSelect key={key} {...props} onChange={onInputChange} />;
             case 'Spacer':
                 return <div key={key} className={`h-${props.size || 4}`} />;
             default:

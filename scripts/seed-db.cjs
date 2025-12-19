@@ -24,15 +24,15 @@ loadEnv('.env.local');
 
 // 2. Setup Clients
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const geminiKey = process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
 
-if (!supabaseUrl || !supabaseKey || !geminiKey) {
-    console.error("❌ Missing API Keys in .env.local");
+if (!supabaseUrl || !supabaseServiceKey || !geminiKey) {
+    console.error("❌ Missing Keys. Need SUPABASE_SERVICE_ROLE_KEY in .env.local");
     process.exit(1);
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 async function seedDatabase() {
     console.log(`\n🌱 Starting Knowledge Seed...`);

@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Maximize2, X, Code, Eye, RefreshCw } from 'lucide-react';
 
-const LivePreview = ({ 
+const LivePreview = ({
     content,       // The raw code string (HTML/JSX)
     title = "Live Preview",
     isChatMode = false, // If true, optimizes styling for chat bubbles
-    onClose 
+    onClose
 }) => {
     const [view, setView] = useState('preview'); // 'preview' | 'code'
     const [isExpanded, setIsExpanded] = useState(false);
@@ -25,7 +25,7 @@ const LivePreview = ({
     let css = extractCode('css');
     let js = extractCode('js|javascript');
     let jsx = extractCode('jsx|react|tsx');
-    
+
     // If no markdown fences, assume the whole content is the code (fallback)
     if (!html && !jsx && !js) {
         if (content.trim().startsWith('<')) html = content;
@@ -52,9 +52,9 @@ const LivePreview = ({
             componentName = exportMatch[1];
             reactCode = reactCode.replace(/export\s+default\s+(?:function\s+)?/, 'function ');
         } else {
-             // Fallback: assume first capitalized function is component
-             const firstComp = reactCode.match(/function\s+([A-Z]\w+)/);
-             if (firstComp) componentName = firstComp[1];
+            // Fallback: assume first capitalized function is component
+            const firstComp = reactCode.match(/function\s+([A-Z]\w+)/);
+            if (firstComp) componentName = firstComp[1];
         }
 
         // Wrap in Error Boundary Mount
@@ -104,7 +104,7 @@ const LivePreview = ({
     const Container = ({ children }) => {
         if (isExpanded) {
             return (
-                <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+                <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
                     <div className="bg-white w-full h-full max-w-6xl rounded-xl overflow-hidden shadow-2xl flex flex-col relative">
                         {children}
                     </div>
@@ -141,7 +141,7 @@ const LivePreview = ({
             {/* Body */}
             <div className={`${isExpanded ? 'h-full' : 'h-64'} bg-slate-100 dark:bg-slate-900 relative`}>
                 {view === 'preview' ? (
-                    <iframe 
+                    <iframe
                         key={key}
                         title="Preview"
                         srcDoc={srcDoc}

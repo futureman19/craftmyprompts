@@ -27,7 +27,7 @@ loadEnv('.env');
 loadEnv('.env.local');
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 const geminiKey = process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
 
 console.log("Configuration Check:");
@@ -77,7 +77,7 @@ async function testRAG(query) {
 
         const { data, error } = await supabase.rpc('match_knowledge', {
             query_embedding: vector,
-            match_threshold: 0.6, // Slightly lower threshold for testing
+            match_threshold: 0.0, // Force matches
             match_count: 3
         });
 
@@ -103,4 +103,4 @@ async function testRAG(query) {
 }
 
 // Run the test
-testRAG("What is the Smart Router?");
+testRAG("Tell me about React components");

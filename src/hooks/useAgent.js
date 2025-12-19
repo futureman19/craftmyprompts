@@ -28,6 +28,11 @@ export const useAgent = (apiKey, provider = 'gemini', modelOverride) => {
        - props: { src: 'url', alt: 'description', aspectRatio: 'video' | 'square' | 'portrait' }
     6. Input
        - props: { label: 'String', name: 'field_name', placeholder: '...' }
+    7. Table
+       - props: { headers: ['Col1', 'Col2'], rows: [['Row1Data1', 'Row1Data2'], ['Row2Data1', 'Row2Data2']] }
+       - Note: 'rows' is an array of arrays matching the header count.
+    8. Select
+       - props: { label: 'String', name: 'field_name', options: ['Option 1', 'Option 2'], value: 'default_val' }
 
     EXAMPLE PAYLOAD for 'render_ui':
     {
@@ -46,7 +51,7 @@ export const useAgent = (apiKey, provider = 'gemini', modelOverride) => {
     `;
 
     // 1. Dynamic System Prompt
-    const toolList = Object.keys(COMPONENT_REGISTRY).map(key => 
+    const toolList = Object.keys(COMPONENT_REGISTRY).map(key =>
         `- "${key}": ${COMPONENT_REGISTRY[key].description}`
     ).join('\n');
 
@@ -89,7 +94,7 @@ PROTOCOL:
                 const aiProps = payload.props || {};
 
                 const toolDef = COMPONENT_REGISTRY[toolName];
-                
+
                 if (toolDef) {
                     return {
                         type: 'component',
@@ -123,12 +128,12 @@ PROTOCOL:
                 const contextResponse = await fetch('/api/retrieve-context', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
+                    body: JSON.stringify({
                         query: userText,
                         apiKey // Pass key for embedding generation
                     })
                 });
-                
+
                 if (contextResponse.ok) {
                     const contextData = await contextResponse.json();
                     if (contextData.results && contextData.results.length > 0) {
@@ -142,7 +147,7 @@ PROTOCOL:
             }
 
             // STEP B: BUILD PROMPT
-            const historyContext = messages.map(m => 
+            const historyContext = messages.map(m =>
                 `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.rawText || m.content}`
             ).join('\n\n');
 
@@ -158,15 +163,15 @@ PROTOCOL:
             const response = await fetch(`/api/${provider}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    apiKey, 
+                body: JSON.stringify({
+                    apiKey,
                     prompt: finalPrompt,
                     model: selectedModel
                 })
             });
 
             const data = await response.json();
-            
+
             if (!response.ok) throw new Error(data.error || 'Failed to fetch response');
 
             let aiText = '';
@@ -177,17 +182,17 @@ PROTOCOL:
 
             const parsed = parseResponse(aiText || '');
 
-            setMessages(prev => [...prev, { 
-                role: 'assistant', 
-                ...parsed 
+            setMessages(prev => [...prev, {
+                role: 'assistant',
+                ...parsed
             }]);
 
         } catch (error) {
             console.error("Agent Error:", error);
-            setMessages(prev => [...prev, { 
-                role: 'assistant', 
-                type: 'text', 
-                content: `I'm having trouble connecting to the brain. Error: ${error.message || 'Unknown error'}` 
+            setMessages(prev => [...prev, {
+                role: 'assistant',
+                type: 'text',
+                content: `I'm having trouble connecting to the brain. Error: ${error.message || 'Unknown error'}`
             }]);
         } finally {
             setIsLoading(false);

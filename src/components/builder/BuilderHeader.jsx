@@ -1,20 +1,20 @@
 import React, { useState } from 'react';
-import { 
-  Sparkles, MessageSquare, Palette, Video, Command, Search, Dices, 
-  TrendingUp, Bookmark, BookmarkPlus, BookOpen 
+import {
+    Sparkles, MessageSquare, Palette, Video, Command, Search, Dices,
+    TrendingUp, Bookmark, BookmarkPlus, BookOpen
 } from 'lucide-react';
 import { PRESETS } from '../../data/presets';
 
-const BuilderHeader = ({ 
+const BuilderHeader = ({
     // State
     state, mobileTab, searchTerm, user, customPresets, currentData,
-    showTrendWidget, customKnowledge, 
+    showTrendWidget, customKnowledge,
     // Actions
     dispatch, setMobileTab, setSearchTerm, setShowTrendWidget, applyPreset, showToast,
-    handleSaveAsPreset, applyKnowledge 
+    handleSaveAsPreset, applyKnowledge
 }) => {
-    const [activeMenu, setActiveMenu] = useState(null); 
-    
+    const [activeMenu, setActiveMenu] = useState(null);
+
     const handleRandomize = () => {
         dispatch({ type: 'RANDOMIZE', payload: currentData });
         showToast("Randomized selections!");
@@ -35,8 +35,8 @@ const BuilderHeader = ({
     };
 
     return (
-        <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 p-2 shadow-sm z-30 sticky top-0 transition-colors">
-            
+        <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 p-2 shadow-sm z-20 sticky top-0 transition-colors">
+
             {/* Mobile Tab Switcher */}
             <div className="md:hidden flex w-full bg-slate-100 dark:bg-slate-700 p-1 rounded-lg mb-2">
                 <button onClick={() => setMobileTab('edit')} className={`flex-1 py-1 text-xs font-bold rounded-md transition-all ${mobileTab === 'edit' ? 'bg-white dark:bg-slate-600 shadow text-indigo-600 dark:text-indigo-300' : 'text-slate-500 dark:text-slate-400'}`}>Edit</button>
@@ -49,7 +49,7 @@ const BuilderHeader = ({
                         <div className={`p-1.5 rounded-lg text-white ${state.mode === 'text' ? 'bg-indigo-600' : (state.mode === 'art' ? 'bg-pink-600' : 'bg-purple-600')}`}><Sparkles size={16} /></div>
                         <h1 className="text-lg font-bold text-slate-800 dark:text-slate-100 hidden md:block">CraftMyPrompt</h1>
                     </div>
-                    
+
                     {/* Mode Switcher */}
                     <div className="flex bg-slate-100 dark:bg-slate-700 p-0.5 rounded-lg">
                         <button onClick={() => dispatch({ type: 'SET_MODE', payload: 'text' })} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${state.mode === 'text' ? 'bg-white dark:bg-slate-600 text-indigo-600 dark:text-indigo-300 shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}><MessageSquare size={12} /> Text</button>
@@ -60,14 +60,14 @@ const BuilderHeader = ({
 
                 {/* Sub-Mode / Target Selectors */}
                 {state.mode === 'text' && (
-                        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+                    <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
                         {['general', 'coding', 'social'].map(m => (
                             <button key={m} onClick={() => dispatch({ type: 'SET_SUBMODE', payload: m })} className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] border whitespace-nowrap transition-colors capitalize ${state.textSubMode === m ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:border-slate-300'}`}>{m}</button>
                         ))}
-                        </div>
+                    </div>
                 )}
                 {state.mode === 'art' && (
-                        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+                    <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
                         {['general', 'avatar'].map(m => (
                             <button key={m} onClick={() => dispatch({ type: 'SET_SUBMODE', payload: m })} className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] border whitespace-nowrap transition-colors capitalize ${state.textSubMode === m || (m === 'general' && state.textSubMode !== 'avatar') ? 'bg-pink-600 text-white border-pink-600' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:border-slate-300'}`}>{m}</button>
                         ))}
@@ -76,20 +76,19 @@ const BuilderHeader = ({
                         {['midjourney', 'stable-diffusion', 'dalle', 'gemini', 'flux'].map(m => (
                             <button key={m} onClick={() => dispatch({ type: 'SET_TARGET_MODEL', payload: m })} className={`px-2.5 py-1 rounded-full text-[10px] border whitespace-nowrap capitalize transition-colors ${state.targetModel === m ? 'bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 border-slate-800 dark:border-slate-200' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:border-slate-300'}`}>{m.replace('-', ' ')}</button>
                         ))}
-                        </div>
+                    </div>
                 )}
             </div>
 
             <div className="flex gap-2">
                 {/* Trend Button */}
                 {state.mode === 'text' && (
-                    <button 
-                        onClick={() => setShowTrendWidget(!showTrendWidget)} 
-                        className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs font-bold shadow-md transition-all animate-in fade-in ${
-                            showTrendWidget 
-                            ? 'bg-indigo-600 text-white' 
-                            : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300'
-                        }`}
+                    <button
+                        onClick={() => setShowTrendWidget(!showTrendWidget)}
+                        className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs font-bold shadow-md transition-all animate-in fade-in ${showTrendWidget
+                                ? 'bg-indigo-600 text-white'
+                                : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300'
+                            }`}
                         title="Viral Trends"
                     >
                         <TrendingUp size={14} /> <span className="hidden md:inline">Trends</span>
@@ -98,13 +97,13 @@ const BuilderHeader = ({
 
                 {/* Presets Dropdown (Click Menu) */}
                 <div className="relative">
-                    <button 
-                        onClick={() => handleToggleMenu('presets')} 
+                    <button
+                        onClick={() => handleToggleMenu('presets')}
                         className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs font-medium transition-colors ${activeMenu === 'presets' ? 'bg-slate-700 text-white' : 'bg-slate-800 dark:bg-slate-700 text-white'}`}
                     >
                         <Command size={14} /> <span className="hidden md:inline">Presets</span>
                     </button>
-                    
+
                     {activeMenu === 'presets' && (
                         <div className="absolute top-full left-0 w-64 pt-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200" onMouseLeave={() => setActiveMenu(null)}>
                             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-600 p-2 max-h-96 overflow-y-auto">
@@ -129,13 +128,13 @@ const BuilderHeader = ({
 
                 {/* Knowledge Dropdown (Click Menu) */}
                 <div className="relative">
-                    <button 
-                        onClick={() => handleToggleMenu('knowledge')} 
+                    <button
+                        onClick={() => handleToggleMenu('knowledge')}
                         className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs font-medium transition-colors ${activeMenu === 'knowledge' ? 'bg-slate-700 text-white' : 'bg-slate-800 dark:bg-slate-700 text-white'}`}
                     >
                         <BookOpen size={14} /> <span className="hidden md:inline">Knowledge</span>
                     </button>
-                    
+
                     {activeMenu === 'knowledge' && (
                         <div className="absolute top-full left-0 w-64 pt-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200" onMouseLeave={() => setActiveMenu(null)}>
                             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-600 p-2 max-h-96 overflow-y-auto">
@@ -151,7 +150,7 @@ const BuilderHeader = ({
                                     </>
                                 ) : (
                                     <div className="p-4 text-center text-xs text-slate-400">
-                                        No knowledge snippets saved.<br/>Go to Library to add some.
+                                        No knowledge snippets saved.<br />Go to Library to add some.
                                     </div>
                                 )}
                             </div>

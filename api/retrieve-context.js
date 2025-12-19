@@ -10,7 +10,7 @@ export default async function handler(req, res) {
   // 1. Rate Limit Check
   const limitStatus = checkRateLimit(req);
   if (!limitStatus.success) {
-      return res.status(429).json({ error: limitStatus.error });
+    return res.status(429).json({ error: limitStatus.error });
   }
 
   // 2. Only allow POST
@@ -21,7 +21,7 @@ export default async function handler(req, res) {
   const { query, apiKey: userKey } = req.body;
 
   if (!query) {
-      return res.status(400).json({ error: "Query is required." });
+    return res.status(400).json({ error: "Query is required." });
   }
 
   // 3. Configuration
@@ -30,13 +30,13 @@ export default async function handler(req, res) {
   const geminiKey = userKey || process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
 
   if (!supabaseUrl || !supabaseKey || !geminiKey) {
-      return res.status(500).json({ error: "Server configuration missing (Supabase or Gemini keys)." });
+    return res.status(500).json({ error: "Server configuration missing (Supabase or Gemini keys)." });
   }
 
   // HELPER: Sanitize logs
   const sanitizeLog = (msg) => {
     if (typeof msg === 'string') {
-        return msg.replace(/key=[^&]*/g, 'key=***');
+      return msg.replace(/key=[^&]*/g, 'key=***');
     }
     return msg;
   };
@@ -58,8 +58,8 @@ export default async function handler(req, res) {
     const embedData = await embedResponse.json();
 
     if (!embedResponse.ok) {
-        console.error("Embedding API Error:", sanitizeLog(JSON.stringify(embedData.error || {})));
-        throw new Error(embedData.error?.message || "Failed to generate query embedding");
+      console.error("Embedding API Error:", sanitizeLog(JSON.stringify(embedData.error || {})));
+      throw new Error(embedData.error?.message || "Failed to generate query embedding");
     }
 
     const queryVector = embedData.embedding.values;
@@ -68,25 +68,25 @@ export default async function handler(req, res) {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const { data: documents, error: searchError } = await supabase
-        .rpc('match_knowledge', {
-            query_embedding: queryVector,
-            match_threshold: 0.7, // Only return relevant matches (0.7 is a good baseline)
-            match_count: 3        // Top 3 results
-        });
+      .rpc('match_knowledge', {
+        query_embedding: queryVector,
+        match_threshold: 0.5, // Adjusted to 0.5 based on verification findings
+        match_count: 3        // Top 3 results
+      });
 
     if (searchError) {
-        console.error("Supabase Search Error:", searchError);
-        throw new Error("Failed to search knowledge base.");
+      console.error("Supabase Search Error:", searchError);
+      throw new Error("Failed to search knowledge base.");
     }
 
     // 6. Return Results
-    return res.status(200).json({ 
-        results: documents.map(doc => ({
-            id: doc.id,
-            topic: doc.topic,
-            content: doc.content,
-            similarity: doc.similarity
-        }))
+    return res.status(200).json({
+      results: documents.map(doc => ({
+        id: doc.id,
+        topic: doc.topic,
+        content: doc.content,
+        similarity: doc.similarity
+      }))
     });
 
   } catch (error) {
