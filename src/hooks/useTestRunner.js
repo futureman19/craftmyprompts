@@ -44,7 +44,6 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
     });
 
     // --- AoT PROTOCOL DEFINITION ---
-    // This is the "Logic Moat" - forcing the AI to think before acting.
     const AOT_INSTRUCTION = `
     [ATOM OF THOUGHTS PROTOCOL]
     You are a reasoning engine. Do not answer immediately.
@@ -148,7 +147,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
 
     const callAI = async (name, text, key) => {
         const body = { apiKey: key, prompt: text };
-        // Priority Model Mapping
+        // Priority Model Mapping (Gemini 2.5 Flash Lite)
         if (name === 'gemini') body.model = selectedModel || 'gemini-2.5-flash-lite';
         if (name === 'openai') body.model = 'gpt-4o';
         if (name === 'groq') body.model = 'llama-3.3-70b-versatile';
@@ -242,8 +241,9 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
                 const draft = await callAI(refineConfig.drafter, `${AOT_INSTRUCTION}\nTASK: ${prompt}`, getKeyForProvider(refineConfig.drafter));
                 setRefineSteps({ draft });
 
-                setStatusMessage('Critiquing...');
-                const critique = await callAI(refineConfig.critiquer, `Critique as ${refineConfig.focus}:\n${draft}`, getKeyForProvider(refineConfig.critiquer));
+                setStatusMessage('Critiquing (AoT Mode)...');
+                // CTO UPDATE: Injecting AoT into Critique Phase for deeper reasoning
+                const critique = await callAI(refineConfig.critiquer, `${AOT_INSTRUCTION}\nCritique this draft focusing on ${refineConfig.focus}:\n${draft}`, getKeyForProvider(refineConfig.critiquer));
                 setRefineSteps({ draft, critique });
 
                 setStatusMessage('Finalizing...');
