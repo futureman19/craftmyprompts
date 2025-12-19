@@ -28,6 +28,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         fighterB: 'openai'
     });
 
+    // RESTORED: Refine Configuration
     const [refineConfig, setRefineConfig] = useState({
         drafter: 'gemini',
         critiquer: 'openai',
@@ -59,7 +60,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState(null);
     const [battleResults, setBattleResults] = useState(null);
-    const [refineSteps, setRefineSteps] = useState(null);
+    const [refineSteps, setRefineSteps] = useState(null); // RESTORED: Refine Steps
     const [statusMessage, setStatusMessage] = useState('');
     const [error, setError] = useState(null);
 
@@ -147,7 +148,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
 
     const callAI = async (name, text, key) => {
         const body = { apiKey: key, prompt: text };
-        // Priority Model Mapping (Gemini 2.5 Flash Lite)
+        // Priority Model Mapping (Using Gemini 2.5 Flash Lite as standard)
         if (name === 'gemini') body.model = selectedModel || 'gemini-2.5-flash-lite';
         if (name === 'openai') body.model = 'gpt-4o';
         if (name === 'groq') body.model = 'llama-3.3-70b-versatile';
@@ -205,18 +206,18 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
                     activeProvider = routerData.provider;
                     setRouterReasoning(routerData.reasoning);
                 } else {
-                    activeProvider = 'gemini'; 
+                    activeProvider = 'gemini'; // Safety fallback
                 }
             }
 
-            // --- STEP 1: EXECUTION PATHS (AoT INTEGRATED) ---
+            // --- STEP 1: EXECUTION PATHS ---
             if (provider === 'swarm') {
                 swarmConfig.agents.forEach(a => { if (!getKeyForProvider(a.provider)) throw new Error(`Key missing for Agent: ${a.role} (${a.provider})`); });
                 let history = [];
                 for (let i = 0; i < swarmConfig.rounds; i++) {
                     for (const agent of swarmConfig.agents) {
                         setStatusMessage(`Round ${i+1}: ${agent.role}...`);
-                        // Injecting AoT Instruction
+                        // Injecting AoT Instruction (NEW)
                         const context = `${AOT_INSTRUCTION}\nTOPIC: "${prompt}"\nROLE: ${agent.role}\nDISCUSSION:\n${history.map(m=>`${m.role}: ${m.text}`).join('\n')}\nACTION: Provide your response.`;
                         const txt = await callAI(agent.provider, context, getKeyForProvider(agent.provider));
                         history.push({ role: agent.role, text: txt, provider: agent.provider });
@@ -236,13 +237,12 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
                     fighterB: { name: battleConfig.fighterB, text: rB.status==='fulfilled'?rB.value:rB.reason.message }
                 });
             } else if (provider === 'refine') {
+                // RESTORED: Refine Mode Logic with AoT Upgrade
                 setStatusMessage('Drafting (AoT Mode)...');
-                // Injecting AoT into Drafting Phase
                 const draft = await callAI(refineConfig.drafter, `${AOT_INSTRUCTION}\nTASK: ${prompt}`, getKeyForProvider(refineConfig.drafter));
                 setRefineSteps({ draft });
 
                 setStatusMessage('Critiquing (AoT Mode)...');
-                // CTO UPDATE: Injecting AoT into Critique Phase for deeper reasoning
                 const critique = await callAI(refineConfig.critiquer, `${AOT_INSTRUCTION}\nCritique this draft focusing on ${refineConfig.focus}:\n${draft}`, getKeyForProvider(refineConfig.critiquer));
                 setRefineSteps({ draft, critique });
 
@@ -273,7 +273,6 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
             for (const a of swarmConfig.agents) {
                 if (!getKeyForProvider(a.provider)) continue;
                 setStatusMessage(`${a.role} thinking...`);
-                // Injecting AoT into Continuation
                 const t = await callAI(a.provider, `${AOT_INSTRUCTION}\nCONTINUE: "${p}"\nROLE: ${a.role}\nCONTEXT:\n${h.map(m=>`${m.role}: ${m.text}`).join('\n')}`, getKeyForProvider(a.provider));
                 h.push({ role: a.role, text: t, provider: a.provider });
                 setSwarmHistory([...h]);
