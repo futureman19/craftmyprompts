@@ -2,13 +2,12 @@ import React, { useState, useMemo } from 'react';
 import { 
     Loader, AlertTriangle, Check, Copy, Sparkles, Bot, 
     MonitorPlay, Bookmark, Eye, Code, X,
-    Gauge, Maximize2, Brain, ChevronDown, ChevronRight, FileCode, PlayCircle
+    Gauge, Maximize2, Brain, ChevronDown, ChevronRight, PlayCircle, FileCode
 } from 'lucide-react';
 import CodeBlock from './CodeBlock.jsx';
 import { validateVirality } from '../../utils/viralityValidator.js';
 
 // --- HELPER 1: LIVE PREVIEW IFRAME ---
-// Securely renders HTML/React code in a sandboxed iframe
 const LivePreview = ({ content, onClose }) => {
     const extractCode = (typeRegex) => {
         const regex = new RegExp(`\`\`\`(${typeRegex})([\\s\\S]*?)\`\`\``, 'i');
@@ -25,15 +24,17 @@ const LivePreview = ({ content, onClose }) => {
     let processedScript = js || '';
     let isReact = false;
 
-    // Detect React/JSX content
+    // Detect React/JSX content and wrap in mounting logic
     if (!html && (jsx || (js && (js.includes('import React') || js.includes('export default') || js.includes('return <'))))) {
         isReact = true;
         scriptType = 'text/babel';
         let reactCode = jsx || js;
-        // Clean imports for browser runtime
+        
+        // Sanitize imports for browser
         reactCode = reactCode.replace(/import\s+.*?from\s+['"].*?['"];?/g, '');
 
         let componentName = 'App';
+        // Try to find the component name
         const exportMatch = reactCode.match(/export\s+default\s+(?:function\s+)?(\w+)/);
         if (exportMatch) {
             componentName = exportMatch[1];
@@ -105,17 +106,16 @@ const MaximizedResult = ({ content, onClose, renderContent }) => (
     </div>
 );
 
-// --- HELPER 3: AoT PARSER (Handles <Thinking> tags) ---
+// --- HELPER 3: AoT PARSER (New Logic) ---
+// Extracts <Thinking> tags and renders them in a collapsible accordion
 const AoTResult = ({ text, renderContent }) => {
     const [showThinking, setShowThinking] = useState(false);
     if (!text) return null;
 
-    // Extract reasoning if present
     const thinkingMatch = text.match(/<Thinking>([\s\S]*?)<\/Thinking>/i);
     const outputMatch = text.match(/<Output>([\s\S]*?)<\/Output>/i);
     
     const reasoning = thinkingMatch ? thinkingMatch[1].trim() : null;
-    // Fallback: if no output tags, use the remaining text or the full text
     const finalOutput = outputMatch ? outputMatch[1].trim() : (reasoning ? text.replace(/<Thinking>[\s\S]*?<\/Thinking>/i, '').trim() : text);
 
     return (
@@ -146,7 +146,6 @@ const TestRunnerResults = ({
     const [copiedText, setCopiedText] = useState(null);
     const [savedText, setSavedText] = useState(null);
 
-    // Calculate virality only when result changes
     const { score, checks } = useMemo(() => validateVirality(result, prompt), [result, prompt]);
 
     const copyToClipboard = (text, label) => {
@@ -163,7 +162,6 @@ const TestRunnerResults = ({
         }
     };
 
-    // Render markdown/code
     const renderResultContent = (text) => {
         if (!text) return null;
         const parts = text.split(/(```[\s\S]*?```)/g);
@@ -186,7 +184,7 @@ const TestRunnerResults = ({
         return <div className="rounded-xl border p-4 bg-red-50 border-red-100 dark:bg-red-900/10 dark:border-red-800 flex items-start gap-2 text-red-600 dark:text-red-400 text-sm"><AlertTriangle size={16} className="mt-0.5 flex-shrink-0" /><div className="overflow-hidden"><strong className="block font-bold">Error</strong><span className="break-words">{error}</span></div></div>;
     }
 
-    // 1. STANDARD RESULT (Gemini / OpenAI / Auto-Router)
+    // 1. STANDARD RESULT (Gemini/OpenAI/Auto)
     if (result && !['battle', 'refine', 'swarm'].includes(provider)) {
         return (
             <div className="space-y-4 animate-in slide-in-from-bottom-2 fade-in">
@@ -194,7 +192,7 @@ const TestRunnerResults = ({
                     <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
                         <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-950/50 flex justify-between items-center">
                             <div className="flex items-center gap-2"><Gauge size={16} className={score >= 80 ? 'text-emerald-500' : 'text-amber-500'} /><span className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400">Virality Scorecard</span></div>
-                            <span className={`text-xs font-black px-2 py-0.5 rounded ${score >= 80 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{score}/100</span>
+                            <span className={`text-xs font-black px-2 py-0.5 rounded ${score >= 80 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : (score >= 50 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400')}`}>{score}/100</span>
                         </div>
                         <div className="p-4 grid gap-2">{checks.map((c, i) => <div key={i} className="flex gap-2 text-xs text-slate-600 dark:text-slate-300">{c.status === 'pass' ? <Check size={14} className="text-emerald-500"/> : <AlertTriangle size={14} className="text-amber-500"/>} {c.message}</div>)}</div>
                     </div>
@@ -203,16 +201,16 @@ const TestRunnerResults = ({
                     <div className="flex items-center justify-between text-xs font-bold uppercase mb-2 text-indigo-600">
                         <div className="flex items-center gap-2"><Check size={14} /> Result</div>
                         <div className="flex items-center gap-2">
-                            <button onClick={() => setMaximized(true)} className="p-1.5 rounded hover:bg-white text-slate-400"><Maximize2 size={14}/></button>
+                            <button onClick={() => setMaximized(true)} className="p-1.5 rounded hover:bg-white dark:hover:bg-slate-800 text-slate-400"><Maximize2 size={14}/></button>
                             <div className="flex bg-white dark:bg-slate-900 p-0.5 rounded-lg border">
-                                <button onClick={() => setPreviewMode(false)} className={`px-2 py-1 rounded ${!previewMode ? 'bg-indigo-100 text-indigo-700' : 'text-slate-400'}`}><Code size={12}/> Code</button>
-                                <button onClick={() => setPreviewMode(true)} className={`px-2 py-1 rounded ${previewMode ? 'bg-indigo-100 text-indigo-700' : 'text-slate-400'}`}><Eye size={12}/> Preview</button>
+                                <button onClick={() => setPreviewMode(false)} className={`px-2 py-1 rounded-md flex items-center gap-1 transition-all ${!previewMode ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300' : 'text-slate-400 hover:text-slate-600'}`}><Code size={12}/> Code</button>
+                                <button onClick={() => setPreviewMode(true)} className={`px-2 py-1 rounded-md flex items-center gap-1 transition-all ${previewMode ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300' : 'text-slate-400 hover:text-slate-600'}`}><Eye size={12}/> Preview</button>
                             </div>
-                            <button onClick={() => handleSave(result, 'Result')} className="p-1.5 border rounded hover:bg-white"><Bookmark size={12}/></button>
-                            <button onClick={() => copyToClipboard(result, 'res')} className="p-1.5 border rounded hover:bg-white"><Copy size={12}/></button>
+                            <button onClick={() => handleSave(result, 'Result')} className="p-1.5 border rounded hover:bg-white dark:hover:bg-slate-800"><Bookmark size={12}/></button>
+                            <button onClick={() => copyToClipboard(result, 'res')} className="p-1.5 border rounded hover:bg-white dark:hover:bg-slate-800"><Copy size={12}/></button>
                         </div>
                     </div>
-                    {/* Wrapped in AoTResult for reasoning support */}
+                    {/* UPDATED: Uses AoTResult wrapper */}
                     {previewMode ? <LivePreview content={result} onClose={() => setPreviewMode(false)}/> : <AoTResult text={result} renderContent={renderResultContent} />}
                 </div>
                 {maximized && <MaximizedResult content={result} onClose={() => setMaximized(false)} renderContent={(t) => <AoTResult text={t} renderContent={renderResultContent}/>} />}
@@ -229,6 +227,7 @@ const TestRunnerResults = ({
                         <div className="flex items-center gap-2 font-bold mb-3 border-b pb-2 text-slate-700 dark:text-slate-200">
                             {f === 'gemini' ? <Sparkles size={18} className="text-indigo-500" /> : <Bot size={18} className="text-emerald-500" />} <span className="capitalize">{f}</span>
                         </div>
+                        {/* UPDATED: Uses AoTResult wrapper */}
                         {loading ? <div className="text-sm italic text-slate-400 animate-pulse">Generating...</div> : <AoTResult text={battleResults?.[f]?.text || battleResults?.[f]} renderContent={renderResultContent} />}
                      </div>
                  ))}
@@ -236,7 +235,7 @@ const TestRunnerResults = ({
         );
     }
 
-    // 3. REFINE MODE (Ensuring AoT Support)
+    // 3. REFINE MODE (Restored with AoT)
     if (provider === 'refine' && (loading || refineSteps)) {
         return (
             <div className="space-y-4 animate-in fade-in">
@@ -250,7 +249,9 @@ const TestRunnerResults = ({
                                     <span className="bg-indigo-100 dark:bg-indigo-900/50 px-2 py-0.5 rounded text-indigo-700 dark:text-indigo-300">Step 1</span> Draft
                                     <button onClick={() => handleSave(refineSteps.draft, 'Draft')} className="ml-auto p-1 hover:bg-indigo-200 dark:hover:bg-indigo-800 rounded"><Bookmark size={12}/></button>
                                 </div>
-                                <div className="text-sm text-slate-600 dark:text-slate-400"><AoTResult text={refineSteps.draft} renderContent={renderResultContent} /></div>
+                                <div className="text-sm text-slate-600 dark:text-slate-400">
+                                    <AoTResult text={refineSteps.draft} renderContent={renderResultContent} />
+                                </div>
                             </div>
                         )}
                         {refineSteps?.critique && (
@@ -258,7 +259,9 @@ const TestRunnerResults = ({
                                 <div className="flex items-center gap-2 text-xs font-bold uppercase text-emerald-500 mb-2">
                                     <span className="bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 rounded text-emerald-700 dark:text-emerald-300">Step 2</span> Critique
                                 </div>
-                                <div className="text-sm text-slate-600 dark:text-slate-400 italic"><AoTResult text={refineSteps.critique} renderContent={renderResultContent} /></div>
+                                <div className="text-sm text-slate-600 dark:text-slate-400 italic">
+                                    <AoTResult text={refineSteps.critique} renderContent={renderResultContent} />
+                                </div>
                             </div>
                         )}
                         {refineSteps?.final && (
@@ -272,7 +275,7 @@ const TestRunnerResults = ({
                         )}
                     </>
                 ) : (
-                    /* DIFF VIEW PLACEHOLDER (Functionality preserved) */
+                    /* DIFF VIEW PLACEHOLDER */
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-[500px]">
                          <div className="rounded-xl border border-red-200 dark:border-red-900 bg-red-50/30 dark:bg-red-900/10 p-4 flex flex-col h-full overflow-hidden">
                              <div className="flex items-center gap-2 text-red-600 dark:text-red-400 font-bold mb-3 border-b border-red-200 dark:border-red-800 pb-2">
@@ -306,7 +309,9 @@ const TestRunnerResults = ({
                             <div className="flex items-center gap-2 text-xs font-bold uppercase mb-2 border-b pb-1">
                                 {msg.role} <button onClick={() => copyToClipboard(msg.text, idx)} className="ml-auto p-1"><Copy size={12}/></button>
                             </div>
-                            <div className="text-sm"><AoTResult text={msg.text} renderContent={renderResultContent} /></div>
+                            <div className="text-sm">
+                                <AoTResult text={msg.text} renderContent={renderResultContent} />
+                            </div>
                         </div>
                     </div>
                 ))}
