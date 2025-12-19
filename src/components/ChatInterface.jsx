@@ -41,7 +41,17 @@ const ChatInterface = ({ apiKey, provider = 'gemini', onUpdateBuilder }) => {
                 {messages.length === 0 && (
                     <div className="h-full flex flex-col items-center justify-center text-slate-400 text-center opacity-50 px-8">
                         <Bot size={48} className="mb-4 text-indigo-300" />
-                        <p className="text-sm">I can help you draft prompts, find trends, or search for visuals.<br />Try asking: "Show me trending tech videos"</p>
+                        <div className="text-center space-y-4">
+                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                                I can help you draft prompts, find trends, or search for visuals.
+                            </p>
+                            <div className="text-xs bg-slate-100 dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700 inline-block text-left">
+                                <p className="font-bold text-slate-400 mb-2 uppercase tracking-wider">Available Commands:</p>
+                                <code className="block text-indigo-500 dark:text-indigo-400 font-mono mb-1">/trend [topic]</code>
+                                <code className="block text-pink-500 dark:text-pink-400 font-mono mb-1">/image [query]</code>
+                                <code className="block text-emerald-500 dark:text-emerald-400 font-mono">/ship</code>
+                            </div>
+                        </div>
                     </div>
                 )}
 
