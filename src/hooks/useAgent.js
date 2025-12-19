@@ -170,20 +170,116 @@ PROTOCOL:
                     }
                     return; // Return early since we handled state manually
                 case 'trend':
-                    syntheticResponse = {
-                        type: 'component',
-                        component: COMPONENT_REGISTRY['show_trends'].component,
-                        props: { category: query || 'tech' },
-                        rawText: `Showing trends for: ${query}`
+                    // Map common aliases to YouTube Category IDs
+                    const YOUTUBE_CATEGORIES = {
+                        'all': '0',
+                        'music': '10',
+                        'gaming': '20',
+                        'tech': '28',
+                        'coding': '28',
+                        'news': '25',
+                        'movies': '30',
+                        'education': '27',
+                        'entertainment': '24'
                     };
-                    break;
+
+                    const catId = YOUTUBE_CATEGORIES[query.toLowerCase()] || '0';
+                    syntheticResponse = null;
+
+                    setIsLoading(true);
+                    try {
+                        const trendRes = await fetch('/api/trends', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ categoryId: catId, region: 'US' })
+                        });
+
+                        const trendData = await trendRes.json();
+                        if (!trendRes.ok) throw new Error(trendData.error || 'Failed to fetch trends');
+
+                        // Format for A2UI Table
+                        const tableRows = (trendData.trends || []).slice(0, 5).map((t, i) => [
+                            `#${i + 1}`,
+                            t.title.length > 30 ? t.title.substring(0, 30) + '...' : t.title,
+                            new Intl.NumberFormat('en-US', { notation: "compact" }).format(t.views || 0),
+                            t.channelTitle || 'Unknown'
+                        ]);
+
+                        const newMsg = {
+                            role: 'assistant',
+                            type: 'component',
+                            component: COMPONENT_REGISTRY['render_ui'].component,
+                            props: {
+                                content: {
+                                    type: "Container",
+                                    props: { layout: "col" },
+                                    children: [
+                                        {
+                                            type: "Card",
+                                            props: { title: `Trending in ${query || 'General'}`, variant: "elevated" },
+                                            children: [
+                                                {
+                                                    type: "Table",
+                                                    props: {
+                                                        headers: ['Rank', 'Title', 'Views', 'Channel'],
+                                                        rows: tableRows
+                                                    }
+                                                },
+                                                {
+                                                    type: "Button",
+                                                    props: { label: "Analyze These Trends", Icon: "sparkles", variant: "secondary", actionId: "analyze_trends", payload: { trends: trendData.trends } }
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            },
+                            rawText: `Showing trends for: ${query}`
+                        };
+                        setMessages(prev => [...prev, newMsg]);
+                    } catch (e) {
+                        setMessages(prev => [...prev, {
+                            role: 'assistant',
+                            type: 'text',
+                            content: `Failed to fetch trends: ${e.message}`
+                        }]);
+                    } finally {
+                        setIsLoading(false);
+                    }
+                    return;
                 case 'ship':
-                    syntheticResponse = {
-                        type: 'component',
-                        component: COMPONENT_REGISTRY['github_ship'].component,
-                        props: { filename: 'snippet.js', code: query }, // Simplified for slash command
-                        rawText: `Ready to ship snippet`
-                    };
+                    // Scan history backwards for code blocks
+                    let codeToShip = null;
+                    const codeBlockRegex = /```[\w]*\n([\s\S]*?)```/;
+
+                    // Look through last 10 messages
+                    for (let i = messages.length - 1; i >= 0 && i >= messages.length - 10; i--) {
+                        if (messages[i].role === 'assistant') { // Only ship assistant code
+                            const match = messages[i].content?.match(codeBlockRegex) || messages[i].rawText?.match(codeBlockRegex);
+                            if (match && match[1]) {
+                                codeToShip = match[1].trim();
+                                break;
+                            }
+                        }
+                    }
+
+                    if (codeToShip) {
+                        syntheticResponse = {
+                            type: 'component',
+                            component: COMPONENT_REGISTRY['github_ship'].component,
+                            props: {
+                                filename: 'snippet.js',
+                                code: codeToShip,
+                                isOpen: true
+                            },
+                            rawText: `Ready to ship snippet`
+                        };
+                    } else {
+                        syntheticResponse = {
+                            type: 'text',
+                            content: `**No code found to ship.**\nI scanned the last few messages but couldn't find any code blocks. Ask me to generate some code first!`
+                        };
+                    }
                     break;
                 case 'help':
                 default:
