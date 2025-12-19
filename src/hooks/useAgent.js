@@ -127,13 +127,48 @@ PROTOCOL:
 
             switch (command.toLowerCase()) {
                 case 'image':
-                    syntheticResponse = {
-                        type: 'component',
-                        component: COMPONENT_REGISTRY['visual_search'].component,
-                        props: { query: query || 'abstract art' },
-                        rawText: `Generating visuals for: ${query}`
-                    };
-                    break;
+                    // Async operation required - handle differently than instant mock
+                    syntheticResponse = null; // Don't return immediate synthetic response
+
+                    // Trigger async fetch
+                    setIsLoading(true);
+                    try {
+                        const imgRes = await fetch('/api/generate-image', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ prompt: query, apiKey })
+                        });
+                        const imgData = await imgRes.json();
+
+                        if (!imgRes.ok) throw new Error(imgData.error || 'Image generation failed');
+
+                        const newMsg = {
+                            role: 'assistant',
+                            type: 'component',
+                            component: COMPONENT_REGISTRY['render_ui'].component, // We render a Generic UI Card
+                            props: {
+                                content: {
+                                    type: "Card",
+                                    props: { variant: "elevated" },
+                                    children: [
+                                        { type: "Image", props: { src: imgData.imageUrl, alt: query, aspectRatio: "square" } },
+                                        { type: "Text", props: { content: `Source: ${imgData.source === 'gemini' ? 'Gemini 2.5 Flash' : 'Pexels (Fallback)'}`, variant: "caption" } }
+                                    ]
+                                }
+                            },
+                            rawText: `Generated image for: ${query}`
+                        };
+                        setMessages(prev => [...prev, newMsg]);
+                    } catch (e) {
+                        setMessages(prev => [...prev, {
+                            role: 'assistant',
+                            type: 'text',
+                            content: `Failed to generate image: ${e.message}`
+                        }]);
+                    } finally {
+                        setIsLoading(false);
+                    }
+                    return; // Return early since we handled state manually
                 case 'trend':
                     syntheticResponse = {
                         type: 'component',
