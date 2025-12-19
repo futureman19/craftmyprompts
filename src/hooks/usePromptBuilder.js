@@ -1,4 +1,4 @@
-import { useReducer, useMemo } from 'react';
+import { useReducer, useMemo, useEffect } from 'react';
 import { 
   GENERAL_DATA, CODING_DATA, WRITING_DATA, ART_DATA, AVATAR_DATA, VIDEO_DATA, 
   SOCIAL_DATA, 
@@ -21,6 +21,7 @@ const initialState = {
   selections: {}, 
   negativePrompt: '',
   referenceImage: '',
+  imageDescription: '', // NEW: Stores the AI analysis of the reference image
   loraName: '',
   loraWeight: 1.0,
   seed: '',
@@ -178,6 +179,7 @@ function builderReducer(state, action) {
             codeContext: data.code_context || data.codeContext || '', 
             negativePrompt: data.negative_prompt || data.negativePrompt || '',
             referenceImage: data.reference_image || data.referenceImage || '',
+            
             targetModel: data.model_config?.targetModel || data.targetModel || 'midjourney',
             loraName: data.model_config?.loraName || data.loraName || '',
             seed: data.model_config?.seed || data.seed || '',
@@ -199,7 +201,6 @@ const formatOption = (item, isArtMode, model) => {
     if (model === 'midjourney') return `${val}::${weight}`; 
     if (model === 'stable-diffusion') return `(${val}:${weight})`; 
     if (model === 'dalle') return `${val} (priority level ${weight})`; 
-    
     if (model === 'gemini' || model === 'flux') return val;
 
     return val;
@@ -224,9 +225,45 @@ const applyVariables = (text, variables) => {
 export const usePromptBuilder = (initialData) => {
   const [state, dispatch] = useReducer(builderReducer, initialState);
 
+  // --- CTO UPDATE: Auto-Describe Image Logic ---
+  // When 'referenceImage' changes, we ask the backend to describe it.
+  useEffect(() => {
+      const describeImage = async () => {
+          if (!state.referenceImage || !state.referenceImage.startsWith('http')) {
+              dispatch({ type: 'UPDATE_FIELD', field: 'imageDescription', value: '' });
+              return;
+          }
+
+          try {
+              // Call our Vision-Enabled Gemini API
+              const response = await fetch('/api/gemini', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ 
+                      imageUrl: state.referenceImage,
+                      prompt: "Analyze this image and provide a highly detailed description of the subject, lighting, style, and composition for use in an AI art prompt. Be concise but descriptive.",
+                      // Use generic key if user hasn't set one, handled by backend fallback
+                  })
+              });
+
+              const data = await response.json();
+              if (data.candidates && data.candidates[0].content) {
+                  const desc = data.candidates[0].content.parts[0].text;
+                  dispatch({ type: 'UPDATE_FIELD', field: 'imageDescription', value: desc });
+              }
+          } catch (err) {
+              console.warn("Failed to describe image:", err);
+          }
+      };
+
+      // Debounce slightly to avoid spamming API while typing URL
+      const timeoutId = setTimeout(describeImage, 1000);
+      return () => clearTimeout(timeoutId);
+  }, [state.referenceImage]);
+
+
   const currentData = useMemo(() => {
       if (state.mode === 'video') return VIDEO_DATA;
-      
       if (state.mode === 'art') {
           if (state.textSubMode === 'avatar') return AVATAR_DATA;
           return ART_DATA;
@@ -249,7 +286,6 @@ export const usePromptBuilder = (initialData) => {
     const contextDocs = [];
     const instructionOverrides = [];
 
-    // Helper to find rich instructions from DB
     const injectInstruction = (options) => {
         options.forEach(opt => {
             if (INSTRUCTIONS[opt]) {
@@ -266,11 +302,9 @@ export const usePromptBuilder = (initialData) => {
         
         injectInstruction(langs);
         
-        // --- RULES ENGINE: CODING ---
         langs.forEach(lang => {
             if (CODING_RULES[lang]) {
                 const rule = CODING_RULES[lang];
-                // Check if specific version selected matches rule
                 frameworks.forEach(ver => {
                     if (rule[ver]) {
                         if (rule[ver].deprecated) contextDocs.push(`DEPRECATION WARNING for ${ver}: Avoid ${rule[ver].deprecated.join(', ')}.`);
@@ -296,13 +330,11 @@ export const usePromptBuilder = (initialData) => {
         if (langs.includes('Python')) contextDocs.push(KNOWLEDGE_BASE.fastapi_pydantic_v2);
         if (langs.includes('SQL') || state.customTopic.toLowerCase().includes('supabase')) contextDocs.push(KNOWLEDGE_BASE.supabase_v2);
         
-        // Fallback or append if no rich instruction
         if (instructionOverrides.length === 0) {
              if (tasks.length) parts.push(`Act as an expert Developer. Your task is to ${tasks.join(' and ')}.`);
              else parts.push("Act as an expert Developer.");
              if (langs.length) parts.push(`Tech Stack: ${langs.join(', ')}.`);
         } else {
-             // We found rich instructions, use them
              parts.push(instructionOverrides.join('\n'));
              if (tasks.length) parts.push(`Task: ${tasks.join(' and ')}.`);
         }
@@ -311,12 +343,9 @@ export const usePromptBuilder = (initialData) => {
         if (principles) parts.push(`Adhere to these principles: ${principles}.`);
 
     } else if (state.textSubMode === 'social') {
-        // --- SOCIAL RULES & KNOWLEDGE ---
         const platforms = getVals('platform');
-        
         injectInstruction(platforms); 
 
-        // Check Social Rules
         platforms.forEach(plat => {
             if (SOCIAL_RULES[plat]) {
                 const limits = SOCIAL_RULES[plat];
@@ -360,11 +389,9 @@ export const usePromptBuilder = (initialData) => {
         if (frameworks) parts.push(`Narrative Structure: ${frameworks}.`);
 
     } else {
-        // GENERAL / WRITING
         const persona = getVals('persona');
         const styles = getVals('style');
         
-        // Check for Rich Persona/Style Instructions
         injectInstruction(persona);
         injectInstruction(styles);
 
@@ -391,7 +418,6 @@ export const usePromptBuilder = (initialData) => {
 
     // --- ART / VIDEO MODE LOGIC ---
     if (state.mode === 'art' || state.mode === 'video') {
-       // Check for Rich Art Instructions (e.g. Wes Anderson, Vaporwave)
        const artStyles = getVals('style');
        const videoCams = getVals('camera_move');
        const aesthetics = getVals('aesthetics');
@@ -402,7 +428,6 @@ export const usePromptBuilder = (initialData) => {
        injectInstruction(aesthetics);
        injectInstruction(avatarStyles);
        
-        // --- RULES ENGINE: ART ---
        if (state.mode === 'art' && ART_RULES[state.targetModel]) {
            const rule = ART_RULES[state.targetModel];
            if (rule.restrictions) {
@@ -413,6 +438,11 @@ export const usePromptBuilder = (initialData) => {
        if (instructionOverrides.length > 0) {
            parts.push(`\n[STYLISTIC DIRECTIVES]:\n${instructionOverrides.join('\n')}`);
        }
+
+       // CTO UPDATE: Inject Visual Description (Smart Reference)
+       if (state.imageDescription) {
+           parts.push(`\n[VISUAL CONTEXT FROM REFERENCE]:\n"${state.imageDescription}"\n`);
+       }
     }
 
     // Inject Static Knowledge Base
@@ -420,8 +450,7 @@ export const usePromptBuilder = (initialData) => {
         parts.push(`\n[EXPERT KNOWLEDGE BASE - STRICT ADHERENCE REQUIRED]:\n${contextDocs.join('\n\n')}\n`);
     }
 
-    // --- CTO FIX: UNIVERSAL CONTEXT INJECTION ---
-    // This allows knowledge to be applied in ALL modes, not just coding.
+    // CTO FIX: UNIVERSAL CONTEXT INJECTION
     if (state.codeContext?.trim()) {
         const label = state.textSubMode === 'coding' ? 'USER CODE CONTEXT' : 'ADDITIONAL CONTEXT / KNOWLEDGE';
         const formattedContext = state.textSubMode === 'coding' 
@@ -436,18 +465,16 @@ export const usePromptBuilder = (initialData) => {
 
     // Final Assembly for Art Mode vs Text Mode
     if (state.mode === 'art') {
-       // For Art, we still want the keyword string for simple copypasting, 
-       // but we might want to include the System Instruction if it's being used in an LLM context.
-       // The current logic prioritizes the "Act as..." for Text/Code/Social. 
-       // For pure art generation prompt string building:
        if (state.targetModel === 'dalle' || state.targetModel === 'gemini') {
-           // These models take natural language better, so the system instruction is good.
            return parts.join('\n');
        } else {
-           // Midjourney/SD prefer tokens.
-           // We use the existing token builder logic below, BUT we can prepend the "Act as" context if helpful for the user to see.
-           // For now, let's keep the Token Builder logic separate for MJ/SD to ensure it's paste-ready.
-           return buildArtPrompt(state, processedTopic, instructionOverrides, contextDocs);
+           // Midjourney/SD prefer tokens, but we append the description if available
+           let artPrompt = buildArtPrompt(state, processedTopic, instructionOverrides, contextDocs);
+           // If we have a vision description, we append it to enrich the prompt
+           if (state.imageDescription) {
+               artPrompt = `${state.imageDescription}. ${artPrompt}`;
+           }
+           return artPrompt;
        }
     }
 
@@ -472,7 +499,7 @@ export const usePromptBuilder = (initialData) => {
   };
 };
 
-// --- SUBSIDIARY BUILDERS (Kept separate for cleanliness) ---
+// --- SUBSIDIARY BUILDERS ---
 
 const buildVideoPrompt = (state, topic) => {
     const parts = [];
