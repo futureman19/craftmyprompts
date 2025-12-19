@@ -194,23 +194,51 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
 
             // --- STEP 1: SMART CHAIN PIPELINE ---
             if (provider === 'smart_chain') {
+                let currentText = '';
+
                 // Step 1: Draft (Gemini)
                 setStatusMessage('Step 1/4: Drafting with Gemini 2.5 Flash Lite...');
-                const draft = await callAI('gemini', `Draft a comprehensive response to: ${prompt}`, geminiKey);
+                try {
+                    currentText = await callAI('gemini', `Draft a comprehensive response to: ${prompt}`, geminiKey);
+                    if (!currentText) throw new Error("Empty response from Draft step");
+                } catch (err) {
+                    throw new Error(`Smart Chain Failed at Step 1 (Drafting): ${err.message}`);
+                }
 
                 // Step 2: Reasoning (GPT-4o)
                 setStatusMessage('Step 2/4: Reasoning with GPT-4o...');
-                const reasoning = await callAI('openai', `Analyze this draft for logic gaps and expand: ${draft}`, openaiKey);
+                try {
+                    const reasoning = await callAI('openai', `Analyze this draft for logic gaps and expand: ${currentText}`, openaiKey);
+                    if (reasoning) currentText = reasoning;
+                } catch (err) {
+                    console.warn("Step 2 Failed, skipping:", err);
+                    setStatusMessage('⚠️ Step 2 Failed (Skipped)');
+                    // Fallback: Proceed with 'draft' => currentText remains unchanged
+                }
 
                 // Step 3: Filter (Llama 3 via Groq)
                 setStatusMessage('Step 3/4: Filtering with Llama 3.1...');
-                const filtered = await callAI('groq', `Review this text for clarity and conciseness. Filter out fluff: ${reasoning}`, groqKey);
+                try {
+                    const filtered = await callAI('groq', `Review this text for clarity and conciseness. Filter out fluff: ${currentText}`, groqKey);
+                    if (filtered) currentText = filtered;
+                } catch (err) {
+                    console.warn("Step 3 Failed, skipping:", err);
+                    setStatusMessage('⚠️ Step 3 Failed (Skipped)');
+                    // Fallback: Proceed with previous output
+                }
 
                 // Step 4: Polish (Claude 3.5 Sonnet)
                 setStatusMessage('Step 4/4: Polishing with Claude 3.5 Sonnet...');
-                const final = await callAI('anthropic', `Final Polish. Enhance tone and nuance: ${filtered}`, anthropicKey);
+                try {
+                    const final = await callAI('anthropic', `Final Polish. Enhance tone and nuance: ${currentText}`, anthropicKey);
+                    if (final) currentText = final;
+                } catch (err) {
+                    console.warn("Step 4 Failed, using previous result:", err);
+                    setStatusMessage('⚠️ Step 4 Failed (Using previous output)');
+                    // Fallback: Final result is whatever we have so far
+                }
 
-                setResult(final);
+                setResult(currentText);
                 return; // End execution here for smart_chain
             }
 

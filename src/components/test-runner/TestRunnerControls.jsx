@@ -270,8 +270,8 @@ const TestRunnerControls = ({
                     <span>Keys are stored locally on your device for security.</span>
                 </div>
 
-                {/* Gemini Input (Show if Smart Chain OR Gemini OR Battle OR Swarm) */}
-                {(provider === 'smart_chain' || provider === 'gemini' || provider === 'battle' || provider === 'swarm') && (
+                {/* Gemini Input */}
+                {(viewMode === 'advanced' || provider === 'gemini') && (
                     <div className="space-y-2 animate-in fade-in">
                         <div className="flex justify-between items-center">
                             <label className="text-[10px] font-bold uppercase text-indigo-500 flex items-center gap-1">
@@ -310,8 +310,8 @@ const TestRunnerControls = ({
                     </div>
                 )}
 
-                {/* OpenAI Input (Show if Smart Chain OR OpenAI OR Battle OR Swarm) */}
-                {(provider === 'smart_chain' || provider === 'openai' || provider === 'battle' || provider === 'swarm') && (
+                {/* OpenAI Input */}
+                {(viewMode === 'advanced' || provider === 'openai') && (
                     <div className="space-y-2 animate-in fade-in">
                         <label className="text-[10px] font-bold uppercase text-emerald-500 flex items-center gap-1">
                             <Key size={12} /> OpenAI {renderHelpLink()}
@@ -332,11 +332,11 @@ const TestRunnerControls = ({
                     </div>
                 )}
 
-                {/* Groq Input (Show if Auto OR Groq) */}
-                {isLoggedIn && (provider === 'auto' || provider === 'groq' || provider === 'swarm' || (provider === 'battle' && (battleConfig?.fighterA === 'groq' || battleConfig?.fighterB === 'groq'))) && (
+                {/* Groq Input */}
+                {isLoggedIn && (viewMode === 'advanced' || provider === 'groq') && (
                     <div className="space-y-2 animate-in fade-in">
                         <label className="text-[10px] font-bold uppercase text-orange-500 flex items-center gap-1">
-                            <Key size={12} /> Groq Key (Llama 4) {renderHelpLink()}
+                            <Key size={12} /> Groq Key (Llama 3) {renderHelpLink()}
                         </label>
                         {/* Groq Key Input logic - removed 'isUsingGlobal' check here as it wasn't fully implemented in the hook yet, keeping manual entry */}
                         <div className="flex gap-2">
@@ -346,8 +346,8 @@ const TestRunnerControls = ({
                     </div>
                 )}
 
-                {/* Anthropic Input (Show if Smart Chain OR Anthropic OR Swarm OR Battle checks) */}
-                {isLoggedIn && (provider === 'smart_chain' || provider === 'anthropic' || provider === 'swarm' || (provider === 'battle' && (battleConfig?.fighterA === 'anthropic' || battleConfig?.fighterB === 'anthropic'))) && (
+                {/* Anthropic Input */}
+                {isLoggedIn && (viewMode === 'advanced' || provider === 'anthropic') && (
                     <div className="space-y-2 animate-in fade-in">
                         <label className="text-[10px] font-bold uppercase text-rose-500 flex items-center gap-1">
                             <Key size={12} /> Anthropic Key (Claude) {renderHelpLink()}
