@@ -3,6 +3,28 @@ export const AVATAR_KNOWLEDGE = {
   // 6. AVATAR MODE
   // ==================================================================================
 
+  // --- Consistency & Identity (NEW: For Fake Profiles) ---
+  "Character Reference (--cref)": {
+    "rule": "Append `--cref [URL]` to your prompt, linking to a clear reference image of your character's face.",
+    "mechanic": "Use `--cw` (Character Weight) to control rigidity. `--cw 100` copies the outfit/hair; `--cw 0` copies only the facial structure, allowing for costume changes.",
+    "pitfall": "Using a reference image with heavy shadows, occlusions, or multiple people; the AI needs a clean 'mugshot' for accurate mapping."
+  },
+  "Seed Locking": {
+    "rule": "Use the same seed number (e.g., `--seed 888`) for every generation to maintain the underlying noise pattern.",
+    "mechanic": "This minimizes random variation in facial features when the prompt remains largely the same.",
+    "pitfall": "Changing the aspect ratio (`--ar`) or model version; this resets the seed's influence completely."
+  },
+  "Style Reference (--sref)": {
+    "rule": "Use `--sref [URL]` to enforce a consistent 'photographer's eye' across multiple profile pictures without copying the subject.",
+    "mechanic": "Essential for creating a believable 'Fake Profile' grid where lighting and color grading match across different locations.",
+    "pitfall": "Confusing it with image prompts; `--sref` transfers aesthetic/vibe, not the actual content/pixels."
+  },
+  "Visual Anchoring": {
+    "rule": "Assign distinct, rare physical traits (e.g., 'a scar above the left eyebrow', 'heterochromia') and repeat them in every prompt.",
+    "mechanic": "These specific tokens act as 'anchors' that force the model to converge on a specific latent representation of the character.",
+    "pitfall": "Using generic descriptors like 'beautiful' or 'handsome', which causes the model to drift toward a generic mean face."
+  },
+
   // --- Platform ---
   "LinkedIn PFP": {
     "rule": "Professional, approachable, high trust. Smile with teeth = higher likability.",
