@@ -1,13 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Sparkles, Loader } from 'lucide-react';
-import { useAgent } from '../hooks/useAgent.js'; 
+import { Send, Bot, User, Sparkles, Loader, ArrowRightCircle } from 'lucide-react';
+import { useAgent } from '../hooks/useAgent.js';
 
-const ChatInterface = ({ apiKey, provider = 'gemini' }) => {
+const ChatInterface = ({ apiKey, provider = 'gemini', onUpdateBuilder }) => {
     const [input, setInput] = useState('');
-    
+
     // Destructuring handleAction from the hook
     const { messages, isLoading, sendMessage, handleAction, clearHistory } = useAgent(apiKey, provider);
-    
+
     const bottomRef = useRef(null);
 
     // Auto-scroll to bottom on new message
@@ -28,7 +28,7 @@ const ChatInterface = ({ apiKey, provider = 'gemini' }) => {
                 <h3 className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
                     <Sparkles size={18} className="text-indigo-500" /> CraftOS Agent
                 </h3>
-                <button 
+                <button
                     onClick={clearHistory}
                     className="text-xs text-slate-400 hover:text-red-500 transition-colors font-medium"
                 >
@@ -41,7 +41,7 @@ const ChatInterface = ({ apiKey, provider = 'gemini' }) => {
                 {messages.length === 0 && (
                     <div className="h-full flex flex-col items-center justify-center text-slate-400 text-center opacity-50 px-8">
                         <Bot size={48} className="mb-4 text-indigo-300" />
-                        <p className="text-sm">I can help you draft prompts, find trends, or search for visuals.<br/>Try asking: "Show me trending tech videos"</p>
+                        <p className="text-sm">I can help you draft prompts, find trends, or search for visuals.<br />Try asking: "Show me trending tech videos"</p>
                     </div>
                 )}
 
@@ -55,11 +55,10 @@ const ChatInterface = ({ apiKey, provider = 'gemini' }) => {
                         )}
 
                         {/* Content Bubble */}
-                        <div className={`max-w-[85%] rounded-2xl p-4 ${
-                            msg.role === 'user' 
-                            ? 'bg-indigo-600 text-white rounded-br-none' 
+                        <div className={`max-w-[85%] rounded-2xl p-4 ${msg.role === 'user'
+                            ? 'bg-indigo-600 text-white rounded-br-none'
                             : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-bl-none shadow-sm'
-                        }`}>
+                            }`}>
                             {/* Text Content */}
                             {msg.type === 'text' && (
                                 <p className={`text-sm leading-relaxed whitespace-pre-wrap ${msg.role === 'user' ? 'text-white' : 'text-slate-700 dark:text-slate-200'}`}>
@@ -75,11 +74,23 @@ const ChatInterface = ({ apiKey, provider = 'gemini' }) => {
                                     </div>
                                     <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden bg-slate-50 dark:bg-slate-900/50">
                                         {/* Render the component dynamically with props AND action handler */}
-                                        <msg.component 
-                                            {...msg.props} 
-                                            onAction={handleAction} 
+                                        <msg.component
+                                            {...msg.props}
+                                            onAction={handleAction}
                                         />
                                     </div>
+                                </div>
+                            )}
+
+                            {/* PUSH TO BUILDER ACTION */}
+                            {msg.role === 'assistant' && onUpdateBuilder && (
+                                <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-700/50 flex justify-end">
+                                    <button
+                                        onClick={() => onUpdateBuilder(typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.props || {}))}
+                                        className="text-[10px] flex items-center gap-1.5 text-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 font-bold bg-indigo-50 dark:bg-indigo-900/30 px-2 py-1 rounded-full transition-colors"
+                                    >
+                                        Push to Builder <ArrowRightCircle size={12} />
+                                    </button>
                                 </div>
                             )}
                         </div>
@@ -122,7 +133,7 @@ const ChatInterface = ({ apiKey, provider = 'gemini' }) => {
                         className="flex-1 p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm dark:text-white placeholder-slate-400 transition-all"
                         disabled={isLoading}
                     />
-                    <button 
+                    <button
                         onClick={handleSend}
                         disabled={!input.trim() || isLoading}
                         className="p-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-indigo-500/20"

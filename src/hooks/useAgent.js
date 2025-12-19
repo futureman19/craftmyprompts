@@ -116,6 +116,58 @@ PROTOCOL:
     const sendMessage = async (userText) => {
         if (!userText.trim()) return;
 
+        // SLASH COMMAND INTERCEPTION
+        if (userText.startsWith('/')) {
+            const [command, ...args] = userText.substring(1).split(' ');
+            const query = args.join(' ');
+            const newLocalHistory = [...messages, { role: 'user', type: 'text', content: userText }];
+            setMessages(newLocalHistory);
+
+            let syntheticResponse = null;
+
+            switch (command.toLowerCase()) {
+                case 'image':
+                    syntheticResponse = {
+                        type: 'component',
+                        component: COMPONENT_REGISTRY['visual_search'].component,
+                        props: { query: query || 'abstract art' },
+                        rawText: `Generating visuals for: ${query}`
+                    };
+                    break;
+                case 'trend':
+                    syntheticResponse = {
+                        type: 'component',
+                        component: COMPONENT_REGISTRY['show_trends'].component,
+                        props: { category: query || 'tech' },
+                        rawText: `Showing trends for: ${query}`
+                    };
+                    break;
+                case 'ship':
+                    syntheticResponse = {
+                        type: 'component',
+                        component: COMPONENT_REGISTRY['github_ship'].component,
+                        props: { filename: 'snippet.js', code: query }, // Simplified for slash command
+                        rawText: `Ready to ship snippet`
+                    };
+                    break;
+                case 'help':
+                default:
+                    syntheticResponse = {
+                        type: 'text',
+                        content: `**Available Slash Commands:**\n- \`/image [query]\` - Generate visuals\n- \`/trend [topic]\` - See market trends\n- \`/ship [code]\` - Create GitHub Gist\n- \`/help\` - Show this menu`
+                    };
+                    break;
+            }
+
+            // Simulate slight delay for "feel"
+            setIsLoading(true);
+            setTimeout(() => {
+                setMessages(prev => [...prev, { role: 'assistant', ...syntheticResponse }]);
+                setIsLoading(false);
+            }, 300);
+            return;
+        }
+
         setIsLoading(true);
         const newLocalHistory = [...messages, { role: 'user', type: 'text', content: userText }];
         setMessages(newLocalHistory);

@@ -21,13 +21,13 @@ const App = () => {
   const [sessionHistory, setSessionHistory] = useState([]);
   const [promptToLoad, setPromptToLoad] = useState(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
-  
+
   // Initialize Dark Mode
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('craft-my-prompt-theme');
     return saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
   });
-  
+
   const navigate = useNavigate();
 
   // --- INITIALIZE CONTEXT OS (Memory Engine) ---
@@ -51,23 +51,23 @@ const App = () => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser({
-            uid: session.user.id,
-            email: session.user.email,
-            displayName: session.user.user_metadata?.full_name || session.user.email?.split('@')[0]
+          uid: session.user.id,
+          email: session.user.email,
+          displayName: session.user.user_metadata?.full_name || session.user.email?.split('@')[0]
         });
       }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-        if (session?.user) {
-            setUser({
-                uid: session.user.id,
-                email: session.user.email,
-                displayName: session.user.user_metadata?.full_name || session.user.email?.split('@')[0]
-            });
-        } else {
-            setUser(null);
-        }
+      if (session?.user) {
+        setUser({
+          uid: session.user.id,
+          email: session.user.email,
+          displayName: session.user.user_metadata?.full_name || session.user.email?.split('@')[0]
+        });
+      } else {
+        setUser(null);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -89,87 +89,92 @@ const App = () => {
   };
 
   const handleLogout = async () => {
-      try {
-        const { error } = await supabase.auth.signOut();
-        if (error) throw error;
-        setUser(null);
-        showToast("Logged out successfully.");
-      } catch (error) {
-        showToast(error.message || "Logout failed", "error");
-      }
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      setUser(null);
+      showToast("Logged out successfully.");
+    } catch (error) {
+      showToast(error.message || "Logout failed", "error");
+    }
   };
 
   const handleLoginRequest = () => {
-      setShowLoginModal(true);
+    setShowLoginModal(true);
   };
 
   const toggleDarkMode = () => setDarkMode(prev => !prev);
 
   return (
     <div className="flex flex-col md:flex-row w-full h-screen md:h-dvh bg-slate-100 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 overflow-hidden transition-colors duration-200">
-        
-        {/* Sidebar Component */}
-        <Sidebar 
-            handleLogin={handleLoginRequest} 
-            handleLogout={handleLogout} 
-            user={user} 
-            darkMode={darkMode}
-            toggleDarkMode={toggleDarkMode}
-            onOpenAgent={() => navigate('/agent')} // <--- CTO UPDATE: Navigate to Workspace
-        />
-        
-        {/* Main Content Area */}
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative pb-20 md:pb-0">
-            <Routes>
-                <Route path="/" element={
-                    <BuilderView 
-                        user={user} 
-                        initialData={promptToLoad} 
-                        clearInitialData={() => setPromptToLoad(null)}
-                        showToast={showToast}
-                        addToHistory={addToHistory}
-                        onLoginRequest={handleLoginRequest}
-                    />
-                } />
-                
-                {/* CTO UPDATE: Agent Workspace Route */}
-                <Route path="/agent" element={
-                    <AgentView 
-                        user={user}
-                        globalApiKey={globalApiKey}
-                        orchestrator={orchestrator}
-                    />
-                } />
 
-                <Route path="/feed" element={<FeedView user={user} loadPrompt={loadPrompt} onLoginRequest={handleLoginRequest} />} />
-                
-                {user ? (
-                    <>
-                        <Route path="/library" element={<SavedView user={user} loadPrompt={loadPrompt} showToast={showToast} />} />
-                        <Route path="/history" element={<HistoryView sessionHistory={sessionHistory} showToast={showToast} />} />
-                    </>
-                ) : (
-                    <>
-                        <Route path="/library" element={<div className="flex items-center justify-center h-full"><div className="text-center p-8"><h2 className="text-xl font-bold text-slate-700 dark:text-slate-200 mb-2">Library is locked</h2><p className="text-slate-500 dark:text-slate-400 mb-4">Please sign in to save your prompts.</p><button onClick={handleLoginRequest} className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">Sign In</button></div></div>} />
-                        <Route path="/history" element={<div className="flex items-center justify-center h-full"><div className="text-center p-8"><h2 className="text-xl font-bold text-slate-700 dark:text-slate-200 mb-2">History is locked</h2><p className="text-slate-500 dark:text-slate-400 mb-4">Sign in to track your session history.</p><button onClick={handleLoginRequest} className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">Sign In</button></div></div>} />
-                    </>
-                )}
-            </Routes>
-        </div>
+      {/* Sidebar Component */}
+      <Sidebar
+        handleLogin={handleLoginRequest}
+        handleLogout={handleLogout}
+        user={user}
+        darkMode={darkMode}
+        toggleDarkMode={toggleDarkMode}
+        onOpenAgent={() => navigate('/agent')} // <--- CTO UPDATE: Navigate to Workspace
+      />
 
-        <AuthModal 
-            isOpen={showLoginModal} 
-            onClose={() => setShowLoginModal(false)} 
-            showToast={showToast} 
-        />
-
-        {notification && (
-            <Notification 
-                message={notification.message} 
-                type={notification.type} 
-                onClose={() => setNotification(null)} 
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative pb-20 md:pb-0">
+        <Routes>
+          <Route path="/" element={
+            <BuilderView
+              user={user}
+              initialData={promptToLoad}
+              clearInitialData={() => setPromptToLoad(null)}
+              showToast={showToast}
+              addToHistory={addToHistory}
+              onLoginRequest={handleLoginRequest}
             />
-        )}
+          } />
+
+          {/* CTO UPDATE: Agent Workspace Route */}
+          <Route path="/agent" element={
+            <AgentView
+              user={user}
+              globalApiKey={globalApiKey}
+              orchestrator={orchestrator}
+              onUpdateBuilder={(text) => {
+                loadPrompt({ topic: text });
+                navigate('/'); // Switch to Builder View
+                showToast("Agent Idea loaded into Builder", "success");
+              }}
+            />
+          } />
+
+          <Route path="/feed" element={<FeedView user={user} loadPrompt={loadPrompt} onLoginRequest={handleLoginRequest} />} />
+
+          {user ? (
+            <>
+              <Route path="/library" element={<SavedView user={user} loadPrompt={loadPrompt} showToast={showToast} />} />
+              <Route path="/history" element={<HistoryView sessionHistory={sessionHistory} showToast={showToast} />} />
+            </>
+          ) : (
+            <>
+              <Route path="/library" element={<div className="flex items-center justify-center h-full"><div className="text-center p-8"><h2 className="text-xl font-bold text-slate-700 dark:text-slate-200 mb-2">Library is locked</h2><p className="text-slate-500 dark:text-slate-400 mb-4">Please sign in to save your prompts.</p><button onClick={handleLoginRequest} className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">Sign In</button></div></div>} />
+              <Route path="/history" element={<div className="flex items-center justify-center h-full"><div className="text-center p-8"><h2 className="text-xl font-bold text-slate-700 dark:text-slate-200 mb-2">History is locked</h2><p className="text-slate-500 dark:text-slate-400 mb-4">Sign in to track your session history.</p><button onClick={handleLoginRequest} className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">Sign In</button></div></div>} />
+            </>
+          )}
+        </Routes>
+      </div>
+
+      <AuthModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        showToast={showToast}
+      />
+
+      {notification && (
+        <Notification
+          message={notification.message}
+          type={notification.type}
+          onClose={() => setNotification(null)}
+        />
+      )}
     </div>
   );
 };
