@@ -3,9 +3,9 @@ import { supabase } from '../lib/supabase.js';
 
 export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
     // --- 1. CORE STATE ---
-    const [viewMode, setViewMode] = useState('simple'); 
-    const [provider, setProvider] = useState('gemini'); 
-    const [refineView, setRefineView] = useState('timeline'); 
+    const [viewMode, setViewMode] = useState('simple');
+    const [provider, setProvider] = useState('gemini');
+    const [refineView, setRefineView] = useState('timeline');
     const [isLoggedIn, setIsLoggedIn] = useState(false);
 
     // AI Keys
@@ -54,7 +54,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
        - Wrap your reasoning inside <Thinking>...</Thinking> tags.
        - Wrap your final deliverable inside <Output>...</Output> tags.
     `;
-    
+
     // --- 3. EXECUTION STATE ---
     const [swarmHistory, setSwarmHistory] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -72,7 +72,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
     useEffect(() => {
         supabase.auth.getSession().then(({ data: { session } }) => setIsLoggedIn(!!session?.user));
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => setIsLoggedIn(!!session?.user));
-        
+
         if (defaultApiKey) setGeminiKey(defaultApiKey);
         else setGeminiKey(localStorage.getItem('craft_my_prompt_gemini_key') || '');
 
@@ -82,12 +82,12 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         setGroqKey(localStorage.getItem('craft_my_prompt_groq_key') || '');
         setAnthropicKey(localStorage.getItem('craft_my_prompt_anthropic_key') || '');
         setGithubToken(localStorage.getItem('craft_my_prompt_github_key') || '');
-        
+
         return () => subscription.unsubscribe();
     }, [defaultApiKey, defaultOpenAIKey]);
 
-    useEffect(() => { 
-        if (geminiKey) fetchModels(geminiKey); 
+    useEffect(() => {
+        if (geminiKey) fetchModels(geminiKey);
     }, [geminiKey]);
 
     // --- 5. HELPERS ---
@@ -118,7 +118,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
     };
 
     const handleShipCode = (code) => { setCodeToShip(code); setShowGithub(true); };
-    
+
     const handleViewChange = (mode) => {
         setViewMode(mode);
         if (mode === 'simple') setProvider('gemini');
@@ -139,7 +139,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
                 const valid = data.models
                     .filter(m => m.supportedGenerationMethods?.includes("generateContent"))
                     .filter(m => !m.name.includes('vision'))
-                    .sort((a,b) => b.name.localeCompare(a.name));
+                    .sort((a, b) => b.name.localeCompare(a.name));
                 setAvailableModels(valid);
                 if (valid.length > 0 && !selectedModel) setSelectedModel(valid[0].name);
             }
@@ -154,11 +154,11 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         if (name === 'groq') body.model = 'llama-3.3-70b-versatile';
         if (name === 'anthropic') body.model = 'claude-3-5-sonnet-20241022';
 
-        const res = await fetch(`/api/${name}`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
+        const res = await fetch(`/api/${name}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
         const data = await res.json();
-        
+
         if (!res.ok) throw new Error(data.error?.message || data.error || 'AI Bridge Error');
-        
+
         if (name === 'gemini') return data.candidates?.[0]?.content?.parts?.[0]?.text;
         if (name === 'openai' || name === 'groq') return data.choices?.[0]?.message?.content;
         if (name === 'anthropic') return data.content?.[0]?.text;
@@ -176,14 +176,14 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
 
     // --- 7. MAIN TEST RUNNER ---
     const runTest = async (prompt) => {
-        setLoading(true); 
-        setError(null); 
-        setResult(null); 
-        setBattleResults(null); 
-        setRefineSteps(null); 
-        setSwarmHistory([]); 
+        setLoading(true);
+        setError(null);
+        setResult(null);
+        setBattleResults(null);
+        setRefineSteps(null);
+        setSwarmHistory([]);
         setRouterReasoning('');
-        
+
         try {
             if (geminiKey) saveKey(geminiKey, 'gemini');
             if (openaiKey) saveKey(openaiKey, 'openai');
@@ -192,22 +192,26 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
 
             let activeProvider = provider;
 
-            // --- STEP 0: SMART ROUTING ---
-            if (provider === 'auto') {
-                setStatusMessage('Meta-Agent is routing...');
-                const routerRes = await fetch('/api/router', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt, apiKey: geminiKey })
-                });
-                const routerData = await routerRes.json();
-                
-                if (routerRes.ok) {
-                    activeProvider = routerData.provider;
-                    setRouterReasoning(routerData.reasoning);
-                } else {
-                    activeProvider = 'gemini'; // Safety fallback
-                }
+            // --- STEP 1: SMART CHAIN PIPELINE ---
+            if (provider === 'smart_chain') {
+                // Step 1: Draft (Gemini)
+                setStatusMessage('Step 1/4: Drafting with Gemini 2.5 Flash Lite...');
+                const draft = await callAI('gemini', `Draft a comprehensive response to: ${prompt}`, geminiKey);
+
+                // Step 2: Reasoning (GPT-4o)
+                setStatusMessage('Step 2/4: Reasoning with GPT-4o...');
+                const reasoning = await callAI('openai', `Analyze this draft for logic gaps and expand: ${draft}`, openaiKey);
+
+                // Step 3: Filter (Llama 3 via Groq)
+                setStatusMessage('Step 3/4: Filtering with Llama 3.1...');
+                const filtered = await callAI('groq', `Review this text for clarity and conciseness. Filter out fluff: ${reasoning}`, groqKey);
+
+                // Step 4: Polish (Claude 3.5 Sonnet)
+                setStatusMessage('Step 4/4: Polishing with Claude 3.5 Sonnet...');
+                const final = await callAI('anthropic', `Final Polish. Enhance tone and nuance: ${filtered}`, anthropicKey);
+
+                setResult(final);
+                return; // End execution here for smart_chain
             }
 
             // --- STEP 1: EXECUTION PATHS ---
@@ -216,9 +220,9 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
                 let history = [];
                 for (let i = 0; i < swarmConfig.rounds; i++) {
                     for (const agent of swarmConfig.agents) {
-                        setStatusMessage(`Round ${i+1}: ${agent.role}...`);
+                        setStatusMessage(`Round ${i + 1}: ${agent.role}...`);
                         // Injecting AoT Instruction (NEW)
-                        const context = `${AOT_INSTRUCTION}\nTOPIC: "${prompt}"\nROLE: ${agent.role}\nDISCUSSION:\n${history.map(m=>`${m.role}: ${m.text}`).join('\n')}\nACTION: Provide your response.`;
+                        const context = `${AOT_INSTRUCTION}\nTOPIC: "${prompt}"\nROLE: ${agent.role}\nDISCUSSION:\n${history.map(m => `${m.role}: ${m.text}`).join('\n')}\nACTION: Provide your response.`;
                         const txt = await callAI(agent.provider, context, getKeyForProvider(agent.provider));
                         history.push({ role: agent.role, text: txt, provider: agent.provider });
                         setSwarmHistory([...history]);
@@ -233,8 +237,8 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
                     callAI(battleConfig.fighterB, prompt, getKeyForProvider(battleConfig.fighterB))
                 ]);
                 setBattleResults({
-                    fighterA: { name: battleConfig.fighterA, text: rA.status==='fulfilled'?rA.value:rA.reason.message },
-                    fighterB: { name: battleConfig.fighterB, text: rB.status==='fulfilled'?rB.value:rB.reason.message }
+                    fighterA: { name: battleConfig.fighterA, text: rA.status === 'fulfilled' ? rA.value : rA.reason.message },
+                    fighterB: { name: battleConfig.fighterB, text: rB.status === 'fulfilled' ? rB.value : rB.reason.message }
                 });
             } else if (provider === 'refine') {
                 // RESTORED: Refine Mode Logic with AoT Upgrade
@@ -256,11 +260,11 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
                 const txt = await callAI(activeProvider, prompt, getKeyForProvider(activeProvider));
                 setResult(txt);
             }
-        } catch (e) { 
-            setError(e.message); 
-        } finally { 
-            setLoading(false); 
-            setStatusMessage(''); 
+        } catch (e) {
+            setError(e.message);
+        } finally {
+            setLoading(false);
+            setStatusMessage('');
         }
     };
 
@@ -273,7 +277,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
             for (const a of swarmConfig.agents) {
                 if (!getKeyForProvider(a.provider)) continue;
                 setStatusMessage(`${a.role} thinking...`);
-                const t = await callAI(a.provider, `${AOT_INSTRUCTION}\nCONTINUE: "${p}"\nROLE: ${a.role}\nCONTEXT:\n${h.map(m=>`${m.role}: ${m.text}`).join('\n')}`, getKeyForProvider(a.provider));
+                const t = await callAI(a.provider, `${AOT_INSTRUCTION}\nCONTINUE: "${p}"\nROLE: ${a.role}\nCONTEXT:\n${h.map(m => `${m.role}: ${m.text}`).join('\n')}`, getKeyForProvider(a.provider));
                 h.push({ role: a.role, text: t, provider: a.provider });
                 setSwarmHistory([...h]);
             }
@@ -285,25 +289,25 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         if (!key) { setError("No key available for compilation."); return; }
         setLoading(true);
         try {
-            const txt = await callAI(openaiKey ? 'openai' : 'gemini', `COMPILE FINAL CODE from transcript:\n${swarmHistory.map(m=>m.text).join('\n')}`, key);
-            setSwarmHistory(p => [...p, { role: 'Compiler', text: txt, provider: openaiKey?'openai':'gemini' }]);
+            const txt = await callAI(openaiKey ? 'openai' : 'gemini', `COMPILE FINAL CODE from transcript:\n${swarmHistory.map(m => m.text).join('\n')}`, key);
+            setSwarmHistory(p => [...p, { role: 'Compiler', text: txt, provider: openaiKey ? 'openai' : 'gemini' }]);
         } catch (e) { setError(e.message); } finally { setLoading(false); }
     };
 
     return {
         // State
         viewMode, provider, refineView, showGithub, codeToShip, refineConfig, swarmConfig, swarmHistory,
-        geminiKey, openaiKey, groqKey, anthropicKey, battleConfig, loading, result, battleResults, 
-        refineSteps, statusMessage, error, selectedModel, availableModels, isLoggedIn, githubToken, 
+        geminiKey, openaiKey, groqKey, anthropicKey, battleConfig, loading, result, battleResults,
+        refineSteps, statusMessage, error, selectedModel, availableModels, isLoggedIn, githubToken,
         showHelpModal, routerReasoning,
-        
+
         // Setters
-        setGeminiKey, setOpenaiKey, setGroqKey, setAnthropicKey, setProvider, setRefineView, 
-        setShowGithub, setRefineConfig, setSwarmConfig, setBattleConfig, setSelectedModel, 
+        setGeminiKey, setOpenaiKey, setGroqKey, setAnthropicKey, setProvider, setRefineView,
+        setShowGithub, setRefineConfig, setSwarmConfig, setBattleConfig, setSelectedModel,
         setGithubToken, setShowHelpModal,
-        
+
         // Methods
-        runTest, fetchModels, clearKey, handleShipCode, handleViewChange, continueSwarm, 
+        runTest, fetchModels, clearKey, handleShipCode, handleViewChange, continueSwarm,
         compileSwarmCode, addSwarmAgent, removeSwarmAgent, updateSwarmAgent, shipToGithub
     };
 };

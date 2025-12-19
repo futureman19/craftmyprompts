@@ -122,25 +122,32 @@ const TestRunnerModal = ({ isOpen, onClose, prompt, defaultApiKey, defaultOpenAI
                         onClick={handleRunClick}
                         disabled={
                             runner.loading ||
+                            // Standard Mode Checks
                             (runner.viewMode === 'simple' && runner.provider === 'gemini' && !runner.geminiKey) ||
                             (runner.viewMode === 'simple' && runner.provider === 'openai' && !runner.openaiKey) ||
                             (runner.viewMode === 'simple' && runner.provider === 'groq' && !runner.groqKey) ||
                             (runner.viewMode === 'simple' && runner.provider === 'anthropic' && !runner.anthropicKey) ||
-                            (runner.viewMode === 'advanced' && (!runner.geminiKey || !runner.openaiKey))
+                            // Advanced Mode Checks
+                            (runner.viewMode === 'advanced' && runner.provider === 'battle' && (!runner.geminiKey || !runner.openaiKey)) ||
+                            // Smart Chain needs mostly everything, but let's at least enforce the main ones for now or rely on the hook to fail.
+                            // Let's enforce Gemini + OpenAI as minimal set for the start of the chain.
+                            (runner.viewMode === 'advanced' && runner.provider === 'smart_chain' && (!runner.geminiKey || !runner.openaiKey))
                         }
                         className={`flex-1 md:flex-none px-6 py-3 md:py-2 text-white rounded-lg text-sm font-bold shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95 ${runner.provider === 'battle' ? 'bg-gradient-to-r from-indigo-600 to-emerald-600 hover:opacity-90' :
                                 (runner.provider === 'refine' ? 'bg-gradient-to-r from-amber-500 to-orange-600' :
-                                    (runner.provider === 'swarm' ? 'bg-gradient-to-r from-violet-600 to-indigo-600' :
-                                        (runner.provider === 'openai' ? 'bg-emerald-600 hover:bg-emerald-700' :
-                                            (runner.provider === 'groq' ? 'bg-orange-600 hover:bg-orange-700' :
-                                                (runner.provider === 'anthropic' ? 'bg-rose-600 hover:bg-rose-700' : 'bg-indigo-600 hover:bg-indigo-700')))))
+                                    (runner.provider === 'smart_chain' ? 'bg-gradient-to-r from-amber-500 to-amber-700 hover:opacity-90' :
+                                        (runner.provider === 'swarm' ? 'bg-gradient-to-r from-violet-600 to-indigo-600' :
+                                            (runner.provider === 'openai' ? 'bg-emerald-600 hover:bg-emerald-700' :
+                                                (runner.provider === 'groq' ? 'bg-orange-600 hover:bg-orange-700' :
+                                                    (runner.provider === 'anthropic' ? 'bg-rose-600 hover:bg-rose-700' : 'bg-indigo-600 hover:bg-indigo-700'))))))
                             }`}
                     >
                         {runner.loading ? 'Running...' : (
                             runner.provider === 'battle' ? 'Start Versus' :
                                 (runner.provider === 'refine' ? 'Start Loop' :
-                                    (runner.provider === 'swarm' ? 'Start Collab' : 'Run Test'))
-                        )}
+                                    (runner.provider === 'smart_chain' ? 'Start Chain' :
+                                        (runner.provider === 'swarm' ? 'Start Collab' : 'Run Test'))
+                                ))}
                     </button>
                 </div>
             </div>
