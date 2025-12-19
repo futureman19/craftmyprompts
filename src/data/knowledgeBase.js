@@ -1,7 +1,7 @@
-import { CODING_KNOWLEDGE } from './knowledge/coding';
-import { SOCIAL_KNOWLEDGE } from './knowledge/social';
-import { ART_KNOWLEDGE } from './knowledge/art';
-import { WRITING_KNOWLEDGE } from './knowledge/writing';
+import { CODING_KNOWLEDGE } from './knowledge/coding.js';
+import { SOCIAL_KNOWLEDGE } from './knowledge/social.js';
+import { ART_KNOWLEDGE } from './knowledge/art.js';
+import { WRITING_KNOWLEDGE } from './knowledge/writing.js';
 
 // This is the Central Knowledge Hub.
 // It aggregates specialized knowledge modules into a single object 
@@ -12,10 +12,10 @@ export const KNOWLEDGE_BASE = {
     ...SOCIAL_KNOWLEDGE,
     ...ART_KNOWLEDGE,
     ...WRITING_KNOWLEDGE,
-    
+
     // --- META KNOWLEDGE (Global strategies) ---
     // Kept here or can be moved to its own module later if it grows.
-    
+
     prompt_engineering: `
         // --- Advanced Prompt Engineering Guide ---
         // 1. Role Prompting: Always assign a specific expert persona.
