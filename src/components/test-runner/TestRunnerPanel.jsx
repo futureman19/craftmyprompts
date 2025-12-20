@@ -154,20 +154,14 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
             />
 
             {/* Render the Help Modal */}
+            {/* Render the Help Modal - FIXED SIGNATURE */}
             <ApiKeyHelpModal
                 isOpen={runner.showHelpModal}
                 onClose={() => runner.setShowHelpModal(false)}
-                keys={{
-                    gemini: runner.geminiKey,
-                    openai: runner.openaiKey,
-                    groq: runner.groqKey,
-                    anthropic: runner.anthropicKey
-                }}
-                setters={{
-                    gemini: runner.setGeminiKey,
-                    openai: runner.setOpenaiKey,
-                    groq: runner.setGroqKey,
-                    anthropic: runner.setAnthropicKey
+                onSave={(newKeys) => {
+                    if (newKeys.openai) runner.setOpenaiKey(newKeys.openai);
+                    if (newKeys.anthropic) runner.setAnthropicKey(newKeys.anthropic);
+                    if (newKeys.gemini) runner.setGeminiKey(newKeys.gemini);
                 }}
             />
         </div>
