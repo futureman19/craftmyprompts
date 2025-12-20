@@ -164,14 +164,24 @@ const ApiKeyHelpModal = ({ isOpen, onClose, keys = {}, setters = {} }) => {
                         {/* INPUT SECTION */}
                         <div className="border-t border-slate-100 dark:border-slate-800 pt-6 mt-auto">
                             <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 block">
-                                Claude API Key
+                                {{
+                                    gemini: "Gemini API Key",
+                                    openai: "OpenAI API Key",
+                                    groq: "Groq API Key",
+                                    anthropic: "Claude API Key"
+                                }[activeTab]}
                             </label>
                             <div className="flex gap-2">
                                 <input
                                     type="password"
                                     value={tempKey}
                                     onChange={(e) => setTempKey(e.target.value)}
-                                    placeholder={`e.g. ${currentProvider.id === 'gemini' ? 'AIza...' : 'sk-...'}`}
+                                    placeholder={{
+                                        gemini: "AIza...",
+                                        openai: "sk-proj-...",
+                                        groq: "gsk_...",
+                                        anthropic: "sk-ant-..."
+                                    }[activeTab]}
                                     className="flex-1 px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm outline-none focus:ring-2 focus:ring-indigo-500"
                                 />
                                 <button
