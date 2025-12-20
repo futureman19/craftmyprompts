@@ -1,5 +1,5 @@
 import { checkRateLimit } from './_utils/rate-limiter.js';
-import { SWARM_AGENTS, MANAGER_AGENT } from '../src/lib/swarm-agents.js';
+import { AGENT_SQUADS, MANAGER_AGENT } from '../src/lib/swarm-agents.js';
 
 export const config = {
     maxDuration: 60, // Allow up to 60 seconds for parallel processing
@@ -20,7 +20,7 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const { prompt, mode, keys = {} } = req.body;
+    const { prompt, mode, category, keys = {} } = req.body;
     const { openai: openAIKey, anthropic: anthropicKey, gemini: geminiKey } = keys;
 
     // Helper: Knowledge Base Stub (RAG)
@@ -161,8 +161,14 @@ export default async function handler(req, res) {
             const executiveResult = await runAgent(MANAGER_AGENT);
             results = [executiveResult];
         } else {
+            // DYNAMIC SQUAD SELECTION
+            // Default to 'tech' (code) if no category provided
+            const activeSquad = AGENT_SQUADS[category] || AGENT_SQUADS.default;
+
+            console.log(`[Cortex] Activating Squad: ${category || 'default'} (${activeSquad.length} agents)`);
+
             // Run all Swarm Agents simultaneously
-            results = await Promise.all(SWARM_AGENTS.map(agent => runAgent(agent)));
+            results = await Promise.all(activeSquad.map(agent => runAgent(agent)));
         }
 
         return res.status(200).json({

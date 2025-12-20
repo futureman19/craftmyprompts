@@ -181,7 +181,9 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         return data.html_url;
     };
 
-    // --- 7. SWARM ENGINE (The Boardroom) ---
+    // --- 9. CATEGORY STATE ---
+    const [swarmCategory, setSwarmCategory] = useState('code'); // 'code', 'text', 'data'
+
     // --- 7. SWARM ENGINE (The Boardroom) ---
     const runSwarm = async (prompt) => {
         setStatusMessage('The Boardroom is convening... (Connecting to Cortex)');
@@ -196,10 +198,15 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
             };
 
             // Call The Cortex (Server-Side Swarm Orchestrator)
+            // PASS THE CATEGORY HERE
             const response = await fetch('/api/swarm', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt, keys: apiKeys })
+                body: JSON.stringify({
+                    prompt,
+                    keys: apiKeys,
+                    category: swarmCategory // <--- NEW: Dynamic Category
+                })
             });
 
             if (!response.ok) {
@@ -297,6 +304,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
 
             // --- STEP 1: EXECUTION PATHS ---
             if (provider === 'swarm') {
+                // Pass current category state implicitly via runSwarm using closure
                 await runSwarm(prompt);
             } else if (provider === 'battle') {
                 setStatusMessage(`Versus: ${battleConfig.fighterA} vs ${battleConfig.fighterB}...`);
@@ -342,9 +350,15 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         setStatusMessage('Continuing...');
         try {
             let h = [...swarmHistory];
+            // Re-use current category selection logic if we wanted to change agents, but for now continue with same agents (client side)
+            // NOTE: Client-side continue uses 'swarmConfig.agents' which we aren't using for main execution anymore. 
+            // We should ideally fetch continuation from Cortex too. But for now, we leave legacy logic as is or simple fix:
+            // The user didn't ask to fix continuation. Focus on initial dispatch.
+
             for (const a of swarmConfig.agents) {
                 if (!getKeyForProvider(a.provider)) continue;
                 setStatusMessage(`${a.role} thinking...`);
+                // Legacy path for custom agents
                 const t = await callAI(a.provider, `${AOT_INSTRUCTION}\nCONTINUE: "${p}"\nROLE: ${a.role}\nCONTEXT:\n${h.map(m => `${m.role}: ${m.text}`).join('\n')}`, getKeyForProvider(a.provider));
                 h.push({ role: a.role, text: t, provider: a.provider });
                 setSwarmHistory([...h]);
@@ -399,12 +413,12 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         viewMode, provider, refineView, showGithub, codeToShip, refineConfig, swarmConfig, swarmHistory,
         geminiKey, openaiKey, groqKey, anthropicKey, battleConfig, loading, result, battleResults,
         refineSteps, statusMessage, error, selectedModel, availableModels, isLoggedIn, githubToken,
-        showHelpModal, routerReasoning,
+        showHelpModal, routerReasoning, swarmCategory,
 
         // Setters
         setGeminiKey, setOpenaiKey, setGroqKey, setAnthropicKey, setProvider, setRefineView,
         setShowGithub, setRefineConfig, setSwarmConfig, setBattleConfig, setSelectedModel,
-        setGithubToken, setShowHelpModal,
+        setGithubToken, setShowHelpModal, setSwarmCategory,
 
         // Methods
         runTest, fetchModels, clearKey, handleShipCode, handleViewChange, continueSwarm,
