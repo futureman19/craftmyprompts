@@ -12,7 +12,7 @@ export const SWARM_AGENTS = [
         id: 'architect',
         name: "The Architect",
         role: "Tech Implementation",
-        model: "claude-3-5-sonnet-20241022",
+        model: "claude-haiku-4-5",
         temperature: 0.1,
         systemPrompt: "You are a pragmatic Senior Principal Engineer. You care ONLY about stability, scalability, and clean code. You verify the Knowledge Base for syntax and component rules.",
         ragQueryModifier: "technical implementation details and code syntax for..."

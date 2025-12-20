@@ -392,6 +392,7 @@ const TestRunnerControls = ({
                         <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-lg">
                             <label className="text-[10px] font-bold uppercase text-rose-500 flex items-center gap-1">
                                 <Key size={12} /> Anthropic
+                                <Key size={12} /> Claude
                             </label>
 
                             <div className="flex items-center gap-3">
