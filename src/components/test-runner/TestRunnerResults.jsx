@@ -139,10 +139,25 @@ const AoTResult = ({ text, renderContent }) => {
 // --- MAIN COMPONENT ---
 const TestRunnerResults = ({
     loading, result, error, statusMessage,
-    provider, battleResults, refineSteps, refineView, swarmHistory,
+    provider, battleResults, battleConfig, refineSteps, refineView, swarmHistory,
     prompt, onSaveSnippet, onShipCode, setRefineView,
     onContinueSwarm, onCompileSwarm, isSocialMode
 }) => {
+    // ... (lines 145-224)
+
+    // 2. BATTLE MODE (Arena)
+    if (provider === 'battle' && (loading || battleResults)) {
+        return (
+            <div className="animate-in fade-in slide-in-from-bottom-2 h-full">
+                <ArenaResultGrid
+                    results={battleResults}
+                    config={battleConfig}
+                    loading={loading}
+                    renderContent={renderResultContent}
+                />
+            </div>
+        );
+    }
     const [previewMode, setPreviewMode] = useState(false);
     const [maximized, setMaximized] = useState(false);
     const [copiedText, setCopiedText] = useState(null);

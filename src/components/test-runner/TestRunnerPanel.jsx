@@ -114,6 +114,7 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
                     statusMessage={runner.statusMessage}
                     provider={runner.provider}
                     battleResults={runner.battleResults}
+                    battleConfig={runner.battleConfig}
                     refineSteps={runner.refineSteps}
                     refineView={runner.refineView}
                     swarmHistory={runner.swarmHistory}
