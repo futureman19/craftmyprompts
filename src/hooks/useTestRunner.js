@@ -75,14 +75,14 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => setIsLoggedIn(!!session?.user));
 
         if (defaultApiKey) setGeminiKey(defaultApiKey);
-        else setGeminiKey(localStorage.getItem('craft_my_prompt_gemini_key') || '');
+        else setGeminiKey(localStorage.getItem('gemini_key') || '');
 
         if (defaultOpenAIKey) setOpenaiKey(defaultOpenAIKey);
-        else setOpenaiKey(localStorage.getItem('craft_my_prompt_openai_key') || '');
+        else setOpenaiKey(localStorage.getItem('openai_key') || '');
 
-        setGroqKey(localStorage.getItem('craft_my_prompt_groq_key') || '');
-        setAnthropicKey(localStorage.getItem('craft_my_prompt_anthropic_key') || '');
-        setGithubToken(localStorage.getItem('craft_my_prompt_github_key') || '');
+        setGroqKey(localStorage.getItem('groq_key') || '');
+        setAnthropicKey(localStorage.getItem('anthropic_key') || '');
+        setGithubToken(localStorage.getItem('github_token') || '');
 
         return () => subscription.unsubscribe();
     }, [defaultApiKey, defaultOpenAIKey]);
@@ -95,12 +95,12 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
     const saveKey = (key, providerName) => {
         if (key && key.trim()) {
             if ((providerName === 'gemini' && key === defaultApiKey) || (providerName === 'openai' && key === defaultOpenAIKey)) return;
-            localStorage.setItem(`craft_my_prompt_${providerName}_key`, key.trim());
+            localStorage.setItem(`${providerName}_key`, key.trim());
         }
     };
 
     const clearKey = (providerName) => {
-        localStorage.removeItem(`craft_my_prompt_${providerName}_key`);
+        localStorage.removeItem(`${providerName}_key`);
         if (providerName === 'gemini') setGeminiKey('');
         else if (providerName === 'openai') setOpenaiKey('');
         else if (providerName === 'groq') setGroqKey('');
@@ -209,8 +209,15 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
 
             const data = await response.json();
 
-            // The Cortex returns { swarm: [...] }
-            setSwarmHistory(data.swarm || []);
+            // The Cortex returns { swarm: [...] } where items have 'content'.
+            // UI expects 'text'. We map it here.
+            const mappedAgents = (data.swarm || []).map(agent => ({
+                ...agent,
+                text: agent.content, // Map content -> text for UI
+                provider: agent.meta?.model || 'cortex-agent'
+            }));
+
+            setSwarmHistory(mappedAgents);
             setStatusMessage('Boardroom session adjourned.');
 
         } catch (err) {
@@ -346,13 +353,45 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
     };
 
     const compileSwarmCode = async () => {
-        const key = openaiKey || geminiKey;
-        if (!key) { setError("No key available for compilation."); return; }
+        setStatusMessage('The Executive is consolidating the Master Plan...');
         setLoading(true);
         try {
-            const txt = await callAI(openaiKey ? 'openai' : 'gemini', `COMPILE FINAL CODE from transcript:\n${swarmHistory.map(m => m.text).join('\n')}`, key);
-            setSwarmHistory(p => [...p, { role: 'Compiler', text: txt, provider: openaiKey ? 'openai' : 'gemini' }]);
-        } catch (e) { setError(e.message); } finally { setLoading(false); }
+            const apiKeys = {
+                openai: openaiKey,
+                anthropic: anthropicKey,
+                gemini: geminiKey,
+                groq: groqKey
+            };
+
+            const response = await fetch('/api/swarm', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    prompt: `History:\n${swarmHistory.map(m => `${m.role}: ${m.text}`).join('\n')}`,
+                    mode: 'synthesize', // Trigger Manager Agent
+                    keys: apiKeys
+                })
+            });
+
+            if (!response.ok) throw new Error("Cortex Synthesis Failed");
+
+            const data = await response.json();
+            const executiveResult = data.swarm[0]; // Manager is single result
+
+            // Append Executive to History
+            setSwarmHistory(p => [...p, {
+                ...executiveResult,
+                text: executiveResult.content, // Map content -> text
+                role: 'The Executive'
+            }]);
+
+        } catch (e) {
+            console.error(e);
+            setError("Synthesis Failed: " + e.message);
+        } finally {
+            setLoading(false);
+            setStatusMessage('');
+        }
     };
 
     return {
