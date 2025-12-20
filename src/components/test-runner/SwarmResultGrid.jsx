@@ -1,119 +1,90 @@
-import React, { useState } from 'react';
-import { Sparkles, Code, ShieldAlert, Bot, Maximize2, Minimize2 } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
+import React from 'react';
+import { User, Code, AlertTriangle, Feather, FileText, BarChart, Hash, Search, Shield, Zap, Maximize2, Trophy } from 'lucide-react';
 
-const SwarmResultGrid = ({ results }) => {
-    const [isPoppedOut, setIsPoppedOut] = useState(false);
+const ROLE_ICONS = {
+    // Tech Squad
+    'visionary': Zap,
+    'architect': Code,
+    'critic': Shield,
+    // Creative Squad
+    'muse': Feather,
+    'editor': FileText,
+    'publisher': User,
+    // Data Squad
+    'analyst': BarChart,
+    'quant': Hash,
+    'skeptic': Search,
+    // Fallback
+    'default': User
+};
 
-    // Helper to get role-specific styling
-    const getRoleStyle = (role) => {
-        if (role.toLowerCase().includes('visionary')) {
-            return {
-                border: 'border-fuchsia-400',
-                bg: 'bg-fuchsia-50 dark:bg-fuchsia-900/10',
-                header: 'bg-fuchsia-100 dark:bg-fuchsia-900/30 text-fuchsia-700 dark:text-fuchsia-300',
-                icon: <Sparkles size={16} />
-            };
-        }
-        if (role.toLowerCase().includes('architect')) {
-            return {
-                border: 'border-cyan-400',
-                bg: 'bg-cyan-50 dark:bg-cyan-900/10',
-                header: 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300',
-                icon: <Code size={16} />
-            };
-        }
-        if (role.toLowerCase().includes('critic')) {
-            return {
-                border: 'border-rose-400',
-                bg: 'bg-rose-50 dark:bg-rose-900/10',
-                header: 'bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300',
-                icon: <ShieldAlert size={16} />
-            };
-        }
-        if (role.toLowerCase().includes('executive')) {
-            return {
-                border: 'border-emerald-400',
-                bg: 'bg-emerald-50 dark:bg-emerald-900/10',
-                header: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300',
-                icon: <Bot size={16} />
-            };
-        }
-        return {
-            border: 'border-slate-200 dark:border-slate-700',
-            bg: 'bg-white dark:bg-slate-800',
-            header: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300',
-            icon: <Bot size={16} />
-        };
-    };
+export default function SwarmResultGrid({ results, mode }) {
+    // Determine Layout based on Mode
+    const isArena = mode === 'arena';
 
-    const containerInfo = isPoppedOut
-        ? "fixed inset-0 z-50 bg-white dark:bg-slate-950 p-6 overflow-y-auto"
-        : "space-y-6 animate-in fade-in";
+    // Arena Mode: Strict 2 columns
+    // Hivemind Mode: Responsive 1 -> 3 columns
+    const gridClass = isArena
+        ? "grid grid-cols-1 md:grid-cols-2 gap-6 h-full"
+        : "grid grid-cols-1 md:grid-cols-3 gap-6";
 
     return (
-        <div className={containerInfo}>
-            {/* Context Header for Popout */}
-            <div className="flex justify-between items-center mb-4">
-                <h3 className="font-bold text-slate-500 uppercase tracking-widest text-xs flex items-center gap-2">
-                    Hivemind Results
-                    {isPoppedOut && <span className="bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded text-[9px]">FULLSCREEN</span>}
-                </h3>
-                <button
-                    onClick={() => setIsPoppedOut(!isPoppedOut)}
-                    className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 transition-colors"
-                >
-                    {isPoppedOut ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-                </button>
-            </div>
+        <div className={`w-full ${isArena ? 'h-full' : ''}`}>
+            <div className={gridClass}>
+                {results.map((result, index) => {
+                    // Dynamic Icon Lookup
+                    const Icon = ROLE_ICONS[result.id] || ROLE_ICONS[result.role?.toLowerCase()] || ROLE_ICONS.default;
 
-            {/* THE BOARDROOM GRID */}
-            <div className={`grid gap-4 ${isPoppedOut ? 'grid-cols-1 md:grid-cols-3 h-full' : 'grid-cols-1 md:grid-cols-3'}`}>
-                {results.map((agent, index) => {
-                    const style = getRoleStyle(agent.role);
+                    // Arena Mode: Winner Logic (Mock logic for now, can be expanded)
+                    const isWinner = isArena && index === 0 && results.length > 1;
+
                     return (
                         <div
                             key={index}
-                            className={`rounded-xl border-2 ${style.border} ${style.bg} overflow-hidden shadow-sm flex flex-col ${isPoppedOut ? 'h-[80vh]' : 'h-[500px]'}`}
+                            className={`
+                relative flex flex-col rounded-xl border-2 overflow-hidden bg-white dark:bg-slate-900 transition-all duration-300
+                ${isArena ? 'h-full' : 'min-h-[400px]'}
+                ${isWinner
+                                    ? 'border-emerald-500 shadow-xl ring-2 ring-emerald-500/20 z-10 scale-[1.01]'
+                                    : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                                }
+              `}
                         >
-                            {/* Card Header */}
-                            <div className={`p-3 font-bold text-xs uppercase tracking-wider flex items-center gap-2 border-b ${style.border} ${style.header}`}>
-                                {style.icon} {agent.role}
+                            {/* Arena Winner Badge */}
+                            {isWinner && (
+                                <div className="absolute top-0 right-0 bg-emerald-500 text-white text-xs font-bold px-2 py-1 rounded-bl-lg flex items-center gap-1 z-20">
+                                    <Trophy className="w-3 h-3" /> LEADER
+                                </div>
+                            )}
+
+                            {/* Header */}
+                            <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex items-center gap-3">
+                                <div className={`p-2 rounded-lg ${isWinner ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
+                                    <Icon className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-slate-800 dark:text-white text-sm uppercase tracking-wider">
+                                        {result.role || result.name || 'Agent'}
+                                    </h3>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                                        {result.model || 'AI Model'}
+                                    </p>
+                                </div>
                             </div>
 
-                            {/* Scrollable Content */}
-                            <div className="flex-1 p-4 overflow-y-auto custom-scrollbar">
-                                <div className="prose prose-xs dark:prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-slate-900/50 prose-pre:border prose-pre:border-slate-700/50">
-                                    <ReactMarkdown>{agent.text}</ReactMarkdown>
-                                </div>
-                            </div>
-
-                            {/* Reasoning Trace Footer */}
-                            <div className="mt-auto pt-3 border-t border-slate-200 dark:border-slate-700 text-[10px] font-mono text-slate-500 bg-slate-50 dark:bg-slate-900/30 p-2">
-                                <div className="flex items-center gap-1 mb-1">
-                                    <span className="text-emerald-500">⚡</span>
-                                    <span className="truncate" title={agent.meta?.trace}>{agent.meta?.trace || 'Thinking...'}</span>
-                                </div>
-                                <div className="opacity-75 flex items-center gap-1">
-                                    <span>🤖</span> {agent.meta?.model || 'AI Model'}
-                                </div>
+                            {/* Content */}
+                            <div className="flex-1 p-5 overflow-y-auto font-mono text-sm leading-relaxed text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
+                                {result.content || (
+                                    <span className="text-slate-400 italic flex items-center gap-2">
+                                        <span className="w-2 h-2 bg-slate-400 rounded-full animate-pulse" />
+                                        Thinking...
+                                    </span>
+                                )}
                             </div>
                         </div>
                     );
                 })}
             </div>
-
-            {/* SYNTHESIS PLACEHOLDER */}
-            {!isPoppedOut && (
-                <div className="rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 p-8 text-center">
-                    <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">Synthesis Module</h4>
-                    <p className="text-xs text-slate-500 max-w-md mx-auto">
-                        The Boardroom has spoken. Activate the Synthesis Engine to merge these perspectives into a final unified prompt.
-                    </p>
-                </div>
-            )}
         </div>
     );
-};
-
-export default SwarmResultGrid;
+}
