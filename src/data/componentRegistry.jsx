@@ -2,7 +2,7 @@ import TrendWidget from '../components/TrendWidget.jsx';
 import VisualSearchModal from '../components/VisualSearchModal.jsx';
 import GitHubModal from '../components/GitHubModal.jsx';
 import A2UIRenderer from '../components/a2ui/A2UIRenderer.jsx';
-import A2UIRenderer from '../components/a2ui/A2UIRenderer.jsx';
+
 import LivePreview from '../components/LivePreview.jsx';
 import ProjectBlueprint from '../components/agent/ProjectBlueprint.jsx'; // Import Blueprint Component
 
