@@ -76,6 +76,20 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
 
                     // CTO UPDATE: Passing the Router Reasoning to UI
                     routerReasoning={runner.routerReasoning}
+
+                    // Key Management
+                    keys={{
+                        gemini: runner.geminiKey,
+                        openai: runner.openaiKey,
+                        groq: runner.groqKey,
+                        anthropic: runner.anthropicKey
+                    }}
+                    setters={{
+                        gemini: runner.setGeminiKey,
+                        openai: runner.setOpenaiKey,
+                        groq: runner.setGroqKey,
+                        anthropic: runner.setAnthropicKey
+                    }}
                 />
 
                 {/* 2. RESULTS DISPLAY */}
@@ -113,12 +127,12 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
                         (runner.viewMode === 'simple' && runner.provider === 'openai' && !runner.openaiKey)
                     }
                     className={`w-full py-3 text-white rounded-lg text-sm font-bold shadow-md flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95 ${runner.provider === 'battle' ? 'bg-gradient-to-r from-indigo-600 to-emerald-600 hover:opacity-90' :
-                            (runner.provider === 'refine' ? 'bg-gradient-to-r from-amber-500 to-orange-600' :
-                                (runner.provider === 'swarm' ? 'bg-gradient-to-r from-violet-600 to-indigo-600' :
-                                    (runner.provider === 'openai' ? 'bg-emerald-600 hover:bg-emerald-700' :
-                                        (runner.provider === 'groq' ? 'bg-orange-600 hover:bg-orange-700' :
-                                            (runner.provider === 'anthropic' ? 'bg-rose-600 hover:bg-rose-700' :
-                                                (runner.provider === 'auto' ? 'bg-fuchsia-600 hover:bg-fuchsia-700' : 'bg-indigo-600 hover:bg-indigo-700'))))))
+                        (runner.provider === 'refine' ? 'bg-gradient-to-r from-amber-500 to-orange-600' :
+                            (runner.provider === 'swarm' ? 'bg-gradient-to-r from-violet-600 to-indigo-600' :
+                                (runner.provider === 'openai' ? 'bg-emerald-600 hover:bg-emerald-700' :
+                                    (runner.provider === 'groq' ? 'bg-orange-600 hover:bg-orange-700' :
+                                        (runner.provider === 'anthropic' ? 'bg-rose-600 hover:bg-rose-700' :
+                                            (runner.provider === 'auto' ? 'bg-fuchsia-600 hover:bg-fuchsia-700' : 'bg-indigo-600 hover:bg-indigo-700'))))))
                         }`}
                 >
                     {runner.loading ? 'Running...' : (
