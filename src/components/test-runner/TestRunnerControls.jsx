@@ -273,39 +273,43 @@ const TestRunnerControls = ({
                 {/* Gemini Input */}
                 {(viewMode === 'advanced' || provider === 'gemini') && (
                     <div className="space-y-2 animate-in fade-in">
-                        <div className="flex justify-between items-center">
+                        <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-lg">
                             <label className="text-[10px] font-bold uppercase text-indigo-500 flex items-center gap-1">
-                                <Key size={12} /> Gemini {renderHelpLink()}
+                                <Key size={12} /> Gemini
                             </label>
-                            {provider === 'gemini' && (
-                                <button onClick={onFetchModels} disabled={!geminiKey} className="text-[10px] flex items-center gap-1 text-slate-400 hover:text-indigo-500 hover:underline disabled:opacity-30">
-                                    Refresh Models
+
+                            <div className="flex items-center gap-3">
+                                {isUsingGlobalGemini ? (
+                                    <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1"><Zap size={10} /> System Key Active</span>
+                                ) : (
+                                    <span className={`text-[10px] font-bold flex items-center gap-1 ${geminiKey ? 'text-emerald-500' : 'text-slate-400'}`}>
+                                        <span className={`w-2 h-2 rounded-full ${geminiKey ? 'bg-emerald-500' : 'bg-slate-300'}`}></span>
+                                        {geminiKey ? 'Key Saved' : 'No Key'}
+                                    </span>
+                                )}
+
+                                <button
+                                    onClick={() => setShowHelpModal(true)}
+                                    className="text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-indigo-500 text-slate-700 dark:text-slate-300 px-3 py-1.5 rounded-md font-medium transition-all shadow-sm"
+                                >
+                                    {geminiKey ? 'Manage Key' : 'Add Key'}
                                 </button>
-                            )}
-                        </div>
-                        {isUsingGlobalGemini ? (
-                            <div className="text-xs p-2 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg text-indigo-700 dark:text-indigo-400 text-sm font-medium">
-                                System Key Active
                             </div>
-                        ) : (
-                            <input
-                                type="password"
-                                value={geminiKey}
-                                onChange={(e) => onGeminiKeyChange(e.target.value)}
-                                placeholder="API Key..."
-                                className="w-full px-3 py-2 text-xs rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 dark:text-white outline-none focus:border-indigo-500"
-                            />
-                        )}
-                        {provider === 'gemini' && availableModels.length > 0 && (
-                            <select
-                                value={selectedModel}
-                                onChange={(e) => onModelChange(e.target.value)}
-                                className="w-full text-xs p-2 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 dark:text-white"
-                            >
-                                {availableModels.map(m => (
-                                    <option key={m.name} value={m.name}>{m.displayName || m.name.split('/').pop()}</option>
-                                ))}
-                            </select>
+                        </div>
+
+                        {provider === 'gemini' && viewMode === 'simple' && (
+                            <div className="mt-2">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Model</label>
+                                <select
+                                    value={selectedModel}
+                                    onChange={(e) => onModelChange(e.target.value)}
+                                    className="w-full text-xs p-2 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 dark:text-white outline-none focus:ring-1 focus:ring-indigo-500"
+                                >
+                                    <option value="gemini-2.0-flash-lite-preview-02-05">Gemini 2.0 Flash Lite (Preview)</option>
+                                    <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                                    <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                                </select>
+                            </div>
                         )}
                     </div>
                 )}
@@ -313,21 +317,43 @@ const TestRunnerControls = ({
                 {/* OpenAI Input */}
                 {(viewMode === 'advanced' || provider === 'openai') && (
                     <div className="space-y-2 animate-in fade-in">
-                        <label className="text-[10px] font-bold uppercase text-emerald-500 flex items-center gap-1">
-                            <Key size={12} /> OpenAI {renderHelpLink()}
-                        </label>
-                        {isUsingGlobalOpenAI ? (
-                            <div className="text-xs p-2 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg text-emerald-700 dark:text-emerald-400 text-sm font-medium">
-                                System Key Active
+                        <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-lg">
+                            <label className="text-[10px] font-bold uppercase text-emerald-500 flex items-center gap-1">
+                                <Key size={12} /> OpenAI
+                            </label>
+
+                            <div className="flex items-center gap-3">
+                                {isUsingGlobalOpenAI ? (
+                                    <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1"><Zap size={10} /> System Key Active</span>
+                                ) : (
+                                    <span className={`text-[10px] font-bold flex items-center gap-1 ${openaiKey ? 'text-emerald-500' : 'text-slate-400'}`}>
+                                        <span className={`w-2 h-2 rounded-full ${openaiKey ? 'bg-emerald-500' : 'bg-slate-300'}`}></span>
+                                        {openaiKey ? 'Key Saved' : 'No Key'}
+                                    </span>
+                                )}
+
+                                <button
+                                    onClick={() => setShowHelpModal(true)}
+                                    className="text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 text-slate-700 dark:text-slate-300 px-3 py-1.5 rounded-md font-medium transition-all shadow-sm"
+                                >
+                                    {openaiKey ? 'Manage Key' : 'Add Key'}
+                                </button>
                             </div>
-                        ) : (
-                            <input
-                                type="password"
-                                value={openaiKey}
-                                onChange={(e) => onOpenaiKeyChange(e.target.value)}
-                                placeholder="sk-..."
-                                className="w-full px-3 py-2 text-xs rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 dark:text-white outline-none focus:border-emerald-500"
-                            />
+                        </div>
+
+                        {provider === 'openai' && viewMode === 'simple' && (
+                            <div className="mt-2">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Model</label>
+                                <select
+                                    value={selectedModel}
+                                    onChange={(e) => onModelChange(e.target.value)}
+                                    className="w-full text-xs p-2 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 dark:text-white outline-none focus:ring-1 focus:ring-emerald-500"
+                                >
+                                    <option value="gpt-4o">GPT-4o</option>
+                                    <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                                    <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                                </select>
+                            </div>
                         )}
                     </div>
                 )}
@@ -335,13 +361,24 @@ const TestRunnerControls = ({
                 {/* Groq Input */}
                 {isLoggedIn && (viewMode === 'advanced' || provider === 'groq') && (
                     <div className="space-y-2 animate-in fade-in">
-                        <label className="text-[10px] font-bold uppercase text-orange-500 flex items-center gap-1">
-                            <Key size={12} /> Groq Key (Llama 3) {renderHelpLink()}
-                        </label>
-                        {/* Groq Key Input logic - removed 'isUsingGlobal' check here as it wasn't fully implemented in the hook yet, keeping manual entry */}
-                        <div className="flex gap-2">
-                            <input type="password" value={groqKey || ''} onChange={(e) => onGroqKeyChange(e.target.value)} placeholder="gsk_..." className="flex-1 px-3 py-2 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-1 focus:ring-orange-500 outline-none" />
-                            {groqKey && <button onClick={() => onClearKey('groq')} className="text-xs text-red-400 hover:underline px-1">Clear</button>}
+                        <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-lg">
+                            <label className="text-[10px] font-bold uppercase text-orange-500 flex items-center gap-1">
+                                <Key size={12} /> Groq
+                            </label>
+
+                            <div className="flex items-center gap-3">
+                                <span className={`text-[10px] font-bold flex items-center gap-1 ${groqKey ? 'text-emerald-500' : 'text-slate-400'}`}>
+                                    <span className={`w-2 h-2 rounded-full ${groqKey ? 'bg-emerald-500' : 'bg-slate-300'}`}></span>
+                                    {groqKey ? 'Key Saved' : 'No Key'}
+                                </span>
+
+                                <button
+                                    onClick={() => setShowHelpModal(true)}
+                                    className="text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-orange-500 text-slate-700 dark:text-slate-300 px-3 py-1.5 rounded-md font-medium transition-all shadow-sm"
+                                >
+                                    {groqKey ? 'Manage Key' : 'Add Key'}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )}
@@ -349,13 +386,39 @@ const TestRunnerControls = ({
                 {/* Anthropic Input */}
                 {isLoggedIn && (viewMode === 'advanced' || provider === 'anthropic') && (
                     <div className="space-y-2 animate-in fade-in">
-                        <label className="text-[10px] font-bold uppercase text-rose-500 flex items-center gap-1">
-                            <Key size={12} /> Anthropic Key (Claude) {renderHelpLink()}
-                        </label>
-                        <div className="flex gap-2">
-                            <input type="password" value={anthropicKey || ''} onChange={(e) => onAnthropicKeyChange(e.target.value)} placeholder="sk-ant-..." className="flex-1 px-3 py-2 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-1 focus:ring-rose-500 outline-none" />
-                            {anthropicKey && <button onClick={() => onClearKey('anthropic')} className="text-xs text-red-400 hover:underline px-1">Clear</button>}
+                        <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-lg">
+                            <label className="text-[10px] font-bold uppercase text-rose-500 flex items-center gap-1">
+                                <Key size={12} /> Anthropic
+                            </label>
+
+                            <div className="flex items-center gap-3">
+                                <span className={`text-[10px] font-bold flex items-center gap-1 ${anthropicKey ? 'text-emerald-500' : 'text-slate-400'}`}>
+                                    <span className={`w-2 h-2 rounded-full ${anthropicKey ? 'bg-emerald-500' : 'bg-slate-300'}`}></span>
+                                    {anthropicKey ? 'Key Saved' : 'No Key'}
+                                </span>
+
+                                <button
+                                    onClick={() => setShowHelpModal(true)}
+                                    className="text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-rose-500 text-slate-700 dark:text-slate-300 px-3 py-1.5 rounded-md font-medium transition-all shadow-sm"
+                                >
+                                    {anthropicKey ? 'Manage Key' : 'Add Key'}
+                                </button>
+                            </div>
                         </div>
+                        {provider === 'anthropic' && viewMode === 'simple' && (
+                            <div className="mt-2">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Model</label>
+                                <select
+                                    value={selectedModel}
+                                    onChange={(e) => onModelChange(e.target.value)}
+                                    className="w-full text-xs p-2 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 dark:text-white outline-none focus:ring-1 focus:ring-rose-500"
+                                >
+                                    <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
+                                    <option value="claude-3-opus-20240229">Claude 3 Opus</option>
+                                    <option value="claude-3-haiku-20240307">Claude 3 Haiku</option>
+                                </select>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

@@ -2,8 +2,13 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Sparkles, Loader, ArrowRightCircle } from 'lucide-react';
 import { useAgent } from '../hooks/useAgent.js';
 
-const ChatInterface = ({ apiKey, provider = 'gemini', onUpdateBuilder }) => {
-    const [input, setInput] = useState('');
+const ChatInterface = ({ apiKey, provider = 'gemini', onUpdateBuilder, initialInput }) => {
+    const [input, setInput] = useState(initialInput || '');
+
+    // Update input if initialInput changes (e.g. re-navigation)
+    useEffect(() => {
+        if (initialInput) setInput(initialInput);
+    }, [initialInput]);
 
     // Destructuring handleAction from the hook
     const { messages, isLoading, sendMessage, handleAction, clearHistory } = useAgent(apiKey, provider);
