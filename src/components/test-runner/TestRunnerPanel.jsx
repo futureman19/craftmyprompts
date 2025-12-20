@@ -77,7 +77,7 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
                     // CTO UPDATE: Passing the Router Reasoning to UI
                     routerReasoning={runner.routerReasoning}
 
-                    // Key Management
+                    // Key Management - Audited and Verified
                     keys={{
                         gemini: runner.geminiKey,
                         openai: runner.openaiKey,

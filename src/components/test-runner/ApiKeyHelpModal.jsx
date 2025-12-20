@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Key, ExternalLink, HelpCircle, ChevronRight, Zap } from 'lucide-react';
 
-const ApiKeyHelpModal = ({ isOpen, onClose, keys, setters }) => {
+const ApiKeyHelpModal = ({ isOpen, onClose, keys = {}, setters = {} }) => {
     const [activeTab, setActiveTab] = useState('gemini');
     // Local state for the input before saving/committing (optional, or bind directly)
     // Binding directly to the setter feels instant, but let's use local state for the "Save" feel if wanted.
@@ -99,8 +99,8 @@ const ApiKeyHelpModal = ({ isOpen, onClose, keys, setters }) => {
                             key={p.id}
                             onClick={() => setActiveTab(p.id)}
                             className={`flex items-center justify-between w-full p-3 rounded-lg text-sm font-medium transition-all ${activeTab === p.id
-                                    ? 'bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white'
-                                    : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-900'
+                                ? 'bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white'
+                                : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-900'
                                 }`}
                         >
                             <span className="flex items-center gap-2">
@@ -178,8 +178,8 @@ const ApiKeyHelpModal = ({ isOpen, onClose, keys, setters }) => {
                                     onClick={handleSave}
                                     disabled={!tempKey || isSaved}
                                     className={`px-6 py-2 rounded-lg font-bold text-sm transition-all flex items-center gap-2 ${isSaved
-                                            ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400'
-                                            : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20'
+                                        ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400'
+                                        : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20'
                                         }`}
                                 >
                                     {isSaved ? 'Saved' : 'Save Key'}
