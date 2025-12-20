@@ -1,10 +1,10 @@
 import React from 'react';
 import { Terminal } from 'lucide-react';
 import { useTestRunner } from '../../hooks/useTestRunner.js';
-// import TestRunnerControls from './TestRunnerControls.jsx';
+import TestRunnerControls from './TestRunnerControls.jsx';
 import TestRunnerResults from './TestRunnerResults.jsx';
 import GitHubModal from '../GitHubModal.jsx';
-// import ApiKeyHelpModal from './ApiKeyHelpModal.jsx';
+import ApiKeyHelpModal from './ApiKeyHelpModal.jsx';
 
 const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippet, isSocialMode }) => {
 
@@ -32,10 +32,7 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
             <div className="flex-1 overflow-y-auto p-4 space-y-6">
 
                 {/* 1. CONTROLS DASHBOARD */}
-                <div className="p-4 bg-slate-100 dark:bg-slate-800 rounded mb-4 text-center text-slate-500">
-                    Controls Placeholder (Isolation Mode)
-                </div>
-                {false && <TestRunnerControls
+                <TestRunnerControls
                     viewMode={runner.viewMode}
                     provider={runner.provider}
 
@@ -93,7 +90,7 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
                         groq: runner.setGroqKey,
                         anthropic: runner.setAnthropicKey
                     }}
-                />}
+                />
 
                 {/* 2. RESULTS DISPLAY */}
                 <TestRunnerResults
@@ -157,7 +154,7 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
             />
 
             {/* Render the Help Modal */}
-            {/* <ApiKeyHelpModal
+            <ApiKeyHelpModal
                 isOpen={runner.showHelpModal}
                 onClose={() => runner.setShowHelpModal(false)}
                 keys={{
@@ -172,8 +169,7 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
                     groq: runner.setGroqKey,
                     anthropic: runner.setAnthropicKey
                 }}
-            /> */}
-            <div className="hidden">Modal Placeholder (Isolation Mode)</div>
+            />
         </div>
     );
 };

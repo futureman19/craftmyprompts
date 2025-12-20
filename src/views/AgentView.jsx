@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-// import { useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { Sparkles, Brain, MessageSquare } from 'lucide-react';
 import ChatInterface from '../components/ChatInterface.jsx';
 import MemoryManager from '../components/MemoryManager.jsx';
 
 const AgentView = ({ user, globalApiKey, orchestrator, onUpdateBuilder }) => {
-    // const location = useLocation();
-    const initialInput = /* location.state?.prompt || */ '';
+    const location = useLocation();
+    const initialInput = location.state?.prompt || '';
 
     // Tab state for mobile switching (defaults to chat)
     const [activeTab, setActiveTab] = useState('chat'); // 'chat' | 'memory'

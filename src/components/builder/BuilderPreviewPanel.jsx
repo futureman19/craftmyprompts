@@ -1,7 +1,8 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     FileText, Zap, RefreshCw, Check, Copy as CopyIcon, Braces,
-    Lock, Globe, Save, Bookmark, ArrowLeft, BookmarkPlus
+    Lock, Globe, Save, Bookmark, ArrowLeft, BookmarkPlus, MessageSquare
 } from 'lucide-react';
 // Updated import path with explicit extension for reliability
 import TestRunnerPanel from '../test-runner/TestRunnerPanel.jsx';
@@ -14,6 +15,7 @@ const BuilderPreviewPanel = ({
     dispatch, setMobileTab, setSaveVisibility, handleCopy,
     handleCopyJSON, handleUnifiedSave, handleSaveAsPreset, handleSaveSnippet
 }) => {
+    const navigate = useNavigate();
 
     const renderHighlightedPrompt = (text) => {
         if (!text) return <span className="text-slate-500 italic">Your prompt will appear here...</span>;
@@ -88,8 +90,8 @@ const BuilderPreviewPanel = ({
                     <button
                         onClick={() => setSaveVisibility(saveVisibility === 'public' ? 'private' : 'public')}
                         className={`px-3 py-2 rounded-lg text-xs font-medium border transition-all flex items-center gap-2 ${saveVisibility === 'public'
-                                ? 'bg-indigo-600 text-white border-indigo-600'
-                                : 'bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-600'
+                            ? 'bg-indigo-600 text-white border-indigo-600'
+                            : 'bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-600'
                             }`}
                         title={saveVisibility === 'public' ? "Public: Visible in Community Feed" : "Private: Only visible to you"}
                     >
