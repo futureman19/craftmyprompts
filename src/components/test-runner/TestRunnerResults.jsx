@@ -147,13 +147,18 @@ const TestRunnerResults = ({
 
     // 2. BATTLE MODE (Arena)
     if (provider === 'battle' && (loading || battleResults)) {
+        // Adapt Object {fighterA, fighterB} -> Array [fighterA, fighterB] for Grid
+        const arenaData = battleResults ? [
+            { ...battleResults.fighterA, content: battleResults.fighterA.text, role: battleResults.fighterA.name, id: 'fighterA' },
+            { ...battleResults.fighterB, content: battleResults.fighterB.text, role: battleResults.fighterB.name, id: 'fighterB' }
+        ] : [];
+
         return (
             <div className="animate-in fade-in slide-in-from-bottom-2 h-full">
                 <ArenaResultGrid
-                    results={battleResults}
-                    config={battleConfig}
+                    results={arenaData}
                     loading={loading}
-                    renderContent={renderResultContent}
+                // config prop removed as new component doesn't use it
                 />
             </div>
         );
