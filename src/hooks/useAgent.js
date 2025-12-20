@@ -116,6 +116,32 @@ PROTOCOL:
     const sendMessage = async (userText) => {
         if (!userText.trim()) return;
 
+        // INTERCEPT USER ACTIONS (e.g. Blueprint Approval)
+        if (userText.startsWith('[USER_ACTION:')) {
+            if (userText.includes('approve_blueprint')) {
+                // The user approved the blueprint. Now we trigger the deployment.
+                // In a real app, we'd bundle the files. Here, we'll ship the Blueprint itself as a manifest.
+                const payloadMatch = userText.match(/\{.*\}/);
+                const payload = payloadMatch ? JSON.parse(payloadMatch[0]) : {};
+
+                const newMsg = {
+                    role: 'assistant',
+                    type: 'component',
+                    component: COMPONENT_REGISTRY['github_ship'].component,
+                    props: {
+                        filename: 'project_manifest.json',
+                        code: JSON.stringify(payload.structure, null, 2), // Ship the structure
+                        isOpen: true
+                    },
+                    rawText: "Blueprint Approved. Initializing Build..."
+                };
+
+                // Add the user action to history (so we see "Approve")
+                setMessages(prev => [...prev, { role: 'user', type: 'text', content: "✅ Blueprint Approved" }, newMsg]);
+                return;
+            }
+        }
+
         // SLASH COMMAND INTERCEPTION
         if (userText.startsWith('/')) {
             const [command, ...args] = userText.substring(1).split(' ');
@@ -248,37 +274,71 @@ PROTOCOL:
                     }
                     return;
                 case 'ship':
-                    // Scan history backwards for code blocks
-                    let codeToShip = null;
-                    const codeBlockRegex = /```[\w]*\n([\s\S]*?)```/;
+                    // PHASE 4.5: BLUEPRINT FIRST ARCHITECTURE
+                    // 1. We don't ship code immediately.
+                    // 2. We ask the Architect (AI) to generate a "Project Manifest" (JSON File Tree).
 
-                    // Look through last 10 messages
-                    for (let i = messages.length - 1; i >= 0 && i >= messages.length - 10; i--) {
-                        if (messages[i].role === 'assistant') { // Only ship assistant code
-                            const match = messages[i].content?.match(codeBlockRegex) || messages[i].rawText?.match(codeBlockRegex);
-                            if (match && match[1]) {
-                                codeToShip = match[1].trim();
-                                break;
-                            }
-                        }
-                    }
+                    setIsLoading(true);
 
-                    if (codeToShip) {
+                    // A. Construct a specialized prompt for the Architect
+                    const blueprintPrompt = `
+Analyze the conversation history and the current project context.
+Create a recommended FILE STRUCTURE (File Tree) for this application.
+Return ONLY a valid JSON object representing the file tree.
+Format:
+{
+  "structure": [
+    { "path": "src/App.jsx", "type": "file" },
+    { "path": "src/components", "type": "directory" },
+    ...
+  ]
+}
+DO NOT return markdown. Return RAW JSON.`;
+
+                    try {
+                        // B. Call the AI Model (Architect)
+                        const archRes = await fetch(`/api/${provider}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                apiKey,
+                                prompt: blueprintPrompt,
+                                model: 'claude-3-5-sonnet-20241022' // Force a smart model for architecture
+                            })
+                        });
+
+                        const archData = await archRes.json();
+                        let archText = '';
+
+                        // Normalize provider response
+                        if (provider === 'gemini') archText = archData.candidates?.[0]?.content?.parts?.[0]?.text;
+                        else if (provider === 'openai') archText = archData.choices?.[0]?.message?.content;
+                        else if (provider === 'anthropic') archText = archData.content?.[0]?.text;
+                        else if (provider === 'groq') archText = archData.choices?.[0]?.message?.content;
+
+                        // C. Parse the JSON
+                        // Helper to extract JSON from potential markdown wrappers
+                        const jsonMatch = archText.match(/\{[\s\S]*\}/);
+                        const cleanJson = jsonMatch ? jsonMatch[0] : archText;
+                        const blueprintData = JSON.parse(cleanJson);
+
+                        // D. Present the Blueprint
                         syntheticResponse = {
                             type: 'component',
-                            component: COMPONENT_REGISTRY['github_ship'].component,
+                            component: COMPONENT_REGISTRY['project_blueprint'].component,
                             props: {
-                                filename: 'snippet.js',
-                                code: codeToShip,
-                                isOpen: true
+                                structure: blueprintData.structure || []
                             },
-                            rawText: `Ready to ship snippet`
+                            rawText: "Project Blueprint Generated"
                         };
-                    } else {
+
+                    } catch (e) {
                         syntheticResponse = {
                             type: 'text',
-                            content: `**No code found to ship.**\nI scanned the last few messages but couldn't find any code blocks. Ask me to generate some code first!`
+                            content: `**Architect Error:** Failed to generate blueprint.\n${e.message}`
                         };
+                    } finally {
+                        setIsLoading(false);
                     }
                     break;
                 case 'help':

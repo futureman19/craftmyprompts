@@ -2,7 +2,9 @@ import TrendWidget from '../components/TrendWidget.jsx';
 import VisualSearchModal from '../components/VisualSearchModal.jsx';
 import GitHubModal from '../components/GitHubModal.jsx';
 import A2UIRenderer from '../components/a2ui/A2UIRenderer.jsx';
+import A2UIRenderer from '../components/a2ui/A2UIRenderer.jsx';
 import LivePreview from '../components/LivePreview.jsx';
+import ProjectBlueprint from '../components/agent/ProjectBlueprint.jsx'; // Import Blueprint Component
 
 // --- A2UI COMPONENT REGISTRY ---
 // This file maps "Tool Names" (Intents) to actual React Components.
@@ -16,7 +18,7 @@ export const COMPONENT_REGISTRY = {
         component: TrendWidget,
         defaultProps: {
             // In a chat stream, we might want to hide the close button initially
-            onClose: null 
+            onClose: null
         },
         description: "Displays real-time viral trends from YouTube. Use this when the user needs topic inspiration."
     },
@@ -60,5 +62,16 @@ export const COMPONENT_REGISTRY = {
             title: "Generated Website"
         },
         description: "Renders a live website preview from HTML/React code. REQUIRED PROP: 'content' (The raw code string)."
+    },
+
+    // 6. Project Blueprint (The Architect's Manifest)
+    // Used when the user runs /ship to visualize the file structure.
+    "project_blueprint": {
+        component: ProjectBlueprint,
+        defaultProps: {
+            structure: [],
+            // onAction will be injected by ChatInterface
+        },
+        description: "Renders a technical file tree blueprint for user approval."
     }
 };
