@@ -2,6 +2,10 @@
 // It securely handles requests to Anthropic's Claude API.
 import { checkRateLimit } from './_utils/rate-limiter.js';
 
+export const config = {
+  maxDuration: 60,
+};
+
 export default async function handler(req, res) {
   // 1. Rate Limit Check
   const limitStatus = checkRateLimit(req);

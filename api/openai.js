@@ -2,11 +2,15 @@
 // It acts as a secure proxy to talk to OpenAI.
 import { checkRateLimit } from './_utils/rate-limiter.js';
 
+export const config = {
+  maxDuration: 60,
+};
+
 export default async function handler(req, res) {
   // 1. Rate Limit Check
   const limitStatus = checkRateLimit(req);
   if (!limitStatus.success) {
-      return res.status(429).json({ error: limitStatus.error });
+    return res.status(429).json({ error: limitStatus.error });
   }
 
   // 2. Check for POST method
@@ -26,8 +30,8 @@ export default async function handler(req, res) {
   // HELPER: Sanitize logs to remove API keys (Bearer tokens)
   const sanitizeLog = (msg) => {
     if (typeof msg === 'string') {
-        // Replace "Bearer sk-..." with "Bearer ***"
-        return msg.replace(/Bearer\s+[a-zA-Z0-9\-\._]+/g, 'Bearer ***');
+      // Replace "Bearer sk-..." with "Bearer ***"
+      return msg.replace(/Bearer\s+[a-zA-Z0-9\-\._]+/g, 'Bearer ***');
     }
     return msg;
   };
@@ -53,9 +57,9 @@ export default async function handler(req, res) {
     const data = await response.json();
 
     if (!response.ok) {
-        // Log secure error details
-        console.error("OpenAI API Error:", JSON.stringify(data.error || {}));
-        throw new Error(data.error?.message || "OpenAI API Error");
+      // Log secure error details
+      console.error("OpenAI API Error:", JSON.stringify(data.error || {}));
+      throw new Error(data.error?.message || "OpenAI API Error");
     }
 
     // 6. Send result back to frontend

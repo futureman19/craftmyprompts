@@ -2,11 +2,15 @@
 // It securely handles requests to Google's Gemini API (Text & Vision).
 import { checkRateLimit } from './_utils/rate-limiter.js';
 
+export const config = {
+  maxDuration: 60,
+};
+
 export default async function handler(req, res) {
   // 1. Rate Limit Check
   const limitStatus = checkRateLimit(req);
   if (!limitStatus.success) {
-      return res.status(429).json({ error: limitStatus.error });
+    return res.status(429).json({ error: limitStatus.error });
   }
 
   // 2. Only allow POST requests
@@ -27,7 +31,7 @@ export default async function handler(req, res) {
   // HELPER: Sanitize logs
   const sanitizeLog = (msg) => {
     if (typeof msg === 'string') {
-        return msg.replace(/key=[^&]*/g, 'key=***');
+      return msg.replace(/key=[^&]*/g, 'key=***');
     }
     return msg;
   };
@@ -50,39 +54,39 @@ export default async function handler(req, res) {
 
     // VISION LOGIC: If an image URL is provided, fetch and format it for Gemini
     if (imageUrl) {
-        try {
-            // 1. Fetch image from URL (Server-side fetch avoids CORS issues)
-            const imgRes = await fetch(imageUrl);
-            if (!imgRes.ok) throw new Error(`Failed to fetch reference image: ${imgRes.statusText}`);
-            
-            // 2. Convert to ArrayBuffer -> Base64
-            const arrayBuffer = await imgRes.arrayBuffer();
-            const base64Image = Buffer.from(arrayBuffer).toString('base64');
-            const mimeType = imgRes.headers.get('content-type') || 'image/jpeg';
+      try {
+        // 1. Fetch image from URL (Server-side fetch avoids CORS issues)
+        const imgRes = await fetch(imageUrl);
+        if (!imgRes.ok) throw new Error(`Failed to fetch reference image: ${imgRes.statusText}`);
 
-            // 3. Construct Multimodal Part
-            contents.push({
-                role: "user",
-                parts: [
-                    { text: prompt || "Describe this image in detail for an AI art prompt." },
-                    { 
-                        inlineData: {
-                            mimeType: mimeType,
-                            data: base64Image
-                        }
-                    }
-                ]
-            });
-        } catch (imgError) {
-            console.error("Image Fetch Error:", imgError);
-            return res.status(400).json({ error: "Could not process reference image. " + imgError.message });
-        }
-    } else {
-        // STANDARD TEXT LOGIC
-        contents.push({ 
-            role: "user",
-            parts: [{ text: prompt }] 
+        // 2. Convert to ArrayBuffer -> Base64
+        const arrayBuffer = await imgRes.arrayBuffer();
+        const base64Image = Buffer.from(arrayBuffer).toString('base64');
+        const mimeType = imgRes.headers.get('content-type') || 'image/jpeg';
+
+        // 3. Construct Multimodal Part
+        contents.push({
+          role: "user",
+          parts: [
+            { text: prompt || "Describe this image in detail for an AI art prompt." },
+            {
+              inlineData: {
+                mimeType: mimeType,
+                data: base64Image
+              }
+            }
+          ]
         });
+      } catch (imgError) {
+        console.error("Image Fetch Error:", imgError);
+        return res.status(400).json({ error: "Could not process reference image. " + imgError.message });
+      }
+    } else {
+      // STANDARD TEXT LOGIC
+      contents.push({
+        role: "user",
+        parts: [{ text: prompt }]
+      });
     }
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/${modelPath}:generateContent?key=${apiKey}`, {
@@ -94,8 +98,8 @@ export default async function handler(req, res) {
     const data = await response.json();
 
     if (!response.ok) {
-        console.error("Gemini API Error:", JSON.stringify(data.error || {}));
-        throw new Error(data.error?.message || `Gemini API Error (${response.status})`);
+      console.error("Gemini API Error:", JSON.stringify(data.error || {}));
+      throw new Error(data.error?.message || `Gemini API Error (${response.status})`);
     }
 
     return res.status(200).json(data);

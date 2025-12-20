@@ -2,11 +2,15 @@
 // It securely handles requests to Groq's API for high-speed Llama inference.
 import { checkRateLimit } from './_utils/rate-limiter.js';
 
+export const config = {
+  maxDuration: 60,
+};
+
 export default async function handler(req, res) {
   // 1. Rate Limit Check
   const limitStatus = checkRateLimit(req);
   if (!limitStatus.success) {
-      return res.status(429).json({ error: limitStatus.error });
+    return res.status(429).json({ error: limitStatus.error });
   }
 
   // 2. Only allow POST requests
@@ -28,8 +32,8 @@ export default async function handler(req, res) {
   // HELPER: Sanitize logs to remove API keys (Bearer tokens)
   const sanitizeLog = (msg) => {
     if (typeof msg === 'string') {
-        // Groq keys usually start with gsk_
-        return msg.replace(/Bearer\s+gsk_[a-zA-Z0-9]+/g, 'Bearer gsk_***');
+      // Groq keys usually start with gsk_
+      return msg.replace(/Bearer\s+gsk_[a-zA-Z0-9]+/g, 'Bearer gsk_***');
     }
     return msg;
   };
@@ -51,9 +55,9 @@ export default async function handler(req, res) {
     const data = await response.json();
 
     if (!response.ok) {
-        // Log the error for debugging
-        console.error("Groq API Error Details:", JSON.stringify(data));
-        throw new Error(data.error?.message || `Groq API Error (${response.status})`);
+      // Log the error for debugging
+      console.error("Groq API Error Details:", JSON.stringify(data));
+      throw new Error(data.error?.message || `Groq API Error (${response.status})`);
     }
 
     return res.status(200).json(data);
