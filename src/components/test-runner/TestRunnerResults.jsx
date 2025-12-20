@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import CodeBlock from './CodeBlock.jsx';
 import SwarmResultGrid from './SwarmResultGrid.jsx';
+import ArenaResultGrid from './ArenaResultGrid.jsx';
 import { validateVirality } from '../../utils/viralityValidator.js';
 
 // --- HELPER 1: LIVE PREVIEW IFRAME ---
@@ -219,19 +220,15 @@ const TestRunnerResults = ({
         );
     }
 
-    // 2. BATTLE MODE
+    // 2. BATTLE MODE (Arena)
     if (provider === 'battle' && (loading || battleResults)) {
         return (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {['gemini', 'openai'].map(f => (
-                    <div key={f} className="rounded-xl border p-4 bg-slate-50 dark:bg-slate-900/50">
-                        <div className="flex items-center gap-2 font-bold mb-3 border-b pb-2 text-slate-700 dark:text-slate-200">
-                            {f === 'gemini' ? <Sparkles size={18} className="text-indigo-500" /> : <Bot size={18} className="text-emerald-500" />} <span className="capitalize">{f}</span>
-                        </div>
-                        {/* UPDATED: Uses AoTResult wrapper */}
-                        {loading ? <div className="text-sm italic text-slate-400 animate-pulse">Generating...</div> : <AoTResult text={battleResults?.[f]?.text || battleResults?.[f]} renderContent={renderResultContent} />}
-                    </div>
-                ))}
+            <div className="animate-in fade-in slide-in-from-bottom-2 h-full">
+                <ArenaResultGrid
+                    results={battleResults}
+                    loading={loading}
+                    renderContent={renderResultContent} // Pass the smart renderer (with code blocks)
+                />
             </div>
         );
     }

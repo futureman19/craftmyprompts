@@ -113,8 +113,10 @@ const TestRunnerControls = ({
                     <div className="space-y-2">
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase flex items-center justify-between">
                             <span>Select Model</span>
-                            <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-slate-400">Fast & cheap</span>
                         </label>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
+                            Direct Access. Single model execution for quick tasks.
+                        </p>
                         <select
                             value={provider}
                             onChange={(e) => onProviderChange(e.target.value)}
@@ -151,6 +153,9 @@ const TestRunnerControls = ({
                                 <Swords size={14} /> Arena Configuration
                             </h4>
                         </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
+                            Model Battle. Compare output quality across multiple AIs side-by-side.
+                        </p>
                         <div className="flex items-center gap-3">
                             <div className="flex-1">
                                 <select
@@ -188,7 +193,7 @@ const TestRunnerControls = ({
                         <div>
                             <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">The Hivemind is Listening</h4>
                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                                Visionary, Architect, and Critic agents are ready to analyze your request in parallel.
+                                Cognitive Swarm. A specialized team of agents collaborates on complex problems.
                             </p>
                         </div>
                     </div>

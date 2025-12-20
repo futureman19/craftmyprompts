@@ -19,7 +19,7 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
     };
 
     const containerClasses = isFullScreen
-        ? "fixed inset-0 z-50 bg-white dark:bg-slate-900 w-screen h-screen flex flex-col"
+        ? "fixed inset-0 z-[9999] bg-white dark:bg-slate-900 w-screen h-screen flex flex-col"
         : "flex flex-col h-full bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-700";
 
     return (
