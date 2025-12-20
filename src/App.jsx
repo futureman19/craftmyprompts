@@ -9,7 +9,8 @@ import FeedView from './views/FeedView.jsx';
 import SavedView from './views/SavedView.jsx';
 import HistoryView from './views/HistoryView.jsx';
 import BuilderView from './views/BuilderView.jsx';
-import AgentView from './views/AgentView.jsx'; // 1. Import new View
+import AgentView from './views/AgentView.jsx';
+import ProfileView from './views/ProfileView.jsx'; // 2. Import Profile View
 
 // Import Orchestrator Hook
 import { useOrchestrator } from './hooks/useOrchestrator.js';
@@ -147,6 +148,14 @@ const App = () => {
           } />
 
           <Route path="/feed" element={<FeedView user={user} loadPrompt={loadPrompt} onLoginRequest={handleLoginRequest} />} />
+
+          <Route path="/profile" element={
+            <ProfileView
+              user={user}
+              darkMode={darkMode}
+              toggleDarkMode={toggleDarkMode}
+            />
+          } />
 
           {user ? (
             <>
