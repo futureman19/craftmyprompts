@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase.js';
+import { SWARM_AGENTS } from '../lib/swarm-agents.js';
 
 export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
     // --- 1. CORE STATE ---
@@ -146,13 +147,19 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         } catch (e) { console.error("Model fetch failed", e); }
     };
 
-    const callAI = async (name, text, key) => {
+    const callAI = async (name, text, key, modelOverride) => {
         const body = { apiKey: key, prompt: text };
-        // Priority Model Mapping (Using Gemini 2.5 Flash Lite as standard)
-        if (name === 'gemini') body.model = selectedModel || 'gemini-2.5-flash-lite';
-        if (name === 'openai') body.model = 'gpt-4o';
-        if (name === 'groq') body.model = 'llama-3.3-70b-versatile';
-        if (name === 'anthropic') body.model = 'claude-3-5-sonnet-20241022';
+
+        // Model Selection Logic
+        if (modelOverride) {
+            body.model = modelOverride;
+        } else {
+            // Default Fallbacks
+            if (name === 'gemini') body.model = selectedModel || 'gemini-2.0-flash-lite-preview-02-05';
+            if (name === 'openai') body.model = 'gpt-4o';
+            if (name === 'groq') body.model = 'llama-3.3-70b-versatile';
+            if (name === 'anthropic') body.model = 'claude-3-5-sonnet-20241022';
+        }
 
         const res = await fetch(`/api/${name}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
         const data = await res.json();
@@ -174,7 +181,61 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         return data.html_url;
     };
 
-    // --- 7. MAIN TEST RUNNER ---
+    // --- 7. SWARM ENGINE (The Boardroom) ---
+    const runSwarm = async (prompt) => {
+        setStatusMessage('The Boardroom is convening...');
+        setSwarmHistory([]);
+
+        // Parallel Execution of All Agents
+        const agentPromises = SWARM_AGENTS.map(async (agent) => {
+            // Determine Provider & Key
+            let providerName = 'openai';
+            if (agent.model.includes('claude')) providerName = 'anthropic';
+            if (agent.model.includes('gemini')) providerName = 'gemini';
+
+            const key = getKeyForProvider(providerName);
+            if (!key) throw new Error(`Missing key for ${agent.name} (${providerName})`);
+
+            // Step A: Divergent RAG Retrieval
+            let context = '';
+            try {
+                const ragQuery = `${prompt} ${agent.ragQueryModifier}`;
+                const ragRes = await fetch('/api/retrieve-context', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: ragQuery, match_threshold: 0.5 })
+                });
+                const ragData = await ragRes.json();
+                if (ragData.context) context = ragData.context;
+            } catch (ignored) {
+                console.warn(`RAG failed for ${agent.name}`, ignored);
+            }
+
+            // Step B: Specialized Generation
+            const systemSection = `SYSTEM INSTRUCTION:\n${agent.systemPrompt}`;
+            const contextSection = context ? `\n\nKNOWLEDGE BASE CONTEXT:\n${context}` : '';
+            const fullPrompt = `${systemSection}${contextSection}\n\nUSER PROMPT: "${prompt}"`;
+
+            // Call Model with specific override
+            const responseText = await callAI(providerName, fullPrompt, key, agent.model);
+
+            return {
+                role: agent.name,     // Display Name (e.g. "The Visionary")
+                text: responseText,
+                provider: providerName,
+                specialist: true      // Flag for UI styling if needed
+            };
+        });
+
+        // Wait for all agents
+        const results = await Promise.all(agentPromises);
+
+        // Update History
+        setSwarmHistory(results);
+        setStatusMessage('Boardroom session adjourned.');
+    };
+
+    // --- 8. MAIN TEST RUNNER ---
     const runTest = async (prompt) => {
         setLoading(true);
         setError(null);
@@ -244,20 +305,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
 
             // --- STEP 1: EXECUTION PATHS ---
             if (provider === 'swarm') {
-                swarmConfig.agents.forEach(a => { if (!getKeyForProvider(a.provider)) throw new Error(`Key missing for Agent: ${a.role} (${a.provider})`); });
-                let history = [];
-                for (let i = 0; i < swarmConfig.rounds; i++) {
-                    for (const agent of swarmConfig.agents) {
-                        setStatusMessage(`Round ${i + 1}: ${agent.role}...`);
-                        // Injecting AoT Instruction (NEW)
-                        const context = `${AOT_INSTRUCTION}\nTOPIC: "${prompt}"\nROLE: ${agent.role}\nDISCUSSION:\n${history.map(m => `${m.role}: ${m.text}`).join('\n')}\nACTION: Provide your response.`;
-                        const txt = await callAI(agent.provider, context, getKeyForProvider(agent.provider));
-                        history.push({ role: agent.role, text: txt, provider: agent.provider });
-                        setSwarmHistory([...history]);
-                    }
-                }
-                setStatusMessage('Meeting adjourned.');
-
+                await runSwarm(prompt);
             } else if (provider === 'battle') {
                 setStatusMessage(`Versus: ${battleConfig.fighterA} vs ${battleConfig.fighterB}...`);
                 const [rA, rB] = await Promise.allSettled([
