@@ -1,5 +1,5 @@
 import { checkRateLimit } from './_utils/rate-limiter.js';
-import { SWARM_AGENTS } from '../src/lib/swarm-agents.js';
+import { SWARM_AGENTS, MANAGER_AGENT } from '../src/lib/swarm-agents.js';
 
 export const config = {
     maxDuration: 60, // Allow up to 60 seconds for parallel processing
@@ -20,11 +20,12 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const { prompt, keys = {} } = req.body;
+    const { prompt, mode, keys = {} } = req.body;
     const { openai: openAIKey, anthropic: anthropicKey, gemini: geminiKey } = keys;
 
     // Helper: Knowledge Base Stub (RAG)
     const searchKnowledgeBase = async (query) => {
+        if (!query) return ""; // Handle undefined query
         // In a real implementation, this would query Pinecone/Supabase
         // For now, we return a mock context based on the query signature
         return `[Knowledge Base Result] Optimized patterns found for: ${query}. (Stub)`;
@@ -34,11 +35,17 @@ export default async function handler(req, res) {
     const runAgent = async (agent) => {
         try {
             // A. Thought Process (RAG)
-            const ragQuery = `${prompt} ${agent.ragQueryModifier}`;
-            const ragContext = await searchKnowledgeBase(ragQuery);
+            // Handle agents without RAG modifiers (like the Executive)
+            let ragContext = "";
+            if (agent.ragQueryModifier) {
+                const ragQuery = `${prompt} ${agent.ragQueryModifier}`;
+                ragContext = await searchKnowledgeBase(ragQuery);
+            }
 
             // B. Construct System Prompt
-            const fullSystemPrompt = `${agent.systemPrompt}\n\nCONTEXT FROM KNOWLEDGE BASE:\n${ragContext}`;
+            const fullSystemPrompt = ragContext
+                ? `${agent.systemPrompt}\n\nCONTEXT FROM KNOWLEDGE BASE:\n${ragContext}`
+                : agent.systemPrompt;
 
             // C. Inference (Provider Dispatch)
             let content = "";
@@ -124,7 +131,7 @@ export default async function handler(req, res) {
                 role: agent.role,
                 content: content,
                 meta: {
-                    trace: `Searched for: "${agent.ragQueryModifier}"`,
+                    trace: agent.ragQueryModifier ? `Searched for: "${agent.ragQueryModifier}"` : "Synthesis Mode",
                     model: agent.model
                 }
             };
@@ -146,9 +153,17 @@ export default async function handler(req, res) {
     };
 
     try {
-        // PARALLEL EXECUTION
-        // Run all agents simultaneously
-        const results = await Promise.all(SWARM_AGENTS.map(agent => runAgent(agent)));
+        let results = [];
+
+        // MODE SWITCH: SYNTHESIZE vs PARALLEL
+        if (mode === 'synthesize') {
+            // Run only the Executive
+            const executiveResult = await runAgent(MANAGER_AGENT);
+            results = [executiveResult];
+        } else {
+            // Run all Swarm Agents simultaneously
+            results = await Promise.all(SWARM_AGENTS.map(agent => runAgent(agent)));
+        }
 
         return res.status(200).json({
             swarm: results,

@@ -10,16 +10,27 @@ const ApiKeyHelpModal = ({ isOpen, onClose, keys = {}, setters = {} }) => {
     // User requested "Save Key" button. So let's use local state.
     const [tempKey, setTempKey] = useState('');
 
-    // Sync tempKey when tab changes
+    // Sync tempKey when tab changes - STICKY KEYS implementation
     React.useEffect(() => {
+        const storageKey = `craft_my_prompt_${activeTab}_key`;
+        const storedValue = localStorage.getItem(storageKey);
+
+        // Priority: Prop value -> LocalStorage -> Empty
         if (keys && keys[activeTab]) {
             setTempKey(keys[activeTab]);
+        } else if (storedValue) {
+            setTempKey(storedValue);
         } else {
             setTempKey('');
         }
     }, [activeTab, keys]);
 
     const handleSave = () => {
+        // 1. Save to Local Storage (Persistence)
+        const storageKey = `craft_my_prompt_${activeTab}_key`;
+        localStorage.setItem(storageKey, tempKey);
+
+        // 2. Update Parent State (Runtime)
         if (setters && setters[activeTab]) {
             setters[activeTab](tempKey);
         }
