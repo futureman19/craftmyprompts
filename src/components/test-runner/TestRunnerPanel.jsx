@@ -1,10 +1,10 @@
 import React from 'react';
 import { Terminal } from 'lucide-react';
 import { useTestRunner } from '../../hooks/useTestRunner.js';
-import TestRunnerControls from './TestRunnerControls.jsx';
+// import TestRunnerControls from './TestRunnerControls.jsx';
 import TestRunnerResults from './TestRunnerResults.jsx';
 import GitHubModal from '../GitHubModal.jsx';
-import ApiKeyHelpModal from './ApiKeyHelpModal.jsx';
+// import ApiKeyHelpModal from './ApiKeyHelpModal.jsx';
 
 const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippet, isSocialMode }) => {
 
@@ -157,7 +157,7 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
             />
 
             {/* Render the Help Modal */}
-            <ApiKeyHelpModal
+            {/* <ApiKeyHelpModal
                 isOpen={runner.showHelpModal}
                 onClose={() => runner.setShowHelpModal(false)}
                 keys={{
@@ -172,7 +172,8 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
                     groq: runner.setGroqKey,
                     anthropic: runner.setAnthropicKey
                 }}
-            />
+            /> */}
+            <div className="hidden">Modal Placeholder (Isolation Mode)</div>
         </div>
     );
 };
