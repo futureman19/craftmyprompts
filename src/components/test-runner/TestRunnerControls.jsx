@@ -53,7 +53,7 @@ const TestRunnerControls = ({
     const MODES = [
         { id: 'simple', label: 'Test with AI', icon: <Bot size={14} />, color: 'text-indigo-500' },
         { id: 'smart_chain', label: 'Smart Prompt', icon: <Sparkles size={14} />, color: 'text-amber-500', premium: true },
-        { id: 'battle', label: 'Battle Mode', icon: <Swords size={14} />, color: 'text-rose-500', premium: true },
+        { id: 'battle', label: 'Arena Mode', icon: <Swords size={14} />, color: 'text-rose-500', premium: true },
         { id: 'swarm', label: 'Hivemind', icon: <Users size={14} />, color: 'text-violet-500', premium: true },
     ];
 
@@ -89,8 +89,8 @@ const TestRunnerControls = ({
                             key={mode.id}
                             onClick={() => handleModeSelect(mode.id)}
                             className={`flex-1 min-w-[100px] flex flex-col items-center justify-center py-2 px-1 rounded-lg text-xs font-bold transition-all ${isActive
-                                    ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-800 dark:text-slate-100 ring-1 ring-black/5 dark:ring-white/10'
-                                    : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                                ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-800 dark:text-slate-100 ring-1 ring-black/5 dark:ring-white/10'
+                                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
                                 }`}
                         >
                             <div className={`flex items-center gap-1.5 mb-0.5 ${isActive ? mode.color : ''}`}>

@@ -1,5 +1,5 @@
-import React from 'react';
-import { Terminal } from 'lucide-react';
+import React, { useState } from 'react';
+import { Terminal, Maximize2, Minimize2 } from 'lucide-react';
 import { useTestRunner } from '../../hooks/useTestRunner.js';
 import TestRunnerControls from './TestRunnerControls.jsx';
 import TestRunnerResults from './TestRunnerResults.jsx';
@@ -7,6 +7,8 @@ import GitHubModal from '../GitHubModal.jsx';
 import ApiKeyHelpModal from './ApiKeyHelpModal.jsx';
 
 const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippet, isSocialMode }) => {
+    // 0. UI State
+    const [isFullScreen, setIsFullScreen] = useState(false);
 
     // 1. Initialize the "Brain"
     const runner = useTestRunner(defaultApiKey, defaultOpenAIKey);
@@ -16,8 +18,12 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
         runner.runTest(prompt);
     };
 
+    const containerClasses = isFullScreen
+        ? "fixed inset-0 z-50 bg-white dark:bg-slate-900 w-screen h-screen flex flex-col"
+        : "flex flex-col h-full bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-700";
+
     return (
-        <div className="flex flex-col h-full bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-700">
+        <div className={containerClasses}>
 
             {/* --- HEADER --- */}
             <div className="flex-shrink-0 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-4">
@@ -25,6 +31,14 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
                     <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
                         <Terminal size={18} className="text-indigo-500" /> Test your prompt
                     </h3>
+
+                    <button
+                        onClick={() => setIsFullScreen(!isFullScreen)}
+                        className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-md text-slate-400 transition-colors"
+                        title={isFullScreen ? "Exit Fullscreen" : "Enter Fullscreen (Zen Mode)"}
+                    >
+                        {isFullScreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                    </button>
                 </div>
             </div>
 
