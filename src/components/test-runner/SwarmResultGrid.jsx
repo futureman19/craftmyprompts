@@ -1,8 +1,10 @@
-import React from 'react';
-import { Sparkles, Code, ShieldAlert, Bot } from 'lucide-react';
+import React, { useState } from 'react';
+import { Sparkles, Code, ShieldAlert, Bot, Maximize2, Minimize2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 const SwarmResultGrid = ({ results }) => {
+    const [isPoppedOut, setIsPoppedOut] = useState(false);
+
     // Helper to get role-specific styling
     const getRoleStyle = (role) => {
         if (role.toLowerCase().includes('visionary')) {
@@ -29,6 +31,14 @@ const SwarmResultGrid = ({ results }) => {
                 icon: <ShieldAlert size={16} />
             };
         }
+        if (role.toLowerCase().includes('executive')) {
+            return {
+                border: 'border-emerald-400',
+                bg: 'bg-emerald-50 dark:bg-emerald-900/10',
+                header: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300',
+                icon: <Bot size={16} />
+            };
+        }
         return {
             border: 'border-slate-200 dark:border-slate-700',
             bg: 'bg-white dark:bg-slate-800',
@@ -37,16 +47,34 @@ const SwarmResultGrid = ({ results }) => {
         };
     };
 
+    const containerInfo = isPoppedOut
+        ? "fixed inset-0 z-50 bg-white dark:bg-slate-950 p-6 overflow-y-auto"
+        : "space-y-6 animate-in fade-in";
+
     return (
-        <div className="space-y-6 animate-in fade-in">
+        <div className={containerInfo}>
+            {/* Context Header for Popout */}
+            <div className="flex justify-between items-center mb-4">
+                <h3 className="font-bold text-slate-500 uppercase tracking-widest text-xs flex items-center gap-2">
+                    Hivemind Results
+                    {isPoppedOut && <span className="bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded text-[9px]">FULLSCREEN</span>}
+                </h3>
+                <button
+                    onClick={() => setIsPoppedOut(!isPoppedOut)}
+                    className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 transition-colors"
+                >
+                    {isPoppedOut ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                </button>
+            </div>
+
             {/* THE BOARDROOM GRID */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className={`grid gap-4 ${isPoppedOut ? 'grid-cols-1 md:grid-cols-3 h-full' : 'grid-cols-1 md:grid-cols-3'}`}>
                 {results.map((agent, index) => {
                     const style = getRoleStyle(agent.role);
                     return (
                         <div
                             key={index}
-                            className={`rounded-xl border-2 ${style.border} ${style.bg} overflow-hidden shadow-sm flex flex-col h-[500px]`}
+                            className={`rounded-xl border-2 ${style.border} ${style.bg} overflow-hidden shadow-sm flex flex-col ${isPoppedOut ? 'h-[80vh]' : 'h-[500px]'}`}
                         >
                             {/* Card Header */}
                             <div className={`p-3 font-bold text-xs uppercase tracking-wider flex items-center gap-2 border-b ${style.border} ${style.header}`}>
@@ -76,15 +104,14 @@ const SwarmResultGrid = ({ results }) => {
             </div>
 
             {/* SYNTHESIS PLACEHOLDER */}
-            <div className="rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 p-8 text-center">
-                <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">Synthesis Module</h4>
-                <p className="text-xs text-slate-500 max-w-md mx-auto">
-                    The Boardroom has spoken. Activate the Synthesis Engine to merge these perspectives into a final unified prompt.
-                </p>
-                {/* <button className="mt-4 px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors">
-                    Ignite Synthesis
-                </button> */}
-            </div>
+            {!isPoppedOut && (
+                <div className="rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 p-8 text-center">
+                    <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">Synthesis Module</h4>
+                    <p className="text-xs text-slate-500 max-w-md mx-auto">
+                        The Boardroom has spoken. Activate the Synthesis Engine to merge these perspectives into a final unified prompt.
+                    </p>
+                </div>
+            )}
         </div>
     );
 };

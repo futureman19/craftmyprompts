@@ -22,7 +22,7 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
             {/* --- HEADER --- */}
             <div className="flex-shrink-0 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-4">
                 <div className="flex justify-between items-center">
-                    <h3 className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
                         <Terminal size={18} className="text-indigo-500" /> Test your prompt
                     </h3>
                 </div>
