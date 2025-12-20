@@ -164,7 +164,7 @@ const ApiKeyHelpModal = ({ isOpen, onClose, keys = {}, setters = {} }) => {
                         {/* INPUT SECTION */}
                         <div className="border-t border-slate-100 dark:border-slate-800 pt-6 mt-auto">
                             <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 block">
-                                Enter your API Key
+                                Claude API Key
                             </label>
                             <div className="flex gap-2">
                                 <input

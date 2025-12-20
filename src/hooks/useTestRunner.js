@@ -216,8 +216,15 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
             const contextSection = context ? `\n\nKNOWLEDGE BASE CONTEXT:\n${context}` : '';
             const fullPrompt = `${systemSection}${contextSection}\n\nUSER PROMPT: "${prompt}"`;
 
+
             // Call Model with specific override
-            const responseText = await callAI(providerName, fullPrompt, key, agent.model);
+            let responseText = "⚠️ Agent Offline (Connection Error)";
+            try {
+                responseText = await callAI(providerName, fullPrompt, key, agent.model);
+            } catch (err) {
+                console.error(`Swarm Agent ${agent.name} failed:`, err);
+                // Keep default error message
+            }
 
             return {
                 role: agent.name,     // Display Name (e.g. "The Visionary")
