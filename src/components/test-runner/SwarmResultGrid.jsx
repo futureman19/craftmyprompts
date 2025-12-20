@@ -59,6 +59,17 @@ const SwarmResultGrid = ({ results }) => {
                                     <ReactMarkdown>{agent.text}</ReactMarkdown>
                                 </div>
                             </div>
+
+                            {/* Reasoning Trace Footer */}
+                            <div className="mt-auto pt-3 border-t border-slate-200 dark:border-slate-700 text-[10px] font-mono text-slate-500 bg-slate-50 dark:bg-slate-900/30 p-2">
+                                <div className="flex items-center gap-1 mb-1">
+                                    <span className="text-emerald-500">⚡</span>
+                                    <span className="truncate" title={agent.meta?.trace}>{agent.meta?.trace || 'Thinking...'}</span>
+                                </div>
+                                <div className="opacity-75 flex items-center gap-1">
+                                    <span>🤖</span> {agent.meta?.model || 'AI Model'}
+                                </div>
+                            </div>
                         </div>
                     );
                 })}

@@ -230,7 +230,11 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
                 role: agent.name,     // Display Name (e.g. "The Visionary")
                 text: responseText,
                 provider: providerName,
-                specialist: true      // Flag for UI styling if needed
+                specialist: true,      // Flag for UI styling if needed
+                meta: {
+                    trace: `Searching Knowledge Base for: "${agent.ragQueryModifier}..."`,
+                    model: agent.model
+                }
             };
         });
 

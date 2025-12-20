@@ -199,232 +199,34 @@ const TestRunnerControls = ({
                 </div>
             )}
 
-            {/* 2. COLLAB CONFIG (DYNAMIC AGENTS) */}
+            {/* 2. BOARDROOM STATUS (Swarm Mode) */}
             {provider === 'swarm' && (
-                <div className="p-4 bg-violet-50 dark:bg-violet-900/10 rounded-xl border border-violet-100 dark:border-violet-800/50 animate-in fade-in space-y-4">
-                    <div className="flex items-center justify-between border-b border-violet-200 dark:border-violet-800 pb-2 mb-2">
-                        <h4 className="text-xs font-bold uppercase text-violet-600 dark:text-violet-400 flex items-center gap-2">
-                            <Users size={14} /> Collab Room
-                        </h4>
-                        <div className="flex items-center gap-2">
-                            <label className="text-[10px] font-bold text-violet-400 uppercase">Rounds:</label>
-                            <input
-                                type="number"
-                                min="1"
-                                max="5"
-                                value={swarmConfig.rounds}
-                                onChange={(e) => onSwarmConfigChange('rounds', parseInt(e.target.value))}
-                                className="w-12 text-xs p-1 rounded border border-violet-200 dark:border-violet-800 bg-white dark:bg-slate-800 text-center outline-none focus:ring-1 focus:ring-violet-500"
-                            />
-                        </div>
+                <div className="p-4 bg-violet-50 dark:bg-violet-900/10 rounded-xl border border-violet-100 dark:border-violet-800/50 animate-in fade-in flex items-center gap-3">
+                    <div className="p-2 bg-violet-100 dark:bg-violet-800 rounded-lg text-violet-600 dark:text-violet-300">
+                        <Users size={18} />
                     </div>
-
-                    {/* DYNAMIC AGENT LIST */}
-                    <div className="space-y-3">
-                        {swarmConfig.agents.map((agent, index) => (
-                            <div key={agent.id} className="p-3 bg-white dark:bg-slate-800 rounded-lg border border-violet-100 dark:border-violet-800 flex gap-3 items-start relative group">
-                                <div className="flex-1 space-y-2">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-[10px] font-bold text-violet-500 uppercase">Agent {index + 1}</span>
-                                        <select
-                                            value={agent.provider}
-                                            onChange={(e) => updateSwarmAgent(agent.id, 'provider', e.target.value)}
-                                            className="text-[10px] text-slate-500 bg-transparent outline-none text-right dark:text-slate-400"
-                                        >
-                                            {providerOptions}
-                                        </select>
-                                    </div>
-                                    <input
-                                        type="text"
-                                        value={agent.role}
-                                        onChange={(e) => updateSwarmAgent(agent.id, 'role', e.target.value)}
-                                        className="w-full text-xs p-2 rounded border border-violet-200 dark:border-violet-700 bg-slate-50 dark:bg-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-violet-500"
-                                        placeholder="Agent Role (e.g. CEO)"
-                                    />
-                                </div>
-                                {swarmConfig.agents.length > 2 && (
-                                    <button
-                                        onClick={() => removeSwarmAgent(agent.id)}
-                                        className="absolute -top-2 -right-2 bg-white dark:bg-slate-800 text-slate-400 hover:text-red-500 rounded-full p-1 border border-slate-200 dark:border-slate-700 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
-                                        title="Remove Agent"
-                                    >
-                                        <X size={12} />
-                                    </button>
-                                )}
-                            </div>
-                        ))}
+                    <div>
+                        <h4 className="text-xs font-bold uppercase text-violet-600 dark:text-violet-400">The Boardroom is Assembled</h4>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                            Visionary, Architect, and Critic are ready to collaborate on your prompt.
+                        </p>
                     </div>
-
-                    {swarmConfig.agents.length < 4 && (
-                        <button
-                            onClick={addSwarmAgent}
-                            className="w-full py-2 border-2 border-dashed border-violet-200 dark:border-violet-800 rounded-lg text-xs font-bold text-violet-400 hover:text-violet-600 dark:hover:text-violet-300 flex items-center justify-center gap-2 transition-colors"
-                        >
-                            <Plus size={14} /> Add Another Agent
-                        </button>
-                    )}
                 </div>
             )}
 
-            {/* API KEY INPUTS */}
-            <div className="space-y-4 pt-2 border-t border-slate-100 dark:border-slate-800">
-                <div className="flex items-center gap-2 text-xs text-slate-400 mb-2">
+            {/* 3. API KEY MANAGEMENT (Centralized) */}
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                <div className="flex items-center gap-2 text-xs text-slate-400">
                     <ShieldCheck size={12} className="text-emerald-500" />
-                    <span>Keys are stored locally on your device for security.</span>
+                    <span>Secure Local Storage</span>
                 </div>
 
-                {/* Gemini Input */}
-                {(viewMode === 'advanced' || provider === 'gemini') && (
-                    <div className="space-y-2 animate-in fade-in">
-                        <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-lg">
-                            <label className="text-[10px] font-bold uppercase text-indigo-500 flex items-center gap-1">
-                                <Key size={12} /> Gemini
-                            </label>
-
-                            <div className="flex items-center gap-3">
-                                {isUsingGlobalGemini ? (
-                                    <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1"><Zap size={10} /> System Key Active</span>
-                                ) : (
-                                    <span className={`text-[10px] font-bold flex items-center gap-1 ${geminiKey ? 'text-emerald-500' : 'text-slate-400'}`}>
-                                        <span className={`w-2 h-2 rounded-full ${geminiKey ? 'bg-emerald-500' : 'bg-slate-300'}`}></span>
-                                        {geminiKey ? 'Key Saved' : 'No Key'}
-                                    </span>
-                                )}
-
-                                <button
-                                    onClick={() => setShowHelpModal(true)}
-                                    className="text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-indigo-500 text-slate-700 dark:text-slate-300 px-3 py-1.5 rounded-md font-medium transition-all shadow-sm"
-                                >
-                                    {geminiKey ? 'Manage Key' : 'Add Key'}
-                                </button>
-                            </div>
-                        </div>
-
-                        {provider === 'gemini' && viewMode === 'simple' && (
-                            <div className="mt-2">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Model</label>
-                                <select
-                                    value={selectedModel}
-                                    onChange={(e) => onModelChange(e.target.value)}
-                                    className="w-full text-xs p-2 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 dark:text-white outline-none focus:ring-1 focus:ring-indigo-500"
-                                >
-                                    <option value="gemini-2.0-flash-lite-preview-02-05">Gemini 2.0 Flash Lite (Preview)</option>
-                                    <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
-                                    <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
-                                </select>
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* OpenAI Input */}
-                {(viewMode === 'advanced' || provider === 'openai') && (
-                    <div className="space-y-2 animate-in fade-in">
-                        <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-lg">
-                            <label className="text-[10px] font-bold uppercase text-emerald-500 flex items-center gap-1">
-                                <Key size={12} /> OpenAI
-                            </label>
-
-                            <div className="flex items-center gap-3">
-                                {isUsingGlobalOpenAI ? (
-                                    <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1"><Zap size={10} /> System Key Active</span>
-                                ) : (
-                                    <span className={`text-[10px] font-bold flex items-center gap-1 ${openaiKey ? 'text-emerald-500' : 'text-slate-400'}`}>
-                                        <span className={`w-2 h-2 rounded-full ${openaiKey ? 'bg-emerald-500' : 'bg-slate-300'}`}></span>
-                                        {openaiKey ? 'Key Saved' : 'No Key'}
-                                    </span>
-                                )}
-
-                                <button
-                                    onClick={() => setShowHelpModal(true)}
-                                    className="text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 text-slate-700 dark:text-slate-300 px-3 py-1.5 rounded-md font-medium transition-all shadow-sm"
-                                >
-                                    {openaiKey ? 'Manage Key' : 'Add Key'}
-                                </button>
-                            </div>
-                        </div>
-
-                        {provider === 'openai' && viewMode === 'simple' && (
-                            <div className="mt-2">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Model</label>
-                                <select
-                                    value={selectedModel}
-                                    onChange={(e) => onModelChange(e.target.value)}
-                                    className="w-full text-xs p-2 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 dark:text-white outline-none focus:ring-1 focus:ring-emerald-500"
-                                >
-                                    <option value="gpt-4o">GPT-4o</option>
-                                    <option value="gpt-4-turbo">GPT-4 Turbo</option>
-                                    <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                                </select>
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* Groq Input */}
-                {isLoggedIn && (viewMode === 'advanced' || provider === 'groq') && (
-                    <div className="space-y-2 animate-in fade-in">
-                        <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-lg">
-                            <label className="text-[10px] font-bold uppercase text-orange-500 flex items-center gap-1">
-                                <Key size={12} /> Groq
-                            </label>
-
-                            <div className="flex items-center gap-3">
-                                <span className={`text-[10px] font-bold flex items-center gap-1 ${groqKey ? 'text-emerald-500' : 'text-slate-400'}`}>
-                                    <span className={`w-2 h-2 rounded-full ${groqKey ? 'bg-emerald-500' : 'bg-slate-300'}`}></span>
-                                    {groqKey ? 'Key Saved' : 'No Key'}
-                                </span>
-
-                                <button
-                                    onClick={() => setShowHelpModal(true)}
-                                    className="text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-orange-500 text-slate-700 dark:text-slate-300 px-3 py-1.5 rounded-md font-medium transition-all shadow-sm"
-                                >
-                                    {groqKey ? 'Manage Key' : 'Add Key'}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Anthropic Input */}
-                {isLoggedIn && (viewMode === 'advanced' || provider === 'anthropic') && (
-                    <div className="space-y-2 animate-in fade-in">
-                        <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-lg">
-                            <label className="text-[10px] font-bold uppercase text-rose-500 flex items-center gap-1">
-                                <Key size={12} /> Anthropic
-                                <Key size={12} /> Claude
-                            </label>
-
-                            <div className="flex items-center gap-3">
-                                <span className={`text-[10px] font-bold flex items-center gap-1 ${anthropicKey ? 'text-emerald-500' : 'text-slate-400'}`}>
-                                    <span className={`w-2 h-2 rounded-full ${anthropicKey ? 'bg-emerald-500' : 'bg-slate-300'}`}></span>
-                                    {anthropicKey ? 'Key Saved' : 'No Key'}
-                                </span>
-
-                                <button
-                                    onClick={() => setShowHelpModal(true)}
-                                    className="text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-rose-500 text-slate-700 dark:text-slate-300 px-3 py-1.5 rounded-md font-medium transition-all shadow-sm"
-                                >
-                                    {anthropicKey ? 'Manage Key' : 'Add Key'}
-                                </button>
-                            </div>
-                        </div>
-                        {provider === 'anthropic' && viewMode === 'simple' && (
-                            <div className="mt-2">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Model</label>
-                                <select
-                                    value={selectedModel}
-                                    onChange={(e) => onModelChange(e.target.value)}
-                                    className="w-full text-xs p-2 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 dark:text-white outline-none focus:ring-1 focus:ring-rose-500"
-                                >
-                                    <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
-                                    <option value="claude-3-opus-20240229">Claude 3 Opus</option>
-                                    <option value="claude-3-haiku-20240307">Claude 3 Haiku</option>
-                                </select>
-                            </div>
-                        )}
-                    </div>
-                )}
+                <button
+                    onClick={() => setShowHelpModal(true)}
+                    className="text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-indigo-500 text-slate-700 dark:text-slate-300 px-3 py-2 rounded-lg font-bold transition-all shadow-sm flex items-center gap-2"
+                >
+                    <Key size={12} /> Manage API Keys
+                </button>
             </div>
         </div>
     );
