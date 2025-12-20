@@ -32,7 +32,10 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
             <div className="flex-1 overflow-y-auto p-4 space-y-6">
 
                 {/* 1. CONTROLS DASHBOARD */}
-                <TestRunnerControls
+                <div className="p-4 bg-slate-100 dark:bg-slate-800 rounded mb-4 text-center text-slate-500">
+                    Controls Placeholder (Isolation Mode)
+                </div>
+                {false && <TestRunnerControls
                     viewMode={runner.viewMode}
                     provider={runner.provider}
 
@@ -90,7 +93,7 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
                         groq: runner.setGroqKey,
                         anthropic: runner.setAnthropicKey
                     }}
-                />
+                />}
 
                 {/* 2. RESULTS DISPLAY */}
                 <TestRunnerResults
