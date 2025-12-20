@@ -32,7 +32,7 @@ const ARCHITECT = {
     id: 'architect',
     name: 'The Architect',
     role: 'Tech Implementation',
-    model: 'claude-3-5-sonnet-20241022', // Using the Flagship Sonnet model
+    model: 'claude-haiku-4-5', // Using the Flagship Sonnet model
     temperature: 0.1,
     ragQueryModifier: "design patterns, API documentation, and security best practices for...",
     systemPrompt: `IDENTITY: You are The Architect. You turn dreams into concrete, scalable systems. You prioritize clean code, modularity, and fault tolerance over speed.
@@ -62,7 +62,7 @@ const CRITIC = {
     id: 'critic',
     name: 'The Critic',
     role: 'Risk Analysis',
-    model: 'gemini-1.5-pro-latest', // Using the Flagship Pro model
+    model: 'gemini-2.5-flash-lite', // Using the Flagship Pro model
     temperature: 0.5,
     ragQueryModifier: "CVEs, OWASP Top 10 vectors, and compliance failures (GDPR/SOC2) for...",
     systemPrompt: `IDENTITY: You are The Critic. Your job is to destroy the proposal. You are the Chief Information Security Officer (CISO) and Legal Counsel.
