@@ -9,7 +9,10 @@ const TestRunnerControls = ({
     // State
     viewMode, provider,
     geminiKey, openaiKey, groqKey, anthropicKey,
-    swarmConfig, battleConfig, selectedModel, availableModels,
+    // Safety Defaults to prevent White Screen of Death
+    keys = {}, setters = {},
+    swarmConfig = { agents: [] }, battleConfig = {},
+    selectedModel, availableModels = [], // Ensure availableModels is not undefined
     isUsingGlobalGemini, isUsingGlobalOpenAI, isLoggedIn,
     // Router State
     routerReasoning,
