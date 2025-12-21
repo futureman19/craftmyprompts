@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
-    Sparkles, Brain, MessageSquare, Users, Zap,
+    Sparkles, Brain, MessageSquare, Users, Zap, Bot,
     Code, Feather, BarChart, ChevronRight, Check
 } from 'lucide-react';
 import ChatInterface from '../components/ChatInterface.jsx';
@@ -18,8 +18,7 @@ const AgentView = ({ user, globalApiKey, orchestrator, onUpdateBuilder }) => {
     const [activeTab, setActiveTab] = useState('chat'); // Mobile: 'roster' | 'chat' | 'memory'
     const [activeAgent, setActiveAgent] = useState(null); // The selected persona
 
-    // Debug Imports
-    console.log('AgentView Debug:', { user, TECH_SQUAD, CREATIVE_SQUAD, DATA_SQUAD });
+
 
     // Group Squads for rendering
     // SAFETY: Use empty array fallback if import is undefined to prevent crash
@@ -132,36 +131,26 @@ const AgentView = ({ user, globalApiKey, orchestrator, onUpdateBuilder }) => {
 
                 {/* 2. CENTER PANEL: CHAT INTERFACE */}
                 <div className={`flex-1 flex flex-col min-w-0 bg-slate-50 dark:bg-slate-950 transition-all duration-300 ${activeTab === 'chat' ? 'flex' : 'hidden md:flex'}`}>
-                    <div className="flex-1 p-4 md:p-6 overflow-hidden flex items-center justify-center">
-                        {/* DEBUGGING CRASH */}
-                        <div className="p-4 bg-red-100 text-red-800 rounded border border-red-300">
-                            <p className="font-bold">DEBUG MODE ACITVE</p>
-                            <p className="text-xs font-mono mt-2">Active Agent: {activeAgent?.name || 'None'}</p>
-                            <p className="text-xs font-mono">Tech Squad Size: {TECH_SQUAD?.length}</p>
-                        </div>
-                        {/* 
-                        <ChatInterface 
-                            key={activeAgent?.id || 'default'} 
+                    <div className="flex-1 p-4 md:p-6 overflow-hidden">
+                        {/* Key Logic: Pass activeAgent to the Chat Interface */}
+                        <ChatInterface
+                            key={activeAgent?.id || 'default'}
                             activeAgent={activeAgent}
                             apiKey={globalApiKey}
                             onUpdateBuilder={onUpdateBuilder}
                             initialInput={initialInput}
                         />
-                        */}
                     </div>
                 </div>
 
                 {/* 3. RIGHT PANEL: MEMORY (Desktop: Sidebar, Mobile: Tab) */}
                 <div className={`w-full md:w-80 border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex-col transition-all duration-300 ${activeTab === 'memory' ? 'flex' : 'hidden md:flex'}`}>
-                    <div className="p-4">Memory Manager Temporarily Disabled</div>
-                    {/*
-                    <MemoryManager 
-                        memories={orchestrator.memories || {}} 
+                    <MemoryManager
+                        memories={orchestrator.memories || {}}
                         onSave={orchestrator.remember}
                         onDelete={orchestrator.forget}
                         loading={orchestrator.loading}
                     />
-                    */}
                 </div>
 
             </div>
