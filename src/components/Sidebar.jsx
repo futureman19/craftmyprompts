@@ -1,96 +1,118 @@
 import React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { Layout, Globe, Bookmark, List, LogOut, LogIn, Bot, UserCircle2, MonitorPlay, Sun, Moon, BrainCircuit, LayoutDashboard } from 'lucide-react';
+import {
+    Bot, Hammer, Globe, Bookmark,
+    Sun, Moon, UserCircle, LogOut, LogIn
+} from 'lucide-react';
 
-const Sidebar = ({ handleLogin, handleLogout, user, darkMode, toggleDarkMode }) => {
-    const navigate = useNavigate();
-    const location = useLocation();
+const Sidebar = ({
+    user,
+    onNavigate,
+    currentView,
+    darkMode,
+    toggleDarkMode,
+    onLogout,
+    onLogin
+}) => {
 
-    // Active state styles: Distinct for Light/Dark modes
-    const isActive = (path) => location.pathname === path
-        ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20'
-        : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800';
-
-    // Agent specific active state (Fuchsia theme)
-    const isAgentActive = location.pathname === '/agent'
-        ? 'text-fuchsia-600 dark:text-fuchsia-400 bg-fuchsia-100 dark:bg-fuchsia-900/40 border-2 border-fuchsia-200 dark:border-fuchsia-800'
-        : 'text-fuchsia-600 dark:text-fuchsia-400 bg-fuchsia-50 dark:bg-fuchsia-900/20 hover:bg-fuchsia-100 dark:hover:bg-fuchsia-900/40 border-2 border-transparent';
+    // Helper for Nav Buttons
+    const NavItem = ({ id, icon: Icon, label, onClick }) => {
+        const isActive = currentView === id;
+        return (
+            <button
+                onClick={() => onClick(id)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive
+                        ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-lg'
+                        : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 dark:text-slate-400'
+                    }`}
+            >
+                <Icon size={20} className={isActive ? 'text-emerald-400 dark:text-emerald-600' : 'group-hover:text-slate-900 dark:group-hover:text-white'} />
+                <span className="font-bold text-sm">{label}</span>
+            </button>
+        );
+    };
 
     return (
-        // Container: 
-        // - Mobile: FIXED at bottom (bottom-0), full width.
-        // - Desktop: RELATIVE (static flow), full height, width 20 (80px).
-        <div className="fixed bottom-0 left-0 right-0 w-full h-16 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 z-30 flex flex-row items-center justify-around md:static md:flex-col md:justify-start md:w-20 md:h-full md:border-t-0 md:border-r md:py-6 transition-all duration-200">
+        <div className="h-screen w-64 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 flex flex-col p-4 fixed left-0 top-0 z-50">
 
-            {/* Logo - Hidden on mobile to save space */}
-
-
-            {/* Navigation Items */}
-            <div className="flex flex-row md:flex-col justify-around md:justify-start w-full md:w-auto gap-1 md:gap-6 items-center flex-1 md:flex-none">
-
-                {/* 1. MISSION CONTROL (Profile) */}
-                <button
-                    onClick={() => navigate('/profile')}
-                    className={`hidden md:flex flex-col items-center justify-center gap-1 p-2 rounded-xl transition-all w-16 md:w-14 ${isActive('/profile')}`}
-                    title="Mission Control"
-                >
-                    <LayoutDashboard size={20} className="md:w-6 md:h-6" />
-                    <span className="text-[10px] font-medium">Mission</span>
-                </button>
-
-                {/* 2. AGENT (Prioritized) */}
-                <button
-                    onClick={() => navigate('/agent')}
-                    className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl transition-all w-16 md:w-14 ${isAgentActive}`}
-                    title="Open CraftOS Agent"
-                >
-                    <Bot size={20} className="md:w-6 md:h-6" />
-                    <span className="text-[10px] font-bold">Agent</span>
-                </button>
-
-                {/* 3. HIVEMIND (Formerly Runner) */}
-                <button onClick={() => navigate('/test-runner')} className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl transition-all w-16 md:w-14 ${isActive('/test-runner')}`}>
-                    <BrainCircuit size={20} className="md:w-6 md:h-6" /><span className="text-[10px] font-medium">Hivemind</span>
-                </button>
-
-                {/* 4. BUILDER */}
-                <button onClick={() => navigate('/')} className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl transition-all w-16 md:w-14 ${isActive('/')}`}>
-                    <Layout size={20} className="md:w-6 md:h-6" /><span className="text-[10px] font-medium">Builder</span>
-                </button>
-
-                {/* 5. COMMUNITY FEED */}
-                <button onClick={() => navigate('/feed')} className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl transition-all w-16 md:w-14 ${isActive('/feed')}`}>
-                    <Globe size={20} className="md:w-6 md:h-6" /><span className="text-[10px] font-medium">Feed</span>
-                </button>
-
-                {/* 6. SAVED PROMPTS */}
-                <button onClick={() => navigate('/library')} className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl transition-all w-16 md:w-14 ${isActive('/library')}`}>
-                    <Bookmark size={20} className="md:w-6 md:h-6" /><span className="text-[10px] font-medium">Saved</span>
-                </button>
+            {/* 1. APP LOGO/HEADER */}
+            <div className="mb-8 px-4 flex items-center gap-2">
+                <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center text-white font-bold">
+                    C
+                </div>
+                <span className="font-bold text-xl tracking-tight text-slate-900 dark:text-white">
+                    Context OS
+                </span>
             </div>
 
-            {/* Bottom Actions - Desktop Only */}
-            <div className="hidden md:flex flex-col gap-4 pb-4 items-center w-full mt-auto">
-                {/* Theme Toggle */}
+            {/* 2. TOP NAVIGATION (Items 1-4) */}
+            <div className="space-y-2 flex-1">
+                <NavItem
+                    id="test-runner" // "Agent" maps to the Test Runner/Hivemind
+                    label="Agent"
+                    icon={Bot}
+                    onClick={onNavigate}
+                />
+                <NavItem
+                    id="blueprint" // "Builder" maps to new feature
+                    label="Builder"
+                    icon={Hammer}
+                    onClick={onNavigate}
+                />
+                <NavItem
+                    id="feed"
+                    label="Feed"
+                    icon={Globe}
+                    onClick={onNavigate}
+                />
+                <NavItem
+                    id="saved"
+                    label="Saved"
+                    icon={Bookmark}
+                    onClick={onNavigate}
+                />
+            </div>
+
+            {/* 3. BOTTOM ACTIONS (Items 5-7) */}
+            <div className="space-y-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+
+                {/* Item 5: Theme Switch */}
                 <button
                     onClick={toggleDarkMode}
-                    className="p-2 rounded-lg text-slate-500 hover:text-amber-500 hover:bg-amber-50 dark:hover:text-amber-400 dark:hover:bg-amber-900/20 transition-all"
-                    title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
                 >
-                    {darkMode ? <Moon size={20} /> : <Sun size={20} />}
+                    {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+                    <span className="font-bold text-sm">
+                        {darkMode ? 'Light Mode' : 'Dark Mode'}
+                    </span>
                 </button>
 
-                {user && user.uid !== 'demo' ? (
-                    <button onClick={handleLogout} className="flex flex-col items-center gap-1 p-2 text-slate-500 hover:text-red-400 transition-all" title="Sign Out">
+                {/* Item 6: Profile */}
+                <NavItem
+                    id="profile"
+                    label="Profile"
+                    icon={UserCircle}
+                    onClick={onNavigate}
+                />
+
+                {/* Item 7: Login/Exit */}
+                {user ? (
+                    <button
+                        onClick={onLogout}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-900/20 dark:hover:text-rose-400 transition-all"
+                    >
                         <LogOut size={20} />
-                        <span className="text-[9px] font-medium">Exit</span>
+                        <span className="font-bold text-sm">Exit</span>
                     </button>
                 ) : (
-                    <button onClick={handleLogin} className="flex flex-col items-center gap-1 p-2 text-emerald-400 hover:text-emerald-300 transition-all" title="Sign In with Google">
+                    <button
+                        onClick={onLogin}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-900/20 dark:hover:text-emerald-400 transition-all"
+                    >
                         <LogIn size={20} />
-                        <span className="text-[9px] font-medium">Login</span>
+                        <span className="font-bold text-sm">Login</span>
                     </button>
                 )}
+
             </div>
         </div>
     );

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, useNavigate } from 'react-router-dom';
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from './lib/supabase.js';
 
 import Sidebar from './components/Sidebar.jsx';
@@ -30,6 +30,26 @@ const App = () => {
   });
 
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // STRICT 7 NAVIGATION LOGIC
+  const currentView = (() => {
+    const path = location.pathname;
+    if (path === '/test-runner') return 'test-runner';
+    if (path === '/') return 'blueprint';
+    if (path === '/feed') return 'feed';
+    if (path === '/library') return 'saved';
+    if (path === '/profile') return 'profile';
+    return '';
+  })();
+
+  const handleNavigation = (id) => {
+    if (id === 'test-runner') navigate('/test-runner');
+    if (id === 'blueprint') navigate('/');
+    if (id === 'feed') navigate('/feed');
+    if (id === 'saved') navigate('/library');
+    if (id === 'profile') navigate('/profile');
+  };
 
   // --- INITIALIZE CONTEXT OS (Memory Engine) ---
   const orchestrator = useOrchestrator(user);
@@ -111,12 +131,13 @@ const App = () => {
 
       {/* Sidebar Component */}
       <Sidebar
-        handleLogin={handleLoginRequest}
-        handleLogout={handleLogout}
         user={user}
+        onNavigate={handleNavigation}
+        currentView={currentView}
         darkMode={darkMode}
         toggleDarkMode={toggleDarkMode}
-        onOpenAgent={() => navigate('/agent')} // <--- CTO UPDATE: Navigate to Workspace
+        onLogout={handleLogout}
+        onLogin={handleLoginRequest}
       />
 
       {/* Main Content Area */}
