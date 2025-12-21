@@ -484,6 +484,40 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         await runSingleAgent('executive', `Finalize the Master Plan. Address this feedback: "${userFeedback}"\n\nFull Context:\n${context}`);
     };
 
+    // 1. THE LOOP (Refine)
+    const loopBack = async (userFeedback) => {
+        setLoading(true);
+        setStatusMessage('Refining Architecture...');
+
+        // We send the feedback to the Architect to update the plan
+        const refinementPrompt = `
+        USER FEEDBACK ON CRITIQUE: "${userFeedback}"
+        
+        TASK: Update the Blueprint and Implementation Plan based on this feedback. 
+        Address the Critic's concerns. Return the updated plan.
+        `;
+
+        await runSingleAgent('architect', refinementPrompt);
+        // Note: The UI should assume we are back in "Blueprint" stage after this
+    };
+
+    // 2. THE SYNTHESIS (Final Build)
+    const synthesizeProject = async () => {
+        setLoading(true);
+        setStatusMessage('Compiling Final Build...');
+
+        // The Executive automatically sees the full history if we pass the context correctly.
+        // In this simplified version, we trigger the Executive Agent directly.
+
+        const synthesisPrompt = `
+        ACTION: GENERATE FINAL BUILD.
+        Review the entire history above (Vision, Blueprint, Critique, Feedback).
+        Output the JSON Project Structure as defined in your System Prompt.
+        `;
+
+        await runSingleAgent('executive', synthesisPrompt);
+    };
+
     const resetNarrative = () => {
         setStoryStep('idle');
         setSwarmHistory([]);
@@ -506,6 +540,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         runTest, fetchModels, clearKey, handleShipCode, handleViewChange, continueSwarm,
         compileSwarmCode, addSwarmAgent, removeSwarmAgent, updateSwarmAgent, shipToGithub,
         // Narrative Methods
-        startNarrative, approveVision, approveBlueprint, submitFeedback, resetNarrative
+        startNarrative, approveVision, approveBlueprint, submitFeedback, resetNarrative,
+        loopBack, synthesizeProject
     };
 };

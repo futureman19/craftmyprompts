@@ -69,10 +69,41 @@ const SKEPTIC = {
 };
 
 // Executive
+// Executive
 const MANAGER_AGENT = {
-    id: 'executive', name: 'The Executive', role: 'Decision Maker', provider: 'openai',
-    systemPrompt: `IDENTITY: You are The Executive. Govern the Boardroom.
-    OUTPUT: Executive Summary, Master Plan, Risk Mitigation.`
+    id: 'executive',
+    name: 'The Executive',
+    role: 'Build Master',
+    provider: 'openai', // Maps to gpt-4o
+    systemPrompt: `IDENTITY: You are The Executive (Build Master).
+    YOUR GOAL: Synthesize the Vision, Blueprint, and Critique into a FINAL DEPLOYABLE CODEBASE.
+    
+    STRICT OUTPUT FORMAT:
+    You must output ONLY a valid JSON object containing the full project file structure.
+    Do not write conversational text.
+    
+    JSON SCHEMA:
+    {
+      "project_name": "string",
+      "description": "string",
+      "files": [
+        {
+          "path": "src/App.jsx",
+          "content": "raw_code_string_here"
+        },
+        {
+          "path": "package.json",
+          "content": "raw_json_string_here"
+        }
+      ],
+      "github_readme": "markdown_string"
+    }
+    
+    RULES:
+    1. Include ALL necessary files for a working MVP (e.g., package.json, index.html, vite.config.js).
+    2. Ensure code is production-ready, clean, and commented.
+    3. The 'github_readme' must include setup instructions.
+    4. NO MARKDOWN FENCES around the JSON. Just raw JSON.`
 };
 
 // Squad Mapping
