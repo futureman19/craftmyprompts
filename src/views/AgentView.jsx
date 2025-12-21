@@ -18,11 +18,15 @@ const AgentView = ({ user, globalApiKey, orchestrator, onUpdateBuilder }) => {
     const [activeTab, setActiveTab] = useState('chat'); // Mobile: 'roster' | 'chat' | 'memory'
     const [activeAgent, setActiveAgent] = useState(null); // The selected persona
 
+    // Debug Imports
+    console.log('AgentView Debug:', { user, TECH_SQUAD, CREATIVE_SQUAD, DATA_SQUAD });
+
     // Group Squads for rendering
+    // SAFETY: Use empty array fallback if import is undefined to prevent crash
     const SQUADS = [
-        { id: 'tech', name: 'Tech Squad', icon: Code, color: 'text-emerald-500', bg: 'bg-emerald-100 dark:bg-emerald-900/30', agents: TECH_SQUAD },
-        { id: 'creative', name: 'Creative Squad', icon: Feather, color: 'text-pink-500', bg: 'bg-pink-100 dark:bg-pink-900/30', agents: CREATIVE_SQUAD },
-        { id: 'data', name: 'Data Squad', icon: BarChart, color: 'text-amber-500', bg: 'bg-amber-100 dark:bg-amber-900/30', agents: DATA_SQUAD },
+        { id: 'tech', name: 'Tech Squad', icon: Code, color: 'text-emerald-500', bg: 'bg-emerald-100 dark:bg-emerald-900/30', agents: TECH_SQUAD || [] },
+        { id: 'creative', name: 'Creative Squad', icon: Feather, color: 'text-pink-500', bg: 'bg-pink-100 dark:bg-pink-900/30', agents: CREATIVE_SQUAD || [] },
+        { id: 'data', name: 'Data Squad', icon: BarChart, color: 'text-amber-500', bg: 'bg-amber-100 dark:bg-amber-900/30', agents: DATA_SQUAD || [] },
     ];
 
     // Auth Guard
@@ -99,7 +103,7 @@ const AgentView = ({ user, globalApiKey, orchestrator, onUpdateBuilder }) => {
                                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{squad.name}</span>
                                 </div>
                                 <div className="space-y-1">
-                                    {squad.agents.map(agent => {
+                                    {squad.agents && squad.agents.length > 0 ? squad.agents.map(agent => {
                                         const isActive = activeAgent?.id === agent.id;
                                         return (
                                             <button
@@ -117,7 +121,9 @@ const AgentView = ({ user, globalApiKey, orchestrator, onUpdateBuilder }) => {
                                                 {isActive && <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div>}
                                             </button>
                                         );
-                                    })}
+                                    }) : (
+                                        <div className="p-2 text-[10px] text-red-400">Error: Agents not loaded</div>
+                                    )}
                                 </div>
                             </div>
                         ))}
