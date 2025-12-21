@@ -1,13 +1,12 @@
-import React, { useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     FileText, Zap, RefreshCw, Check, Copy as CopyIcon, Braces,
     Lock, Globe, Save, Bookmark, ArrowLeft, BookmarkPlus, MessageSquare,
-    Layers, FileCode
+    Layers, FileCode, Loader
 } from 'lucide-react';
-import ProjectBlueprint from '../agent/ProjectBlueprint.jsx';
-// Updated import path with explicit extension for reliability
 import TestRunnerPanel from '../test-runner/TestRunnerPanel.jsx';
+import ProjectBlueprint from '../agent/ProjectBlueprint.jsx';
 import { useTestRunner } from '../../hooks/useTestRunner.js';
 
 const BuilderPreviewPanel = ({
@@ -19,36 +18,22 @@ const BuilderPreviewPanel = ({
     handleCopyJSON, handleUnifiedSave, handleSaveAsPreset, handleSaveSnippet
 }) => {
     const navigate = useNavigate();
-    const [showBlueprint, setShowBlueprint] = React.useState(false);
-    const [blueprintStructure, setBlueprintStructure] = React.useState([]);
+    const [showBlueprint, setShowBlueprint] = useState(false);
+    const [blueprintStructure, setBlueprintStructure] = useState([]);
 
-    // Initialize Architect for Blueprint Generation
+    // Initialize a dedicated "Architect" runner
     const architect = useTestRunner(globalApiKey, globalOpenAIKey);
 
-    // Watch for Architect's Blueprint Result
-    React.useEffect(() => {
-        if (architect.result && showBlueprint && blueprintStructure.length <= 3) { // Only update if we have a real result and currently viewing mock/empty
-            try {
-                // Attempt to parse if it's a JSON string, or use directly if object
-                const data = typeof architect.result === 'string' ? JSON.parse(architect.result) : architect.result;
-
-                // If the result contains a structure buffer/file-tree
-                if (Array.isArray(data)) {
-                    setBlueprintStructure(data);
-                } else if (data.structure && Array.isArray(data.structure)) {
-                    setBlueprintStructure(data.structure);
-                }
-            } catch (e) {
-                console.warn("Could not parse Blueprint result:", e);
-            }
-        }
-    }, [architect.result, showBlueprint]);
+    // Auto-detect the correct Hivemind Squad based on current mode
+    const activeCategory = useMemo(() => {
+        if (state.mode === 'text' && state.textSubMode === 'coding') return 'code';
+        if (state.mode === 'text' && state.textSubMode === 'data') return 'data';
+        return 'text';
+    }, [state.mode, state.textSubMode]);
 
     const renderHighlightedPrompt = (text) => {
         if (!text) return <span className="text-slate-500 italic">Your prompt will appear here...</span>;
-
         const parts = text.split(/(\{.*?\})/g);
-
         return parts.map((part, index) => {
             if (part.match(/^\{.*\}$/)) {
                 return (
@@ -61,20 +46,52 @@ const BuilderPreviewPanel = ({
         });
     };
 
-    // Calculate if we are in Social Mode to conditionally show the Virality Scorecard
+    // --- BLUEPRINT HANDLER ---
+    const handleBlueprintToggle = () => {
+        const isOpening = !showBlueprint;
+        setShowBlueprint(isOpening);
+
+        // If opening and no structure exists, trigger AI generation
+        if (isOpening && blueprintStructure.length === 0 && generatedPrompt) {
+            const architectPrompt = `
+                Analyze this request: "${generatedPrompt}"
+                Generate a RECOMMENDED FILE STRUCTURE (File Tree) for this project.
+                Return ONLY a valid JSON object with this exact format:
+                {
+                  "structure": [
+                    { "path": "src/App.jsx", "type": "file" },
+                    { "path": "src/components", "type": "directory" }
+                  ]
+                }
+                DO NOT return markdown code fences. Return RAW JSON only.
+            `;
+            // Call the runner specifically for the Architect agent logic
+            architect.runTest(architectPrompt, 'code');
+        }
+    };
+
+    // Watch for Architect Results
+    useEffect(() => {
+        if (architect.result && !architect.loading) {
+            try {
+                // Attempt to clean markdown if present (```json ... ```)
+                const cleanJson = architect.result.replace(/```json/g, '').replace(/```/g, '').trim();
+                const parsed = JSON.parse(cleanJson);
+
+                if (parsed.structure && Array.isArray(parsed.structure)) {
+                    setBlueprintStructure(parsed.structure);
+                } else {
+                    console.warn("Architect returned invalid JSON structure:", parsed);
+                }
+            } catch (e) {
+                console.error("Failed to parse Architect JSON:", e);
+                // Fallback: If parsing fails, maybe show a generic tree or error
+            }
+        }
+    }, [architect.result, architect.loading]);
+
+    // Calculate if we are in Social Mode
     const isSocialMode = state.mode === 'text' && state.textSubMode === 'social';
-
-    // Auto-detect the correct Hivemind Squad based on current mode
-    const activeCategory = useMemo(() => {
-        // Coding Mode -> Tech Squad (Architect, Visionary, Critic)
-        if (state.mode === 'text' && state.textSubMode === 'coding') return 'code';
-
-        // Data/Analytics Mode (Future proofing) -> Data Squad
-        if (state.mode === 'text' && state.textSubMode === 'data') return 'data';
-
-        // Writing, Social, Art, Video -> Creative Squad (Muse, Editor, Publisher)
-        return 'text';
-    }, [state.mode, state.textSubMode]);
 
     return (
         <div className={`bg-slate-900 text-slate-100 flex-col h-full border-l border-slate-800 shadow-xl z-20 flex-shrink-0 transition-all ${mobileTab === 'edit' ? 'hidden md:flex' : 'flex w-full'} md:w-[600px]`}>
@@ -84,39 +101,31 @@ const BuilderPreviewPanel = ({
                 <div className="p-3 border-b border-slate-800 flex justify-between items-center bg-slate-900">
                     <div className="flex items-center gap-2">
                         <button onClick={() => setMobileTab('edit')} className="md:hidden text-slate-400 hover:text-white"><ArrowLeft size={20} /></button>
-                        <h2 className="font-bold text-sm flex items-center gap-2"><FileText size={16} className={state.mode === 'text' ? 'text-indigo-400' : 'text-pink-400'} /> Preview</h2>
+                        <h2 className="font-bold text-sm flex items-center gap-2">
+                            <FileText size={16} className={state.mode === 'text' ? 'text-indigo-400' : 'text-pink-400'} />
+                            Preview
+                        </h2>
 
-                        {/* Blueprint Toggle for Coding Mode */}
+                        {/* BLUEPRINT TOGGLE (Visible only in Coding Mode) */}
                         {state.textSubMode === 'coding' && (
                             <div className="flex bg-slate-800 p-0.5 rounded-lg ml-4">
                                 <button
-                                    onClick={() => setShowBlueprint(false)}
+                                    onClick={() => handleBlueprintToggle()}
                                     className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${!showBlueprint ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}`}
                                 >
                                     Prompt
                                 </button>
                                 <button
-                                    onClick={() => {
-                                        setShowBlueprint(true);
-                                        // Trigger generation if empty
-                                        if (blueprintStructure.length === 0) {
-                                            architect.runTest(generatedPrompt, 'architect');
-                                            // Set loading mock state
-                                            setBlueprintStructure([
-                                                { path: "src", type: "directory" },
-                                                { path: "src/loading...", type: "file" }
-                                            ]);
-                                        }
-                                    }}
-                                    className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${showBlueprint ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                                    onClick={() => handleBlueprintToggle()}
+                                    className={`px-3 py-1 text-xs font-bold rounded-md transition-all flex items-center gap-1 ${showBlueprint ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white'}`}
                                 >
-                                    Blueprint
+                                    {architect.loading && showBlueprint ? <Loader size={10} className="animate-spin" /> : <Layers size={10} />} Blueprint
                                 </button>
                             </div>
                         )}
                     </div>
+
                     <div className="flex gap-2">
-                        {/* CTO UPDATE: Added Save as Preset Button */}
                         <button
                             onClick={handleSaveAsPreset}
                             className="p-1.5 hover:bg-slate-800 rounded text-amber-500 hover:text-amber-400 transition-colors"
@@ -142,20 +151,37 @@ const BuilderPreviewPanel = ({
                     </div>
                 </div>
 
-                <div className="flex-1 p-4 overflow-y-auto font-mono text-sm leading-relaxed text-slate-300 bg-slate-900">
+                <div className="flex-1 p-4 overflow-y-auto bg-slate-900 relative">
+                    {/* BLUEPRINT VIEW */}
                     {showBlueprint ? (
                         <div className="h-full flex flex-col">
-                            <ProjectBlueprint
-                                structure={blueprintStructure}
-                                onApprove={() => console.log("Approved for Build")}
-                                onRefine={() => console.log("Refine requested")}
-                            />
-                            <p className="text-center text-xs text-slate-500 mt-4">
-                                This structure will guide the Hivemind's code generation.
-                            </p>
+                            {architect.loading ? (
+                                <div className="flex-1 flex flex-col items-center justify-center text-slate-500 gap-3">
+                                    <Loader size={24} className="text-cyan-500 animate-spin" />
+                                    <p className="text-xs">The Architect is designing your project...</p>
+                                </div>
+                            ) : (
+                                <>
+                                    <ProjectBlueprint
+                                        structure={blueprintStructure}
+                                        onApprove={() => console.log("Approved for Build")}
+                                        onRefine={() => console.log("Refine requested")}
+                                    />
+                                    {blueprintStructure.length > 0 && (
+                                        <p className="text-center text-xs text-slate-500 mt-4">
+                                            This structure will guide the Hivemind's code generation.
+                                        </p>
+                                    )}
+                                    {blueprintStructure.length === 0 && !architect.loading && (
+                                        <div className="flex-1 flex items-center justify-center text-slate-500 text-xs text-center">
+                                            No blueprint generated yet.<br />Ensure you have a prompt and API key.
+                                        </div>
+                                    )}
+                                </>
+                            )}
                         </div>
                     ) : (
-                        <div className="whitespace-pre-wrap min-h-full">
+                        <div className="whitespace-pre-wrap min-h-full font-mono text-sm leading-relaxed text-slate-300">
                             {renderHighlightedPrompt(generatedPrompt)}
                         </div>
                     )}
@@ -193,8 +219,8 @@ const BuilderPreviewPanel = ({
                     defaultApiKey={globalApiKey}
                     defaultOpenAIKey={globalOpenAIKey}
                     onSaveSnippet={handleSaveSnippet}
-                    isSocialMode={isSocialMode} // <--- PASSING THE PROP
-                    activeCategory={activeCategory} // <--- NEW PROP
+                    isSocialMode={isSocialMode}
+                    activeCategory={activeCategory}
                 />
             </div>
         </div>
