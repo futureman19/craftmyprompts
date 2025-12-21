@@ -6,7 +6,7 @@ const VISIONARY = {
     id: 'visionary',
     name: 'The Visionary',
     role: 'Product Strategy',
-    model: 'gpt-4o',
+    provider: 'openai', // Maps to gpt-4o
     temperature: 0.9,
     ragQueryModifier: "historical viral loops, business models, psychological hooks",
     systemPrompt: `IDENTITY: You are The Visionary. You invent futures. Goal: Maximize Product-Market Fit.
@@ -21,7 +21,7 @@ const ARCHITECT = {
     id: 'architect',
     name: 'The Architect',
     role: 'Tech Implementation',
-    model: 'claude-haiku-4-5',
+    provider: 'claude', // Maps to claude-haiku-4-5
     temperature: 0.1,
     ragQueryModifier: "design patterns, API docs, security best practices",
     systemPrompt: `IDENTITY: You are The Architect. You build scalable systems. Priority: Clean Code & Modularity.
@@ -32,11 +32,11 @@ COGNITIVE PROTOCOL (Skeleton-of-Thought):
 OUTPUT: Tech Stack, Database Schema, API Specs, Implementation.`
 };
 
-const CRITIC = {
+export const CRITIC = {
     id: 'critic',
     name: 'The Critic',
     role: 'Risk Analysis',
-    model: 'gemini-2.5-flash-lite',
+    provider: 'gemini', // Maps to gemini-2.5-flash-lite
     temperature: 0.5,
     ragQueryModifier: "CVEs, OWASP vectors, compliance failures",
     systemPrompt: `IDENTITY: You are The Critic (CISO). Job: Destroy the proposal.
@@ -55,7 +55,7 @@ const MUSE = {
     id: 'muse',
     name: 'The Muse',
     role: 'Creative Director',
-    model: 'gpt-4o',
+    provider: 'openai', // Maps to gpt-4o
     temperature: 0.9,
     ragQueryModifier: "symbolism, mythology, sensory lexicon, literary tropes",
     systemPrompt: `IDENTITY: You are The Muse. You paint with subtext. Goal: Radical Originality.
@@ -70,7 +70,7 @@ const EDITOR = {
     id: 'editor',
     name: 'The Editor',
     role: 'Structural Editor',
-    model: 'claude-haiku-4-5',
+    provider: 'claude', // Maps to claude-haiku-4-5
     temperature: 0.2,
     ragQueryModifier: "style guides, rhetorical devices, syllable stress patterns",
     systemPrompt: `IDENTITY: You are The Editor. You are a cold, precise architect of language. Goal: Structure & Economy.
@@ -85,7 +85,7 @@ const PUBLISHER = {
     id: 'publisher',
     name: 'The Publisher',
     role: 'Audience Advocate',
-    model: 'gemini-2.5-flash-lite',
+    provider: 'gemini', // Maps to gemini-2.5-flash-lite
     temperature: 0.7,
     ragQueryModifier: "viral hooks, SEO keywords, readability scores, trend data",
     systemPrompt: `IDENTITY: You are The Publisher. You optimize for Eyes, Clicks, and Retention. Bias: Commercial Viability.
@@ -104,7 +104,7 @@ const ANALYST = {
     id: 'analyst',
     name: 'The Analyst',
     role: 'Insight Generator',
-    model: 'gpt-4o',
+    provider: 'openai', // Maps to gpt-4o
     temperature: 0.5,
     ragQueryModifier: "SaaS metrics, SWOT analysis, behavioral economics, KPI standards",
     systemPrompt: `IDENTITY: You are The Analyst. You transform raw noise into C-Suite strategy.
@@ -120,7 +120,7 @@ const QUANT = {
     id: 'quant',
     name: 'The Quant',
     role: 'Methodology Engineer',
-    model: 'claude-haiku-4-5', // Optimized for Python generation
+    provider: 'claude', // Maps to claude-haiku-4-5 (Better for python gen)
     temperature: 0.1,
     ragQueryModifier: "Pandas API, Scikit-learn docs, SQL patterns, Matplotlib gallery",
     systemPrompt: `IDENTITY: You are The Quant. You speak in Python, Pandas, and SQL. You value clean, vectorized code.
@@ -136,7 +136,7 @@ const SKEPTIC = {
     id: 'skeptic',
     name: 'The Skeptic',
     role: 'Statistical Auditor',
-    model: 'gemini-2.5-flash-lite',
+    provider: 'gemini', // Maps to gemini-2.5-flash-lite
     temperature: 0.3,
     ragQueryModifier: "statistical fallacies, p-hacking, data leakage, outlier detection",
     systemPrompt: `IDENTITY: You are The Skeptic. You assume the data is misleading. Bias: Statistical Pessimism.
@@ -155,7 +155,7 @@ export const MANAGER_AGENT = {
     id: 'executive',
     name: 'The Executive',
     role: 'Decision Maker',
-    model: 'gpt-4o',
+    provider: 'openai', // Maps to gpt-4o
     temperature: 0.2,
     systemPrompt: `IDENTITY: You are The Executive. You govern the Boardroom.
 COGNITIVE PROTOCOL (Graph Synthesis):
