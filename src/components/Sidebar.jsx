@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Layout, Globe, Bookmark, List, LogOut, LogIn, Bot, UserCircle2, MonitorPlay, Home } from 'lucide-react';
+import { Layout, Globe, Bookmark, List, LogOut, LogIn, Bot, UserCircle2, MonitorPlay } from 'lucide-react';
 
 const Sidebar = ({ handleLogin, handleLogout, user, darkMode, toggleDarkMode }) => {
     const navigate = useNavigate();
@@ -28,16 +28,6 @@ const Sidebar = ({ handleLogin, handleLogout, user, darkMode, toggleDarkMode }) 
             {/* Navigation Items */}
             <div className="flex flex-row md:flex-col justify-around md:justify-start w-full md:w-auto gap-1 md:gap-6 items-center flex-1 md:flex-none">
 
-                {/* 0. HOME (Dashboard) */}
-                <button
-                    onClick={() => navigate('/')}
-                    className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl transition-all w-16 md:w-14 ${isActive('/')}`}
-                    title="Dashboard"
-                >
-                    <Home size={20} className="md:w-6 md:h-6" />
-                    <span className="text-[10px] font-bold">Home</span>
-                </button>
-
                 {/* 1. AGENT (Prioritized) */}
                 <button
                     onClick={() => navigate('/agent')}
@@ -49,7 +39,7 @@ const Sidebar = ({ handleLogin, handleLogout, user, darkMode, toggleDarkMode }) 
                 </button>
 
                 {/* 2. BUILDER */}
-                <button onClick={() => navigate('/builder')} className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl transition-all w-16 md:w-14 ${isActive('/builder')}`}>
+                <button onClick={() => navigate('/')} className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl transition-all w-16 md:w-14 ${isActive('/')}`}>
                     <Layout size={20} className="md:w-6 md:h-6" /><span className="text-[10px] font-medium">Builder</span>
                 </button>
 
