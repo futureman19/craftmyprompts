@@ -1,7 +1,13 @@
 import { useState } from 'react';
 import { COMPONENT_REGISTRY } from '../data/componentRegistry.jsx';
 
-export const useAgent = (apiKey, provider = 'gemini', modelOverride) => {
+/**
+ * useAgent Hook
+ * Now supports "Persona Injection" and Multi-Provider switching.
+ * * @param {Object} keys - Map of API keys { gemini, openai, anthropic, groq }
+ * @param {Object} activeAgent - The selected persona { name, role, provider, model, systemPrompt }
+ */
+export const useAgent = (keys = {}, activeAgent = null) => {
     const [messages, setMessages] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -55,7 +61,7 @@ export const useAgent = (apiKey, provider = 'gemini', modelOverride) => {
         `- "${key}": ${COMPONENT_REGISTRY[key].description}`
     ).join('\n');
 
-    const systemInstruction = `
+    const baseInstruction = `
 You are CraftOS, an intelligent interface assistant.
 You can render rich UI components to help the user by outputting a JSON block.
 
@@ -120,7 +126,6 @@ PROTOCOL:
         if (userText.startsWith('[USER_ACTION:')) {
             if (userText.includes('approve_blueprint')) {
                 // The user approved the blueprint. Now we trigger the deployment.
-                // In a real app, we'd bundle the files. Here, we'll ship the Blueprint itself as a manifest.
                 const payloadMatch = userText.match(/\{.*\}/);
                 const payload = payloadMatch ? JSON.parse(payloadMatch[0]) : {};
 
@@ -162,7 +167,7 @@ PROTOCOL:
                         const imgRes = await fetch('/api/generate-image', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ prompt: query, apiKey })
+                            body: JSON.stringify({ prompt: query, apiKey: keys.gemini })
                         });
                         const imgData = await imgRes.json();
 
@@ -296,14 +301,18 @@ Format:
 DO NOT return markdown. Return RAW JSON.`;
 
                     try {
-                        // B. Call the AI Model (Architect)
-                        const archRes = await fetch(`/api/${provider}`, {
+                        // B. Call the AI Model (Architect) - Defaults to Claude for architecture if available, else Gemini
+                        const archProvider = keys.anthropic ? 'anthropic' : 'gemini';
+                        const archKey = keys.anthropic || keys.gemini;
+                        const archModel = keys.anthropic ? 'claude-3-5-sonnet-20241022' : 'gemini-2.0-flash-lite-preview-02-05';
+
+                        const archRes = await fetch(`/api/${archProvider}`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
-                                apiKey,
+                                apiKey: archKey,
                                 prompt: blueprintPrompt,
-                                model: 'claude-3-5-sonnet-20241022' // Force a smart model for architecture
+                                model: archModel
                             })
                         });
 
@@ -311,10 +320,8 @@ DO NOT return markdown. Return RAW JSON.`;
                         let archText = '';
 
                         // Normalize provider response
-                        if (provider === 'gemini') archText = archData.candidates?.[0]?.content?.parts?.[0]?.text;
-                        else if (provider === 'openai') archText = archData.choices?.[0]?.message?.content;
-                        else if (provider === 'anthropic') archText = archData.content?.[0]?.text;
-                        else if (provider === 'groq') archText = archData.choices?.[0]?.message?.content;
+                        if (archProvider === 'gemini') archText = archData.candidates?.[0]?.content?.parts?.[0]?.text;
+                        else if (archProvider === 'anthropic') archText = archData.content?.[0]?.text;
 
                         // C. Parse the JSON
                         // Helper to extract JSON from potential markdown wrappers
@@ -366,27 +373,30 @@ DO NOT return markdown. Return RAW JSON.`;
         try {
             // STEP A: RETRIEVAL (RAG)
             // Ask our vector DB for relevant knowledge before answering
+            // Note: RAG uses Gemini Embeddings, so we need the Gemini Key specifically
             let retrievedContext = "";
-            try {
-                const contextResponse = await fetch('/api/retrieve-context', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        query: userText,
-                        apiKey // Pass key for embedding generation
-                    })
-                });
+            if (keys.gemini) {
+                try {
+                    const contextResponse = await fetch('/api/retrieve-context', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            query: userText,
+                            apiKey: keys.gemini // Pass Gemini key for embedding generation
+                        })
+                    });
 
-                if (contextResponse.ok) {
-                    const contextData = await contextResponse.json();
-                    if (contextData.results && contextData.results.length > 0) {
-                        const snippets = contextData.results.map(r => `[Source: ${r.topic}]\n${r.content}`).join('\n\n');
-                        retrievedContext = `\n\n### RELEVANT KNOWLEDGE (RAG):\nUse this expert context to answer the user if relevant:\n${snippets}\n`;
+                    if (contextResponse.ok) {
+                        const contextData = await contextResponse.json();
+                        if (contextData.results && contextData.results.length > 0) {
+                            const snippets = contextData.results.map(r => `[Source: ${r.topic}]\n${r.content}`).join('\n\n');
+                            retrievedContext = `\n\n### RELEVANT KNOWLEDGE (RAG):\nUse this expert context to answer the user if relevant:\n${snippets}\n`;
+                        }
                     }
+                } catch (err) {
+                    console.warn("RAG Retrieval Failed (Non-critical):", err);
+                    // We continue without context if RAG fails
                 }
-            } catch (err) {
-                console.warn("RAG Retrieval Failed (Non-critical):", err);
-                // We continue without context if RAG fails
             }
 
             // STEP B: BUILD PROMPT
@@ -394,22 +404,36 @@ DO NOT return markdown. Return RAW JSON.`;
                 `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.rawText || m.content}`
             ).join('\n\n');
 
-            const finalPrompt = `${systemInstruction}\n\nPREVIOUS CHAT HISTORY:\n${historyContext}${retrievedContext}\n\nCURRENT QUERY:\nUser: ${userText}`;
-
-            // STEP C: GENERATION
-            let selectedModel = modelOverride;
-            if (!selectedModel) {
-                // CTO UPDATE: Using Gemini 2.0 Flash Lite Preview (fastest/cheapest for UI gen)
-                selectedModel = provider === 'openai' ? 'gpt-4o' : (provider === 'gemini' ? 'gemini-2.0-flash-lite-preview-02-05' : undefined);
+            // --- PERSONA INJECTION ---
+            let personaPrompt = "";
+            if (activeAgent) {
+                personaPrompt = `
+### ACTIVE PERSONA
+NAME: ${activeAgent.name || "Custom Agent"}
+ROLE: ${activeAgent.role || "Assistant"}
+SYSTEM INSTRUCTION: ${activeAgent.systemPrompt || "You are a helpful AI assistant."}
+                `.trim();
             }
 
-            const response = await fetch(`/api/${provider}`, {
+            const finalPrompt = `${baseInstruction}\n\n${personaPrompt}\n\nPREVIOUS CHAT HISTORY:\n${historyContext}${retrievedContext}\n\nCURRENT QUERY:\nUser: ${userText}`;
+
+            // STEP C: GENERATION
+            // Determine Provider, Model, and Key based on Active Agent
+            const targetProvider = activeAgent?.provider || 'gemini';
+            const targetModel = activeAgent?.model; // Let API handle defaults if undefined
+            const targetKey = keys[targetProvider];
+
+            if (!targetKey) {
+                throw new Error(`Missing API Key for ${targetProvider}. Please check your settings.`);
+            }
+
+            const response = await fetch(`/api/${targetProvider}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    apiKey,
+                    apiKey: targetKey,
                     prompt: finalPrompt,
-                    model: selectedModel
+                    model: targetModel
                 })
             });
 
@@ -418,10 +442,10 @@ DO NOT return markdown. Return RAW JSON.`;
             if (!response.ok) throw new Error(data.error || 'Failed to fetch response');
 
             let aiText = '';
-            if (provider === 'gemini') aiText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-            else if (provider === 'openai') aiText = data.choices?.[0]?.message?.content;
-            else if (provider === 'anthropic') aiText = data.content?.[0]?.text;
-            else if (provider === 'groq') aiText = data.choices?.[0]?.message?.content;
+            if (targetProvider === 'gemini') aiText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            else if (targetProvider === 'openai') aiText = data.choices?.[0]?.message?.content;
+            else if (targetProvider === 'anthropic') aiText = data.content?.[0]?.text;
+            else if (targetProvider === 'groq') aiText = data.choices?.[0]?.message?.content;
 
             const parsed = parseResponse(aiText || '');
 
