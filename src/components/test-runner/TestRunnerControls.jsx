@@ -22,7 +22,9 @@ const TestRunnerControls = ({
     onClearKey, onFetchModels, onModelChange,
     onSwarmConfigChange, onBattleConfigChange,
     // Handlers
-    addSwarmAgent, removeSwarmAgent, updateSwarmAgent, setShowHelpModal
+    addSwarmAgent, removeSwarmAgent, updateSwarmAgent, setShowHelpModal,
+    // HiveContext
+    swarmCategory, onSwarmCategoryChange
 }) => {
 
     // Determine active tab based on viewMode and provider

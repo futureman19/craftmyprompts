@@ -92,6 +92,8 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
                     addSwarmAgent={runner.addSwarmAgent}
                     removeSwarmAgent={runner.removeSwarmAgent}
                     updateSwarmAgent={runner.updateSwarmAgent}
+                    swarmCategory={runner.swarmCategory}
+                    onSwarmCategoryChange={runner.setSwarmCategory}
 
                     // Help Modal Wiring
                     setShowHelpModal={runner.setShowHelpModal}
