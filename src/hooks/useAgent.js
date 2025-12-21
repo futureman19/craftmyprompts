@@ -1,15 +1,49 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { COMPONENT_REGISTRY } from '../data/componentRegistry.jsx';
 
 /**
- * useAgent Hook
- * Now supports "Persona Injection" and Multi-Provider switching.
- * * @param {Object} keys - Map of API keys { gemini, openai, anthropic, groq }
- * @param {Object} activeAgent - The selected persona { name, role, provider, model, systemPrompt }
+ * useAgent Hook (Persistent Version)
+ * Automatically saves/loads chat history based on the active agent's ID.
  */
 export const useAgent = (keys = {}, activeAgent = null) => {
-    const [messages, setMessages] = useState([]);
+    // 1. Determine Storage Key
+    const agentId = activeAgent?.id || 'general_agent';
+    const storageKey = `craft_agent_chat_${agentId}`;
+
+    // 2. Initialize State from Storage (Lazy Initializer)
+    const [messages, setMessages] = useState(() => {
+        try {
+            const saved = localStorage.getItem(storageKey);
+            return saved ? JSON.parse(saved) : [];
+        } catch (e) {
+            console.warn("Failed to load chat history", e);
+            return [];
+        }
+    });
+
     const [isLoading, setIsLoading] = useState(false);
+
+    // Ref to track if we should save (prevents saving empty state over existing data on mount race conditions)
+    const isMounted = useRef(false);
+
+    // 3. Persist State on Change
+    useEffect(() => {
+        if (isMounted.current) {
+            localStorage.setItem(storageKey, JSON.stringify(messages));
+        } else {
+            isMounted.current = true;
+        }
+    }, [messages, storageKey]);
+
+    // 4. Reset/Load when switching Agents
+    useEffect(() => {
+        const saved = localStorage.getItem(storageKey);
+        if (saved) {
+            setMessages(JSON.parse(saved));
+        } else {
+            setMessages([]);
+        }
+    }, [storageKey]);
 
     // --- A2UI SCHEMA DEFINITION ---
     const A2UI_SCHEMA_GUIDE = `
@@ -19,44 +53,16 @@ export const useAgent = (keys = {}, activeAgent = null) => {
     { "type": "ComponentType", "props": { ... }, "children": [ ... ] }
 
     AVAILABLE ATOMS:
-    1. Container
-       - props: { layout: 'col' | 'row', style: { className: '...' } }
-       - children: []
-    2. Card
-       - props: { title: 'String', variant: 'default' | 'outlined' | 'elevated' }
-       - children: []
-    3. Text
-       - props: { content: 'String', variant: 'h1' | 'h2' | 'body' | 'caption', color: 'default' | 'primary' | 'danger' }
-    4. Button
-       - props: { label: 'String', variant: 'primary' | 'secondary' | 'ghost' | 'danger', icon: 'arrow' | 'send' }
-       - action: You can define an 'actionId' prop to track clicks.
-    5. Image
-       - props: { src: 'url', alt: 'description', aspectRatio: 'video' | 'square' | 'portrait' }
-    6. Input
-       - props: { label: 'String', name: 'field_name', placeholder: '...' }
-    7. Table
-       - props: { headers: ['Col1', 'Col2'], rows: [['Row1Data1', 'Row1Data2'], ['Row2Data1', 'Row2Data2']] }
-       - Note: 'rows' is an array of arrays matching the header count.
-    8. Select
-       - props: { label: 'String', name: 'field_name', options: ['Option 1', 'Option 2'], value: 'default_val' }
-
-    EXAMPLE PAYLOAD for 'render_ui':
-    {
-      "tool": "render_ui",
-      "props": {
-        "content": {
-          "type": "Card",
-          "props": { "title": "Generated Plan" },
-          "children": [
-            { "type": "Text", "props": { "content": "Here is your strategy:", "variant": "body" } },
-            { "type": "Button", "props": { "label": "Accept", "variant": "primary", "actionId": "accept_plan" } }
-          ]
-        }
-      }
-    }
+    1. Container ({ layout: 'col' | 'row' })
+    2. Card ({ title: 'String', variant: 'default' | 'outlined' | 'elevated' })
+    3. Text ({ content: 'String', variant: 'h1' | 'h2' | 'body' | 'caption' })
+    4. Button ({ label: 'String', variant: 'primary', actionId: 'id' })
+    5. Image ({ src: 'url' })
+    6. Input ({ label: 'String' })
+    7. Table ({ headers: [], rows: [] })
     `;
 
-    // 1. Dynamic System Prompt
+    // 5. Dynamic System Prompt
     const toolList = Object.keys(COMPONENT_REGISTRY).map(key =>
         `- "${key}": ${COMPONENT_REGISTRY[key].description}`
     ).join('\n');
@@ -72,339 +78,53 @@ ${A2UI_SCHEMA_GUIDE}
 
 PROTOCOL:
 1. To render a component, output a MARKDOWN CODE BLOCK containing a JSON object.
-2. The JSON must follow this structure:
    \`\`\`json
-   {
-     "tool": "tool_name",
-     "props": { ... } 
-   }
+   { "tool": "tool_name", "props": { ... } }
    \`\`\`
-3. Do not provide extra conversational text when rendering a tool unless necessary.
-4. If the user asks for a complex UI (like a dashboard, list, or plan), use 'render_ui' to build it.
-5. If the user asks to build a "website", "landing page", or "web app", use the 'render_website' tool. Pass the raw HTML/React code string into the 'content' prop.
-6. If you receive a [USER_ACTION: action_id] message, it means the user clicked a button in your UI. Respond accordingly.
+2. If the user asks for a UI, use 'render_ui'.
+3. If the user asks for a website/app, use 'render_website'.
     `.trim();
 
-    // 2. Response Parser
+    // 6. Response Parser
     const parseResponse = (text) => {
         if (!text) return { type: 'text', content: '' };
-
-        // Look for JSON code blocks
         const jsonRegex = /```json\s*([\s\S]*?)\s*```/;
         const match = text.match(jsonRegex);
 
         if (match) {
             try {
                 const payload = JSON.parse(match[1]);
-                const toolName = payload.tool;
-                const aiProps = payload.props || {};
-
-                const toolDef = COMPONENT_REGISTRY[toolName];
-
+                const toolDef = COMPONENT_REGISTRY[payload.tool];
                 if (toolDef) {
                     return {
                         type: 'component',
                         component: toolDef.component,
-                        props: { ...toolDef.defaultProps, ...aiProps },
+                        props: { ...toolDef.defaultProps, ...payload.props },
                         rawText: text
                     };
                 }
             } catch (e) {
                 console.warn("Failed to parse A2UI JSON:", e);
-                return { type: 'text', content: text };
             }
         }
-
         return { type: 'text', content: text };
     };
 
-    // 3. Message Handler (RAG Enabled)
+    // 7. Message Handler
     const sendMessage = async (userText) => {
         if (!userText.trim()) return;
 
-        // INTERCEPT USER ACTIONS (e.g. Blueprint Approval)
-        if (userText.startsWith('[USER_ACTION:')) {
-            if (userText.includes('approve_blueprint')) {
-                // The user approved the blueprint. Now we trigger the deployment.
-                const payloadMatch = userText.match(/\{.*\}/);
-                const payload = payloadMatch ? JSON.parse(payloadMatch[0]) : {};
-
-                const newMsg = {
-                    role: 'assistant',
-                    type: 'component',
-                    component: COMPONENT_REGISTRY['github_ship'].component,
-                    props: {
-                        filename: 'project_manifest.json',
-                        code: JSON.stringify(payload.structure, null, 2), // Ship the structure
-                        isOpen: true
-                    },
-                    rawText: "Blueprint Approved. Initializing Build..."
-                };
-
-                // Add the user action to history (so we see "Approve")
-                setMessages(prev => [...prev, { role: 'user', type: 'text', content: "✅ Blueprint Approved" }, newMsg]);
-                return;
-            }
-        }
-
-        // SLASH COMMAND INTERCEPTION
-        if (userText.startsWith('/')) {
-            const [command, ...args] = userText.substring(1).split(' ');
-            const query = args.join(' ');
-            const newLocalHistory = [...messages, { role: 'user', type: 'text', content: userText }];
-            setMessages(newLocalHistory);
-
-            let syntheticResponse = null;
-
-            switch (command.toLowerCase()) {
-                case 'image':
-                    // Async operation required - handle differently than instant mock
-                    syntheticResponse = null; // Don't return immediate synthetic response
-
-                    // Trigger async fetch
-                    setIsLoading(true);
-                    try {
-                        const imgRes = await fetch('/api/generate-image', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ prompt: query, apiKey: keys.gemini })
-                        });
-                        const imgData = await imgRes.json();
-
-                        if (!imgRes.ok) throw new Error(imgData.error || 'Image generation failed');
-
-                        const newMsg = {
-                            role: 'assistant',
-                            type: 'component',
-                            component: COMPONENT_REGISTRY['render_ui'].component, // We render a Generic UI Card
-                            props: {
-                                content: {
-                                    type: "Card",
-                                    props: { variant: "elevated" },
-                                    children: [
-                                        { type: "Image", props: { src: imgData.imageUrl, alt: query, aspectRatio: "square" } },
-                                        { type: "Text", props: { content: `Source: ${imgData.source === 'gemini' ? 'Gemini 2.5 Flash' : 'Pexels (Fallback)'}`, variant: "caption" } }
-                                    ]
-                                }
-                            },
-                            rawText: `Generated image for: ${query}`
-                        };
-                        setMessages(prev => [...prev, newMsg]);
-                    } catch (e) {
-                        setMessages(prev => [...prev, {
-                            role: 'assistant',
-                            type: 'text',
-                            content: `Failed to generate image: ${e.message}`
-                        }]);
-                    } finally {
-                        setIsLoading(false);
-                    }
-                    return; // Return early since we handled state manually
-                case 'trend':
-                    // Map common aliases to YouTube Category IDs
-                    const YOUTUBE_CATEGORIES = {
-                        'all': '0',
-                        'music': '10',
-                        'gaming': '20',
-                        'tech': '28',
-                        'coding': '28',
-                        'news': '25',
-                        'movies': '30',
-                        'education': '27',
-                        'entertainment': '24'
-                    };
-
-                    const catId = YOUTUBE_CATEGORIES[query.toLowerCase()] || '0';
-                    syntheticResponse = null;
-
-                    setIsLoading(true);
-                    try {
-                        const trendRes = await fetch('/api/trends', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ categoryId: catId, region: 'US' })
-                        });
-
-                        const trendData = await trendRes.json();
-                        if (!trendRes.ok) throw new Error(trendData.error || 'Failed to fetch trends');
-
-                        // Format for A2UI Table
-                        const tableRows = (trendData.trends || []).slice(0, 5).map((t, i) => [
-                            `#${i + 1}`,
-                            t.title.length > 30 ? t.title.substring(0, 30) + '...' : t.title,
-                            new Intl.NumberFormat('en-US', { notation: "compact" }).format(t.views || 0),
-                            t.channelTitle || 'Unknown'
-                        ]);
-
-                        const newMsg = {
-                            role: 'assistant',
-                            type: 'component',
-                            component: COMPONENT_REGISTRY['render_ui'].component,
-                            props: {
-                                content: {
-                                    type: "Container",
-                                    props: { layout: "col" },
-                                    children: [
-                                        {
-                                            type: "Card",
-                                            props: { title: `Trending in ${query || 'General'}`, variant: "elevated" },
-                                            children: [
-                                                {
-                                                    type: "Table",
-                                                    props: {
-                                                        headers: ['Rank', 'Title', 'Views', 'Channel'],
-                                                        rows: tableRows
-                                                    }
-                                                },
-                                                {
-                                                    type: "Button",
-                                                    props: { label: "Analyze These Trends", Icon: "sparkles", variant: "secondary", actionId: "analyze_trends", payload: { trends: trendData.trends } }
-                                                }
-                                            ]
-                                        }
-                                    ]
-                                }
-                            },
-                            rawText: `Showing trends for: ${query}`
-                        };
-                        setMessages(prev => [...prev, newMsg]);
-                    } catch (e) {
-                        setMessages(prev => [...prev, {
-                            role: 'assistant',
-                            type: 'text',
-                            content: `Failed to fetch trends: ${e.message}`
-                        }]);
-                    } finally {
-                        setIsLoading(false);
-                    }
-                    return;
-                case 'ship':
-                    // PHASE 4.5: BLUEPRINT FIRST ARCHITECTURE
-                    // 1. We don't ship code immediately.
-                    // 2. We ask the Architect (AI) to generate a "Project Manifest" (JSON File Tree).
-
-                    setIsLoading(true);
-
-                    // A. Construct a specialized prompt for the Architect
-                    const blueprintPrompt = `
-Analyze the conversation history and the current project context.
-Create a recommended FILE STRUCTURE (File Tree) for this application.
-Return ONLY a valid JSON object representing the file tree.
-Format:
-{
-  "structure": [
-    { "path": "src/App.jsx", "type": "file" },
-    { "path": "src/components", "type": "directory" },
-    ...
-  ]
-}
-DO NOT return markdown. Return RAW JSON.`;
-
-                    try {
-                        // B. Call the AI Model (Architect) - Defaults to Claude for architecture if available, else Gemini
-                        const archProvider = keys.anthropic ? 'anthropic' : 'gemini';
-                        const archKey = keys.anthropic || keys.gemini;
-                        const archModel = keys.anthropic ? 'claude-3-5-sonnet-20241022' : 'gemini-2.0-flash-lite-preview-02-05';
-
-                        const archRes = await fetch(`/api/${archProvider}`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                apiKey: archKey,
-                                prompt: blueprintPrompt,
-                                model: archModel
-                            })
-                        });
-
-                        const archData = await archRes.json();
-                        let archText = '';
-
-                        // Normalize provider response
-                        if (archProvider === 'gemini') archText = archData.candidates?.[0]?.content?.parts?.[0]?.text;
-                        else if (archProvider === 'anthropic') archText = archData.content?.[0]?.text;
-
-                        // C. Parse the JSON
-                        // Helper to extract JSON from potential markdown wrappers
-                        const jsonMatch = archText.match(/\{[\s\S]*\}/);
-                        const cleanJson = jsonMatch ? jsonMatch[0] : archText;
-                        const blueprintData = JSON.parse(cleanJson);
-
-                        // D. Present the Blueprint
-                        syntheticResponse = {
-                            type: 'component',
-                            component: COMPONENT_REGISTRY['project_blueprint'].component,
-                            props: {
-                                structure: blueprintData.structure || []
-                            },
-                            rawText: "Project Blueprint Generated"
-                        };
-
-                    } catch (e) {
-                        syntheticResponse = {
-                            type: 'text',
-                            content: `**Architect Error:** Failed to generate blueprint.\n${e.message}`
-                        };
-                    } finally {
-                        setIsLoading(false);
-                    }
-                    break;
-                case 'help':
-                default:
-                    syntheticResponse = {
-                        type: 'text',
-                        content: `**Available Slash Commands:**\n- \`/image [query]\` - Generate visuals\n- \`/trend [topic]\` - See market trends\n- \`/ship [code]\` - Create GitHub Gist\n- \`/help\` - Show this menu`
-                    };
-                    break;
-            }
-
-            // Simulate slight delay for "feel"
-            setIsLoading(true);
-            setTimeout(() => {
-                setMessages(prev => [...prev, { role: 'assistant', ...syntheticResponse }]);
-                setIsLoading(false);
-            }, 300);
-            return;
-        }
-
+        // Optimistic Update
+        const newUserMsg = { role: 'user', type: 'text', content: userText };
+        setMessages(prev => [...prev, newUserMsg]);
         setIsLoading(true);
-        const newLocalHistory = [...messages, { role: 'user', type: 'text', content: userText }];
-        setMessages(newLocalHistory);
 
         try {
-            // STEP A: RETRIEVAL (RAG)
-            // Ask our vector DB for relevant knowledge before answering
-            // Note: RAG uses Gemini Embeddings, so we need the Gemini Key specifically
-            let retrievedContext = "";
-            if (keys.gemini) {
-                try {
-                    const contextResponse = await fetch('/api/retrieve-context', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            query: userText,
-                            apiKey: keys.gemini // Pass Gemini key for embedding generation
-                        })
-                    });
-
-                    if (contextResponse.ok) {
-                        const contextData = await contextResponse.json();
-                        if (contextData.results && contextData.results.length > 0) {
-                            const snippets = contextData.results.map(r => `[Source: ${r.topic}]\n${r.content}`).join('\n\n');
-                            retrievedContext = `\n\n### RELEVANT KNOWLEDGE (RAG):\nUse this expert context to answer the user if relevant:\n${snippets}\n`;
-                        }
-                    }
-                } catch (err) {
-                    console.warn("RAG Retrieval Failed (Non-critical):", err);
-                    // We continue without context if RAG fails
-                }
-            }
-
-            // STEP B: BUILD PROMPT
+            // Context Builder
             const historyContext = messages.map(m =>
                 `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.rawText || m.content}`
             ).join('\n\n');
 
-            // --- PERSONA INJECTION ---
             let personaPrompt = "";
             if (activeAgent) {
                 personaPrompt = `
@@ -415,17 +135,14 @@ SYSTEM INSTRUCTION: ${activeAgent.systemPrompt || "You are a helpful AI assistan
                 `.trim();
             }
 
-            const finalPrompt = `${baseInstruction}\n\n${personaPrompt}\n\nPREVIOUS CHAT HISTORY:\n${historyContext}${retrievedContext}\n\nCURRENT QUERY:\nUser: ${userText}`;
+            const finalPrompt = `${baseInstruction}\n\n${personaPrompt}\n\nPREVIOUS CHAT HISTORY:\n${historyContext}\n\nCURRENT QUERY:\nUser: ${userText}`;
 
-            // STEP C: GENERATION
-            // Determine Provider, Model, and Key based on Active Agent
+            // Provider Logic
             const targetProvider = activeAgent?.provider || 'gemini';
-            const targetModel = activeAgent?.model; // Let API handle defaults if undefined
+            const targetModel = activeAgent?.model;
             const targetKey = keys[targetProvider];
 
-            if (!targetKey) {
-                throw new Error(`Missing API Key for ${targetProvider}. Please check your settings.`);
-            }
+            if (!targetKey) throw new Error(`Missing API Key for ${targetProvider}`);
 
             const response = await fetch(`/api/${targetProvider}`, {
                 method: 'POST',
@@ -438,7 +155,6 @@ SYSTEM INSTRUCTION: ${activeAgent.systemPrompt || "You are a helpful AI assistan
             });
 
             const data = await response.json();
-
             if (!response.ok) throw new Error(data.error || 'Failed to fetch response');
 
             let aiText = '';
@@ -449,34 +165,31 @@ SYSTEM INSTRUCTION: ${activeAgent.systemPrompt || "You are a helpful AI assistan
 
             const parsed = parseResponse(aiText || '');
 
-            setMessages(prev => [...prev, {
-                role: 'assistant',
-                ...parsed
-            }]);
+            // Save Assistant Message
+            setMessages(prev => [...prev, { role: 'assistant', ...parsed }]);
 
         } catch (error) {
             console.error("Agent Error:", error);
             setMessages(prev => [...prev, {
                 role: 'assistant',
                 type: 'text',
-                content: `I'm having trouble connecting to the brain. Error: ${error.message || 'Unknown error'}`
+                content: `Error: ${error.message || 'Unknown error'}`
             }]);
         } finally {
             setIsLoading(false);
         }
     };
 
-    // 4. Action Handler
-    const handleAction = (actionId, payload = {}) => {
-        const actionString = `[USER_ACTION: ${actionId}] ${JSON.stringify(payload)}`;
-        sendMessage(actionString);
+    // 8. Clear History
+    const clearHistory = () => {
+        setMessages([]);
+        localStorage.removeItem(storageKey);
     };
 
     return {
         messages,
         isLoading,
         sendMessage,
-        handleAction,
-        clearHistory: () => setMessages([])
+        clearHistory
     };
 };
