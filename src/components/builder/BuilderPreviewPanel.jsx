@@ -2,8 +2,10 @@ import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     FileText, Zap, RefreshCw, Check, Copy as CopyIcon, Braces,
-    Lock, Globe, Save, Bookmark, ArrowLeft, BookmarkPlus, MessageSquare
+    Lock, Globe, Save, Bookmark, ArrowLeft, BookmarkPlus, MessageSquare,
+    Layers, FileCode
 } from 'lucide-react';
+import ProjectBlueprint from '../agent/ProjectBlueprint.jsx';
 // Updated import path with explicit extension for reliability
 import TestRunnerPanel from '../test-runner/TestRunnerPanel.jsx';
 
@@ -16,6 +18,8 @@ const BuilderPreviewPanel = ({
     handleCopyJSON, handleUnifiedSave, handleSaveAsPreset, handleSaveSnippet
 }) => {
     const navigate = useNavigate();
+    const [showBlueprint, setShowBlueprint] = React.useState(false);
+    const [blueprintStructure, setBlueprintStructure] = React.useState([]);
 
     const renderHighlightedPrompt = (text) => {
         if (!text) return <span className="text-slate-500 italic">Your prompt will appear here...</span>;
@@ -58,6 +62,32 @@ const BuilderPreviewPanel = ({
                     <div className="flex items-center gap-2">
                         <button onClick={() => setMobileTab('edit')} className="md:hidden text-slate-400 hover:text-white"><ArrowLeft size={20} /></button>
                         <h2 className="font-bold text-sm flex items-center gap-2"><FileText size={16} className={state.mode === 'text' ? 'text-indigo-400' : 'text-pink-400'} /> Preview</h2>
+
+                        {/* Blueprint Toggle for Coding Mode */}
+                        {state.textSubMode === 'coding' && (
+                            <div className="flex bg-slate-800 p-0.5 rounded-lg ml-4">
+                                <button
+                                    onClick={() => setShowBlueprint(false)}
+                                    className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${!showBlueprint ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                                >
+                                    Prompt
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setShowBlueprint(true);
+                                        // Mock data generation if empty
+                                        if (blueprintStructure.length === 0) setBlueprintStructure([
+                                            { path: "src", type: "directory" },
+                                            { path: "src/App.jsx", type: "file" },
+                                            { path: "package.json", type: "file" }
+                                        ]);
+                                    }}
+                                    className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${showBlueprint ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                                >
+                                    Blueprint
+                                </button>
+                            </div>
+                        )}
                     </div>
                     <div className="flex gap-2">
                         {/* CTO UPDATE: Added Save as Preset Button */}
@@ -87,9 +117,22 @@ const BuilderPreviewPanel = ({
                 </div>
 
                 <div className="flex-1 p-4 overflow-y-auto font-mono text-sm leading-relaxed text-slate-300 bg-slate-900">
-                    <div className="whitespace-pre-wrap min-h-full">
-                        {renderHighlightedPrompt(generatedPrompt)}
-                    </div>
+                    {showBlueprint ? (
+                        <div className="h-full flex flex-col">
+                            <ProjectBlueprint
+                                structure={blueprintStructure}
+                                onApprove={() => console.log("Approved for Build")}
+                                onRefine={() => console.log("Refine requested")}
+                            />
+                            <p className="text-center text-xs text-slate-500 mt-4">
+                                This structure will guide the Hivemind's code generation.
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="whitespace-pre-wrap min-h-full">
+                            {renderHighlightedPrompt(generatedPrompt)}
+                        </div>
+                    )}
                 </div>
 
                 {/* Quick Actions Bar */}
