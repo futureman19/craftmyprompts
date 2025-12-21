@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
     Loader, AlertTriangle, Check, Copy, Sparkles, Bot,
     MonitorPlay, Bookmark, Eye, Code, X,
@@ -141,8 +141,27 @@ const TestRunnerResults = ({
     loading, result, error, statusMessage,
     provider, battleResults, battleConfig, refineSteps, refineView, swarmHistory,
     prompt, onSaveSnippet, onShipCode, setRefineView,
-    onContinueSwarm, onCompileSwarm, isSocialMode
+    onContinueSwarm, onCompileSwarm, isSocialMode, onBlueprintDetected
 }) => {
+    // --- BLUEPRINT DETECTION ---
+    useEffect(() => {
+        if (result && !loading) {
+            // Check for File Tree JSON structure specific to Architect output
+            const match = result.match(/\{[\s\S]*"structure"[\s\S]*\[[\s\S]*"path"[\s\S]*\}/);
+            if (match && onBlueprintDetected) {
+                try {
+                    // Try to parse just to be safe before broadcasting
+                    const clean = match[0].trim();
+                    JSON.parse(clean);
+                    // It's valid! Broadcast it up.
+                    onBlueprintDetected(clean);
+                } catch (e) {
+                    // Ignore invalid JSON
+                }
+            }
+        }
+    }, [result, loading, onBlueprintDetected]);
+
     // ... (lines 145-224)
 
     // 2. BATTLE MODE (Arena)

@@ -99,6 +99,19 @@ const BuilderPreviewPanel = ({
         }
     }, [architect.result, architect.loading]);
 
+    // NEW: Handle Blueprint Signal from Hivemind (TestRunner)
+    const handleHivemindBlueprint = (jsonString) => {
+        try {
+            const parsed = JSON.parse(jsonString);
+            if (parsed.structure) {
+                setBlueprintStructure(parsed.structure);
+                setShowBlueprint(true); // AUTO-OPEN VISUALIZER
+            }
+        } catch (e) {
+            console.error("Auto-Blueprint Failed:", e);
+        }
+    };
+
     // Calculate if we are in Social Mode
     const isSocialMode = state.mode === 'text' && state.textSubMode === 'social';
 
@@ -240,6 +253,7 @@ const BuilderPreviewPanel = ({
                     onSaveSnippet={handleSaveSnippet}
                     isSocialMode={isSocialMode}
                     activeCategory={activeCategory}
+                    onBlueprintDetected={handleHivemindBlueprint}
                 />
             </div>
         </div >

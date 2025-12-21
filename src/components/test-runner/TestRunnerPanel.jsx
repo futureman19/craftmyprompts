@@ -6,7 +6,7 @@ import TestRunnerResults from './TestRunnerResults.jsx';
 import GitHubModal from '../GitHubModal.jsx';
 import ApiKeyHelpModal from './ApiKeyHelpModal.jsx';
 
-const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippet, isSocialMode, activeCategory = 'code' }) => {
+const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippet, isSocialMode, activeCategory = 'code', onBlueprintDetected }) => {
     // 0. UI State
     const [isFullScreen, setIsFullScreen] = useState(false);
 
@@ -138,6 +138,9 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
 
                     // Social Mode Flag
                     isSocialMode={isSocialMode}
+
+                    // Blueprint Handler
+                    onBlueprintDetected={onBlueprintDetected}
                 />
             </div>
 
