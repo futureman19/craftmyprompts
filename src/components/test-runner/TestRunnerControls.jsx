@@ -1,8 +1,7 @@
-import React from 'react';
 import {
     Key, Zap, Bot, Sparkles, Swords, Layers, MonitorPlay,
     ShieldCheck, Users, Activity, Brain, Lock,
-    Plus, X, HelpCircle, Cpu, Info
+    Plus, X, HelpCircle, Cpu, Info, Terminal
 } from 'lucide-react';
 
 const TestRunnerControls = ({
