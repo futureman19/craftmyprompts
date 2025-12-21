@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
     FileText, Zap, RefreshCw, Check, Copy as CopyIcon, Braces,
     Lock, Globe, Save, Bookmark, ArrowLeft, BookmarkPlus, MessageSquare,
-    Layers, FileCode, Loader
+    Layers, FileCode, Loader, Users
 } from 'lucide-react';
 import TestRunnerPanel from '../test-runner/TestRunnerPanel.jsx';
 import ProjectBlueprint from '../agent/ProjectBlueprint.jsx';
@@ -164,6 +164,14 @@ const BuilderPreviewPanel = ({
                             title="Ask Agent"
                         >
                             <MessageSquare size={14} />
+                        </button>
+
+                        <button
+                            onClick={() => navigate('/hivemind', { state: { prompt: generatedPrompt } })}
+                            className="px-3 py-1.5 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-lg shadow-lg shadow-violet-900/20 flex items-center gap-2 transition-all ml-2"
+                            title="Execute this prompt in the Hivemind"
+                        >
+                            <Users size={14} /> Launch Hivemind
                         </button>
 
                         {state.mode === 'art' && (
