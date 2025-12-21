@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { 
-    Sparkles, Brain, MessageSquare, Users, Zap, 
+import {
+    Sparkles, Brain, MessageSquare, Users, Zap,
     Code, Feather, BarChart, ChevronRight, Check
 } from 'lucide-react';
 import ChatInterface from '../components/ChatInterface.jsx';
@@ -61,9 +61,9 @@ const AgentView = ({ user, globalApiKey, orchestrator, onUpdateBuilder }) => {
 
                 {/* Mobile Navigation */}
                 <div className="flex md:hidden bg-slate-100 dark:bg-slate-700 p-1 rounded-lg">
-                    <button onClick={() => setActiveTab('roster')} className={`p-2 rounded-md ${activeTab === 'roster' ? 'bg-white dark:bg-slate-600 shadow text-indigo-500' : 'text-slate-400'}`}><Users size={20}/></button>
-                    <button onClick={() => setActiveTab('chat')} className={`p-2 rounded-md ${activeTab === 'chat' ? 'bg-white dark:bg-slate-600 shadow text-fuchsia-500' : 'text-slate-400'}`}><MessageSquare size={20}/></button>
-                    <button onClick={() => setActiveTab('memory')} className={`p-2 rounded-md ${activeTab === 'memory' ? 'bg-white dark:bg-slate-600 shadow text-pink-500' : 'text-slate-400'}`}><Brain size={20}/></button>
+                    <button onClick={() => setActiveTab('roster')} className={`p-2 rounded-md ${activeTab === 'roster' ? 'bg-white dark:bg-slate-600 shadow text-indigo-500' : 'text-slate-400'}`}><Users size={20} /></button>
+                    <button onClick={() => setActiveTab('chat')} className={`p-2 rounded-md ${activeTab === 'chat' ? 'bg-white dark:bg-slate-600 shadow text-fuchsia-500' : 'text-slate-400'}`}><MessageSquare size={20} /></button>
+                    <button onClick={() => setActiveTab('memory')} className={`p-2 rounded-md ${activeTab === 'memory' ? 'bg-white dark:bg-slate-600 shadow text-pink-500' : 'text-slate-400'}`}><Brain size={20} /></button>
                 </div>
             </header>
 
@@ -77,7 +77,7 @@ const AgentView = ({ user, globalApiKey, orchestrator, onUpdateBuilder }) => {
                     </div>
                     <div className="flex-1 overflow-y-auto p-2 space-y-6">
                         {/* Default / Generalist */}
-                        <button 
+                        <button
                             onClick={() => { setActiveAgent(null); setActiveTab('chat'); }}
                             className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all border ${!activeAgent ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800 ring-1 ring-indigo-500/20' : 'border-transparent hover:bg-slate-50 dark:hover:bg-slate-800'}`}
                         >
@@ -88,7 +88,7 @@ const AgentView = ({ user, globalApiKey, orchestrator, onUpdateBuilder }) => {
                                 <div className="text-sm font-bold text-slate-700 dark:text-slate-200">Generalist</div>
                                 <div className="text-[10px] text-slate-400">Standard Assistant</div>
                             </div>
-                            {!activeAgent && <Check size={14} className="ml-auto text-indigo-500"/>}
+                            {!activeAgent && <Check size={14} className="ml-auto text-indigo-500" />}
                         </button>
 
                         {/* Squads */}
@@ -126,26 +126,36 @@ const AgentView = ({ user, globalApiKey, orchestrator, onUpdateBuilder }) => {
 
                 {/* 2. CENTER PANEL: CHAT INTERFACE */}
                 <div className={`flex-1 flex flex-col min-w-0 bg-slate-50 dark:bg-slate-950 transition-all duration-300 ${activeTab === 'chat' ? 'flex' : 'hidden md:flex'}`}>
-                    <div className="flex-1 p-4 md:p-6 overflow-hidden">
-                        {/* Key Logic: Pass activeAgent to the Chat Interface */}
+                    <div className="flex-1 p-4 md:p-6 overflow-hidden flex items-center justify-center">
+                        {/* DEBUGGING CRASH */}
+                        <div className="p-4 bg-red-100 text-red-800 rounded border border-red-300">
+                            <p className="font-bold">DEBUG MODE ACITVE</p>
+                            <p className="text-xs font-mono mt-2">Active Agent: {activeAgent?.name || 'None'}</p>
+                            <p className="text-xs font-mono">Tech Squad Size: {TECH_SQUAD?.length}</p>
+                        </div>
+                        {/* 
                         <ChatInterface 
-                            key={activeAgent?.id || 'default'} // Force re-mount on agent switch to clear history context cleanly
+                            key={activeAgent?.id || 'default'} 
                             activeAgent={activeAgent}
                             apiKey={globalApiKey}
                             onUpdateBuilder={onUpdateBuilder}
                             initialInput={initialInput}
                         />
+                        */}
                     </div>
                 </div>
 
                 {/* 3. RIGHT PANEL: MEMORY (Desktop: Sidebar, Mobile: Tab) */}
                 <div className={`w-full md:w-80 border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex-col transition-all duration-300 ${activeTab === 'memory' ? 'flex' : 'hidden md:flex'}`}>
+                    <div className="p-4">Memory Manager Temporarily Disabled</div>
+                    {/*
                     <MemoryManager 
                         memories={orchestrator.memories || {}} 
                         onSave={orchestrator.remember}
                         onDelete={orchestrator.forget}
                         loading={orchestrator.loading}
                     />
+                    */}
                 </div>
 
             </div>
