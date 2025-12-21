@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Layout, Globe, Bookmark, List, LogOut, LogIn, Bot, UserCircle2, MonitorPlay } from 'lucide-react';
+import { Layout, Globe, Bookmark, List, LogOut, LogIn, Bot, UserCircle2, MonitorPlay, Sun, Moon } from 'lucide-react';
 
 const Sidebar = ({ handleLogin, handleLogout, user, darkMode, toggleDarkMode }) => {
     const navigate = useNavigate();
@@ -56,6 +56,15 @@ const Sidebar = ({ handleLogin, handleLogout, user, darkMode, toggleDarkMode }) 
 
             {/* Bottom Actions - Desktop Only */}
             <div className="hidden md:flex flex-col gap-4 pb-4 items-center w-full mt-auto">
+                {/* Theme Toggle */}
+                <button
+                    onClick={toggleDarkMode}
+                    className="p-2 rounded-lg text-slate-500 hover:text-amber-500 hover:bg-amber-50 dark:hover:text-amber-400 dark:hover:bg-amber-900/20 transition-all"
+                    title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+                >
+                    {darkMode ? <Moon size={20} /> : <Sun size={20} />}
+                </button>
+
                 {/* User Dock */}
                 <button
                     onClick={() => navigate('/profile')}
