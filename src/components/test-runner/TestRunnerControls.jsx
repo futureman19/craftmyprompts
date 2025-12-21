@@ -68,7 +68,7 @@ const TestRunnerControls = ({
                             <button
                                 key={mode.id}
                                 disabled
-                                className="flex-1 min-w-[120px] py-2.5 px-4 rounded-lg text-sm font-bold text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-70 flex items-center justify-center gap-2 bg-transparent"
+                                className="flex-1 min-w-[100px] py-1.5 px-3 rounded-lg text-sm font-bold text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-70 flex items-center justify-center gap-2 bg-transparent"
                             >
                                 {mode.icon}
                                 {mode.label}
@@ -81,7 +81,7 @@ const TestRunnerControls = ({
                         <button
                             key={mode.id}
                             onClick={() => handleModeSelect(mode.id)}
-                            className={`flex-1 min-w-[120px] py-2.5 px-4 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${isActive
+                            className={`flex-1 min-w-[100px] py-1.5 px-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${isActive
                                 ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-800 dark:text-slate-100 ring-1 ring-black/5 dark:ring-white/10'
                                 : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-700/50'
                                 }`}
