@@ -160,10 +160,10 @@ const BuilderPreviewPanel = ({
                     </div>
                 </div>
 
-                <div className="flex-1 p-4 overflow-y-auto bg-slate-900 relative">
+                <div className="flex-1 min-h-0 p-4 overflow-y-auto bg-slate-900 relative scrollbar-thin scrollbar-thumb-slate-700">
                     {/* BLUEPRINT VIEW */}
                     {showBlueprint ? (
-                        <div className="h-full flex flex-col animate-in fade-in">
+                        <div className="h-full flex flex-col animate-in fade-in pb-20">
                             {architect.loading ? (
                                 <div className="h-full flex flex-col items-center justify-center text-slate-500 gap-3">
                                     <Loader size={32} className="animate-spin text-cyan-500" />
