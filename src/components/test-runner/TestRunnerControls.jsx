@@ -25,15 +25,21 @@ const TestRunnerControls = ({
     addSwarmAgent, removeSwarmAgent, updateSwarmAgent, setShowHelpModal
 }) => {
 
-    // helper to set mode
+    // Determine active tab based on viewMode and provider
+    let activeTab = 'standard';
+    if (viewMode === 'simple') activeTab = 'standard';
+    else if (provider === 'smart_chain') activeTab = 'chain';
+    else if (provider === 'battle') activeTab = 'arena';
+    else if (provider === 'swarm') activeTab = 'swarm';
+
     const handleModeSelect = (modeId) => {
-        if (modeId === 'simple') {
+        if (modeId === 'standard') {
             onViewChange('simple');
-            onProviderChange('gemini'); // Default to gemini
-        } else if (modeId === 'smart_chain') {
+            onProviderChange('gemini');
+        } else if (modeId === 'chain') {
             onViewChange('advanced');
             onProviderChange('smart_chain');
-        } else if (modeId === 'battle') {
+        } else if (modeId === 'arena') {
             onViewChange('advanced');
             onProviderChange('battle');
         } else if (modeId === 'swarm') {
@@ -42,25 +48,17 @@ const TestRunnerControls = ({
         }
     };
 
-    // Determine active tab based on viewMode and provider
-    let activeTab = 'simple';
-    if (viewMode === 'advanced') {
-        if (provider === 'smart_chain') activeTab = 'smart_chain';
-        else if (provider === 'battle') activeTab = 'battle';
-        else if (provider === 'swarm') activeTab = 'swarm';
-    }
-
     const MODES = [
-        { id: 'simple', label: 'Test with AI', icon: <Bot size={14} />, color: 'text-indigo-500' },
-        { id: 'smart_chain', label: 'Smart Prompt', icon: <Sparkles size={14} />, color: 'text-amber-500', premium: true },
-        { id: 'battle', label: 'Arena Mode', icon: <Swords size={14} />, color: 'text-rose-500', premium: true },
-        { id: 'swarm', label: 'Hivemind', icon: <Users size={14} />, color: 'text-violet-500', premium: true },
+        { id: 'standard', label: 'Test with AI', icon: <Bot size={16} />, color: 'text-indigo-500' },
+        { id: 'chain', label: 'Smart Prompt', icon: <Sparkles size={16} />, color: 'text-amber-500', premium: true },
+        { id: 'arena', label: 'Arena Mode', icon: <Swords size={16} />, color: 'text-rose-500', premium: true },
+        { id: 'swarm', label: 'Hivemind', icon: <Users size={16} />, color: 'text-violet-500', premium: true },
     ];
 
     return (
-        <div className="space-y-3">
-            {/* UNIFIED MODE SELECTOR (Compact Tabs) */}
-            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg overflow-x-auto no-scrollbar gap-1">
+        <div className="space-y-4">
+            {/* UNIFIED MODE SELECTOR (Standard Tabs) */}
+            <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-xl overflow-x-auto no-scrollbar gap-2">
                 {MODES.map(mode => {
                     const isActive = activeTab === mode.id;
                     const isLocked = mode.premium && !isLoggedIn;
@@ -70,15 +68,11 @@ const TestRunnerControls = ({
                             <button
                                 key={mode.id}
                                 disabled
-                                className="flex-1 min-w-[70px] flex flex-col items-center justify-center py-1.5 px-1 rounded-md text-[10px] font-bold text-slate-300 dark:text-slate-600 cursor-not-allowed opacity-70 group"
+                                className="flex-1 min-w-[120px] py-2.5 px-4 rounded-lg text-sm font-bold text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-70 flex items-center justify-center gap-2 bg-transparent"
                             >
-                                <div className="flex items-center gap-1">
-                                    {mode.icon}
-                                    <span>{mode.label}</span>
-                                </div>
-                                <span className="text-[8px] uppercase tracking-wider opacity-60 flex items-center gap-0.5 mt-0.5">
-                                    <Lock size={8} /> Pro
-                                </span>
+                                {mode.icon}
+                                {mode.label}
+                                <Lock size={12} className="opacity-50" />
                             </button>
                         );
                     }
@@ -87,15 +81,13 @@ const TestRunnerControls = ({
                         <button
                             key={mode.id}
                             onClick={() => handleModeSelect(mode.id)}
-                            className={`flex-1 min-w-[70px] flex flex-col items-center justify-center py-1.5 px-1 rounded-md text-[10px] font-bold transition-all ${isActive
+                            className={`flex-1 min-w-[120px] py-2.5 px-4 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${isActive
                                 ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-800 dark:text-slate-100 ring-1 ring-black/5 dark:ring-white/10'
-                                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-700/50'
                                 }`}
                         >
-                            <div className={`flex items-center gap-1.5 ${isActive ? mode.color : ''}`}>
-                                {mode.icon}
-                                <span>{mode.label}</span>
-                            </div>
+                            <span className={isActive ? mode.color : ''}>{mode.icon}</span>
+                            <span>{mode.label}</span>
                         </button>
                     );
                 })}
@@ -105,7 +97,7 @@ const TestRunnerControls = ({
             <div className="animate-in fade-in slide-in-from-top-1 duration-300">
 
                 {/* 1. TEST WITH AI (Standard) */}
-                {activeTab === 'simple' && (
+                {activeTab === 'standard' && (
                     <div className="space-y-2">
                         <select
                             value={provider}
@@ -124,7 +116,7 @@ const TestRunnerControls = ({
                 )}
 
                 {/* 2. SMART PROMPT (Smart Chain) */}
-                {activeTab === 'smart_chain' && (
+                {activeTab === 'chain' && (
                     <div className="p-3 bg-amber-50 dark:bg-amber-900/10 rounded-lg border border-amber-200 dark:border-amber-800/50 flex items-start gap-3">
                         <div className="p-1.5 bg-amber-100 dark:bg-amber-800 rounded-md text-amber-600 dark:text-amber-300">
                             <Sparkles size={16} />
@@ -139,7 +131,7 @@ const TestRunnerControls = ({
                 )}
 
                 {/* 3. BATTLE MODE */}
-                {activeTab === 'battle' && (
+                {activeTab === 'arena' && (
                     <div className="p-3 bg-rose-50 dark:bg-rose-900/10 rounded-lg border border-rose-200 dark:border-rose-800/50 space-y-2">
                         <div className="flex items-center gap-3">
                             <div className="flex-1">
@@ -188,8 +180,8 @@ const TestRunnerControls = ({
                                         key={squad.id}
                                         onClick={() => onSwarmCategoryChange(squad.id)}
                                         className={`flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[10px] font-medium transition-all ${swarmCategory === squad.id
-                                                ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-200 dark:border-slate-700'
-                                                : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700/50'
+                                            ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-200 dark:border-slate-700'
+                                            : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700/50'
                                             }`}
                                     >
                                         {squad.icon}
