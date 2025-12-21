@@ -13,9 +13,13 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
     // 1. Initialize the "Brain"
     const runner = useTestRunner(defaultApiKey, defaultOpenAIKey);
 
-    // CRITICAL: Sanitize Mode State to prevent crashes
-    // Intercepts 'Hivemind' (or other casing) and forces 'swarm'
-    const safeProvider = (runner.provider || '').toLowerCase() === 'hivemind' ? 'swarm' : runner.provider;
+    // CRITICAL: State Sanitization & Crash Prevention
+    // 1. Force lowercase to handle 'Hivemind' vs 'hivemind'
+    // 2. Map known invalid/legacy UI labels to internal IDs
+    let safeProvider = (runner.provider || 'gemini').toLowerCase();
+    if (safeProvider === 'hivemind') safeProvider = 'swarm';
+    if (safeProvider === 'arena') safeProvider = 'battle';
+    if (safeProvider === 'chain') safeProvider = 'smart_chain';
 
     // 2. Main Run Handler
     const handleRunClick = () => {

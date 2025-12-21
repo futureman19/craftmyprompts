@@ -49,16 +49,16 @@ const TestRunnerControls = ({
     };
 
     const MODES = [
-        { id: 'standard', label: 'Test with AI', icon: <Bot size={16} />, color: 'text-indigo-500' },
-        { id: 'chain', label: 'Smart Prompt', icon: <Sparkles size={16} />, color: 'text-amber-500', premium: true },
-        { id: 'arena', label: 'Arena Mode', icon: <Swords size={16} />, color: 'text-rose-500', premium: true },
-        { id: 'swarm', label: 'Hivemind', icon: <Users size={16} />, color: 'text-violet-500', premium: true },
+        { id: 'standard', label: 'Standard', icon: <Bot size={14} />, color: 'text-indigo-500' },
+        { id: 'chain', label: 'Chain', icon: <Sparkles size={14} />, color: 'text-amber-500', premium: true },
+        { id: 'arena', label: 'Arena', icon: <Swords size={14} />, color: 'text-rose-500', premium: true },
+        { id: 'swarm', label: 'Hivemind', icon: <Users size={14} />, color: 'text-violet-500', premium: true },
     ];
 
     return (
         <div className="space-y-4">
             {/* UNIFIED MODE SELECTOR (Standard Tabs) */}
-            <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-xl overflow-x-auto no-scrollbar gap-2">
+            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl overflow-x-auto no-scrollbar gap-1">
                 {MODES.map(mode => {
                     const isActive = activeTab === mode.id;
                     const isLocked = mode.premium && !isLoggedIn;
@@ -68,11 +68,11 @@ const TestRunnerControls = ({
                             <button
                                 key={mode.id}
                                 disabled
-                                className="flex-1 min-w-[100px] py-1.5 px-3 rounded-lg text-sm font-bold text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-70 flex items-center justify-center gap-2 bg-transparent"
+                                className="flex-1 min-w-[80px] py-1.5 px-2 rounded-lg text-[10px] font-bold uppercase tracking-wide text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-70 flex items-center justify-center gap-1.5 bg-transparent"
                             >
                                 {mode.icon}
                                 {mode.label}
-                                <Lock size={12} className="opacity-50" />
+                                <Lock size={10} className="opacity-50" />
                             </button>
                         );
                     }
@@ -81,7 +81,7 @@ const TestRunnerControls = ({
                         <button
                             key={mode.id}
                             onClick={() => handleModeSelect(mode.id)}
-                            className={`flex-1 min-w-[100px] py-1.5 px-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${isActive
+                            className={`flex-1 min-w-[80px] py-1.5 px-2 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all flex items-center justify-center gap-1.5 ${isActive
                                 ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-800 dark:text-slate-100 ring-1 ring-black/5 dark:ring-white/10'
                                 : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-700/50'
                                 }`}
