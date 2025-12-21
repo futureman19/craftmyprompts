@@ -27,7 +27,7 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
     };
 
     const containerClasses = isFullScreen
-        ? 'fixed inset-0 z-[100] bg-slate-950 w-screen h-screen flex flex-col p-6 animate-in zoom-in-95 duration-200'
+        ? 'fixed top-0 right-0 bottom-0 left-0 md:left-20 z-[100] bg-slate-950 flex flex-col p-6 animate-in zoom-in-95 duration-200 shadow-2xl'
         : 'flex flex-col h-full bg-slate-50 dark:bg-slate-950 transition-all duration-300';
 
     return (
