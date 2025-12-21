@@ -141,6 +141,10 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
 
                     // Blueprint Handler
                     onBlueprintDetected={onBlueprintDetected}
+
+                    // Narrative Handlers
+                    onLoopBack={runner.loopBack}
+                    onSynthesize={runner.synthesizeProject}
                 />
             </div>
 

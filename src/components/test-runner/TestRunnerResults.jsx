@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import {
     Loader, AlertTriangle, Check, Copy, Sparkles, Bot,
     MonitorPlay, Bookmark, Eye, Code, X,
-    Gauge, Maximize2, Brain, ChevronDown, ChevronRight, PlayCircle, FileCode
+    Gauge, Maximize2, Brain, ChevronDown, ChevronRight, PlayCircle, FileCode, Zap, Layers
 } from 'lucide-react';
 import CodeBlock from './CodeBlock.jsx';
 import SwarmResultGrid from './SwarmResultGrid.jsx';
@@ -141,8 +141,11 @@ const TestRunnerResults = ({
     loading, result, error, statusMessage,
     provider, battleResults, battleConfig, refineSteps, refineView, swarmHistory,
     prompt, onSaveSnippet, onShipCode, setRefineView,
-    onContinueSwarm, onCompileSwarm, isSocialMode, onBlueprintDetected
+    onContinueSwarm, onCompileSwarm, isSocialMode, onBlueprintDetected,
+    onLoopBack, onSynthesize  // <--- NEW PROPS
 }) => {
+    // Local Feedback State
+    const [feedback, setFeedback] = useState('');
     // --- BLUEPRINT DETECTION ---
     useEffect(() => {
         if (result && !loading) {
@@ -379,28 +382,66 @@ const TestRunnerResults = ({
 
                                 {/* Interactive Footer (Only for the latest step) */}
                                 {isLast && !loading && (
-                                    <div className="p-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex flex-col gap-2">
-                                        <div className="text-[10px] font-bold text-center text-slate-400 uppercase mb-1">
-                                            Recommended Action
-                                        </div>
-                                        {/* Dynamic Buttons based on Role */}
-                                        {msg.role?.includes('Visionary') ? (
-                                            <button onClick={() => onContinueSwarm("Approve Vision")} className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-900/20">
-                                                <Sparkles size={16} /> Approve & Architect
-                                            </button>
-                                        ) : msg.role?.includes('Architect') ? (
-                                            <button onClick={() => onContinueSwarm("Approve Blueprint")} className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-cyan-900/20">
-                                                <AlertTriangle size={16} /> Send to Critic
-                                            </button>
-                                        ) : msg.role?.includes('Critic') ? (
-                                            <button onClick={onCompileSwarm} className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-900/20">
-                                                <FileCode size={16} /> Synthesize & Build
-                                            </button>
-                                        ) : (
-                                            <button onClick={() => onContinueSwarm("Continue")} className="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-bold">
-                                                Continue
-                                            </button>
-                                        )}
+                                    <div className="p-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex flex-col gap-3">
+
+                                        {/* SCENARIO A: THE CRITIC (Decision Time) */}
+                                        {msg.role?.includes('Critic') ? (
+                                            <div className="space-y-3 animate-in slide-in-from-bottom-2">
+                                                <div className="text-[10px] font-bold text-center text-slate-400 uppercase tracking-widest">
+                                                    Decision Point
+                                                </div>
+
+                                                {/* Feedback Input */}
+                                                <textarea
+                                                    className="w-full p-3 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-none transition-all placeholder:text-slate-400 dark:text-slate-200"
+                                                    placeholder="Feedback for the Architect (e.g., 'Add a dark mode toggle', 'Use Supabase')..."
+                                                    rows={2}
+                                                    value={feedback}
+                                                    onChange={(e) => setFeedback(e.target.value)}
+                                                />
+
+                                                <div className="flex gap-2">
+                                                    {/* Loop Back Button */}
+                                                    <button
+                                                        onClick={() => {
+                                                            if (!feedback.trim()) return;
+                                                            onLoopBack(feedback);
+                                                            setFeedback(''); // Clear after sending
+                                                        }}
+                                                        disabled={!feedback.trim()}
+                                                        className="flex-1 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    >
+                                                        Refine Plan
+                                                    </button>
+
+                                                    {/* Ship It Button */}
+                                                    <button
+                                                        onClick={onSynthesize}
+                                                        className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold shadow-lg shadow-emerald-900/20 flex items-center justify-center gap-2 transition-all transform active:scale-95"
+                                                    >
+                                                        <Zap size={14} /> Ship It
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )
+                                            /* SCENARIO B: THE VISIONARY (Approve Vision) */
+                                            : msg.role?.includes('Visionary') ? (
+                                                <button onClick={() => onContinueSwarm("Approve Vision")} className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-900/20">
+                                                    <Layers size={16} /> Approve & Architect
+                                                </button>
+                                            )
+                                                /* SCENARIO C: THE ARCHITECT (Approve Blueprint) */
+                                                : msg.role?.includes('Architect') ? (
+                                                    <button onClick={() => onContinueSwarm("Approve Blueprint")} className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-cyan-900/20">
+                                                        <AlertTriangle size={16} /> Send to Critic
+                                                    </button>
+                                                )
+                                                    /* DEFAULT SCENARIO */
+                                                    : (
+                                                        <button onClick={() => onContinueSwarm("Continue")} className="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-bold">
+                                                            Continue
+                                                        </button>
+                                                    )}
                                     </div>
                                 )}
                             </div>
