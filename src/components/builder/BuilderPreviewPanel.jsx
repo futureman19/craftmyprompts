@@ -20,6 +20,7 @@ const BuilderPreviewPanel = ({
     const navigate = useNavigate();
     const [showBlueprint, setShowBlueprint] = useState(false);
     const [blueprintStructure, setBlueprintStructure] = useState([]);
+    const [blueprintError, setBlueprintError] = useState(null);
 
     // Initialize a dedicated "Architect" runner
     const architect = useTestRunner(globalApiKey, globalOpenAIKey);
@@ -70,22 +71,30 @@ const BuilderPreviewPanel = ({
         }
     };
 
-    // Watch for Architect Results
+    // Watch for Architect Results & Parse JSON
     useEffect(() => {
         if (architect.result && !architect.loading) {
+            setBlueprintError(null);
             try {
-                // Attempt to clean markdown if present (```json ... ```)
-                const cleanJson = architect.result.replace(/```json/g, '').replace(/```/g, '').trim();
-                const parsed = JSON.parse(cleanJson);
+                // 1. Attempt to find the first valid JSON object start/end
+                // This regex looks for the outer braces { ... } of the JSON response
+                const jsonMatch = architect.result.match(/\{[\s\S]*\}/);
 
-                if (parsed.structure && Array.isArray(parsed.structure)) {
-                    setBlueprintStructure(parsed.structure);
+                if (jsonMatch) {
+                    const cleanJson = jsonMatch[0];
+                    const parsed = JSON.parse(cleanJson);
+
+                    if (parsed.structure && Array.isArray(parsed.structure)) {
+                        setBlueprintStructure(parsed.structure);
+                    } else {
+                        throw new Error("Missing 'structure' array in JSON response.");
+                    }
                 } else {
-                    console.warn("Architect returned invalid JSON structure:", parsed);
+                    throw new Error("No valid JSON found in Architect response.");
                 }
             } catch (e) {
-                console.error("Failed to parse Architect JSON:", e);
-                // Fallback: If parsing fails, maybe show a generic tree or error
+                console.error("Blueprint Parse Error:", e);
+                setBlueprintError(e.message);
             }
         }
     }, [architect.result, architect.loading]);
@@ -154,30 +163,40 @@ const BuilderPreviewPanel = ({
                 <div className="flex-1 p-4 overflow-y-auto bg-slate-900 relative">
                     {/* BLUEPRINT VIEW */}
                     {showBlueprint ? (
-                        <div className="h-full flex flex-col">
+                        <div className="h-full flex flex-col animate-in fade-in">
                             {architect.loading ? (
-                                <div className="flex-1 flex flex-col items-center justify-center text-slate-500 gap-3">
-                                    <Loader size={24} className="text-cyan-500 animate-spin" />
-                                    <p className="text-xs">The Architect is designing your project...</p>
+                                <div className="h-full flex flex-col items-center justify-center text-slate-500 gap-3">
+                                    <Loader size={32} className="animate-spin text-cyan-500" />
+                                    <p className="text-xs font-mono">Architecting Project Structure...</p>
                                 </div>
-                            ) : (
+                            ) : blueprintError ? (
+                                <div className="p-6 text-center">
+                                    <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-xs mb-4">
+                                        <strong>Architecture Error:</strong> {blueprintError}
+                                    </div>
+                                    <p className="text-xs text-slate-500 mb-2">Raw Output:</p>
+                                    <pre className="text-[10px] text-left bg-black p-2 rounded text-slate-300 overflow-auto max-h-64">
+                                        {architect.result || "No response received."}
+                                    </pre>
+                                    <button onClick={() => handleBlueprintToggle()} className="mt-4 text-cyan-500 text-xs hover:underline">Try Again</button>
+                                </div>
+                            ) : blueprintStructure.length > 0 ? (
                                 <>
                                     <ProjectBlueprint
                                         structure={blueprintStructure}
                                         onApprove={() => console.log("Approved for Build")}
-                                        onRefine={() => console.log("Refine requested")}
+                                        onRefine={() => architect.runTest(generatedPrompt + " Refine structure", 'code')}
                                     />
-                                    {blueprintStructure.length > 0 && (
-                                        <p className="text-center text-xs text-slate-500 mt-4">
-                                            This structure will guide the Hivemind's code generation.
-                                        </p>
-                                    )}
-                                    {blueprintStructure.length === 0 && !architect.loading && (
-                                        <div className="flex-1 flex items-center justify-center text-slate-500 text-xs text-center">
-                                            No blueprint generated yet.<br />Ensure you have a prompt and API key.
-                                        </div>
-                                    )}
+                                    <p className="text-center text-[10px] text-slate-500 mt-4 font-mono">
+                                        // This manifest guides the Hivemind's generation process.
+                                    </p>
                                 </>
+                            ) : (
+                                <div className="h-full flex flex-col items-center justify-center text-slate-500">
+                                    <Layers size={32} className="opacity-20 mb-2" />
+                                    <p className="text-xs">Ready to Architect.</p>
+                                    <button onClick={() => handleBlueprintToggle()} className="mt-2 text-cyan-500 text-xs hover:underline">Generate Blueprint</button>
+                                </div>
                             )}
                         </div>
                     ) : (
@@ -223,7 +242,7 @@ const BuilderPreviewPanel = ({
                     activeCategory={activeCategory}
                 />
             </div>
-        </div>
+        </div >
     );
 };
 
