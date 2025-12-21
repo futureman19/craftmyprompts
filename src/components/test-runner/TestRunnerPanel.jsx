@@ -13,6 +13,10 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
     // 1. Initialize the "Brain"
     const runner = useTestRunner(defaultApiKey, defaultOpenAIKey);
 
+    // CRITICAL: Sanitize Mode State to prevent crashes
+    // Intercepts 'Hivemind' (or other casing) and forces 'swarm'
+    const safeProvider = (runner.provider || '').toLowerCase() === 'hivemind' ? 'swarm' : runner.provider;
+
     // 2. Main Run Handler
     const handleRunClick = () => {
         runner.runTest(prompt);
@@ -48,7 +52,7 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
                 {/* 1. CONTROLS DASHBOARD */}
                 <TestRunnerControls
                     viewMode={runner.viewMode}
-                    provider={runner.provider}
+                    provider={safeProvider}
 
                     // Keys & Auth
                     geminiKey={runner.geminiKey}
@@ -112,7 +116,7 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
                     result={runner.result}
                     error={runner.error}
                     statusMessage={runner.statusMessage}
-                    provider={runner.provider}
+                    provider={safeProvider}
                     battleResults={runner.battleResults}
                     battleConfig={runner.battleConfig}
                     refineSteps={runner.refineSteps}
@@ -138,23 +142,23 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
                     disabled={
                         runner.loading ||
                         (runner.viewMode === 'advanced' && (!runner.geminiKey || !runner.openaiKey)) ||
-                        (runner.viewMode === 'simple' && runner.provider === 'gemini' && !runner.geminiKey) ||
-                        (runner.viewMode === 'simple' && runner.provider === 'openai' && !runner.openaiKey)
+                        (runner.viewMode === 'simple' && safeProvider === 'gemini' && !runner.geminiKey) ||
+                        (runner.viewMode === 'simple' && safeProvider === 'openai' && !runner.openaiKey)
                     }
-                    className={`w-full py-3 text-white rounded-lg text-sm font-bold shadow-md flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95 ${runner.provider === 'battle' ? 'bg-gradient-to-r from-indigo-600 to-emerald-600 hover:opacity-90' :
-                        (runner.provider === 'refine' ? 'bg-gradient-to-r from-amber-500 to-orange-600' :
-                            (runner.provider === 'swarm' ? 'bg-gradient-to-r from-violet-600 to-indigo-600' :
-                                (runner.provider === 'openai' ? 'bg-emerald-600 hover:bg-emerald-700' :
-                                    (runner.provider === 'groq' ? 'bg-orange-600 hover:bg-orange-700' :
-                                        (runner.provider === 'anthropic' ? 'bg-rose-600 hover:bg-rose-700' :
-                                            (runner.provider === 'auto' ? 'bg-fuchsia-600 hover:bg-fuchsia-700' : 'bg-indigo-600 hover:bg-indigo-700'))))))
+                    className={`w-full py-3 text-white rounded-lg text-sm font-bold shadow-md flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95 ${safeProvider === 'battle' ? 'bg-gradient-to-r from-indigo-600 to-emerald-600 hover:opacity-90' :
+                        (safeProvider === 'refine' ? 'bg-gradient-to-r from-amber-500 to-orange-600' :
+                            (safeProvider === 'swarm' ? 'bg-gradient-to-r from-violet-600 to-indigo-600' :
+                                (safeProvider === 'openai' ? 'bg-emerald-600 hover:bg-emerald-700' :
+                                    (safeProvider === 'groq' ? 'bg-orange-600 hover:bg-orange-700' :
+                                        (safeProvider === 'anthropic' ? 'bg-rose-600 hover:bg-rose-700' :
+                                            (safeProvider === 'auto' ? 'bg-fuchsia-600 hover:bg-fuchsia-700' : 'bg-indigo-600 hover:bg-indigo-700'))))))
                         }`}
                 >
                     {runner.loading ? 'Running...' : (
-                        runner.provider === 'battle' ? 'Start Versus' :
-                            (runner.provider === 'refine' ? 'Start Loop' :
-                                (runner.provider === 'swarm' ? 'Start Collab' :
-                                    (runner.provider === 'auto' ? 'Auto-Run' : 'Run Test')))
+                        safeProvider === 'battle' ? 'Start Versus' :
+                            (safeProvider === 'refine' ? 'Start Loop' :
+                                (safeProvider === 'swarm' ? 'Start Collab' :
+                                    (safeProvider === 'auto' ? 'Auto-Run' : 'Run Test')))
                     )}
                 </button>
             </div>

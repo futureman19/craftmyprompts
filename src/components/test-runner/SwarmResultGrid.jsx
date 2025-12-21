@@ -18,7 +18,7 @@ const ROLE_ICONS = {
     'default': User
 };
 
-export default function SwarmResultGrid({ results, mode }) {
+export default function SwarmResultGrid({ results = [], mode }) {
     // Determine Layout based on Mode
     const isArena = mode === 'arena';
 
@@ -31,7 +31,7 @@ export default function SwarmResultGrid({ results, mode }) {
     return (
         <div className={`w-full ${isArena ? 'h-full' : ''}`}>
             <div className={gridClass}>
-                {results.map((result, index) => {
+                {Array.isArray(results) && results.map((result, index) => {
                     // Dynamic Icon Lookup
                     const Icon = ROLE_ICONS[result.id] || ROLE_ICONS[result.role?.toLowerCase()] || ROLE_ICONS.default;
 
