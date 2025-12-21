@@ -8,6 +8,7 @@ import {
 import ProjectBlueprint from '../agent/ProjectBlueprint.jsx';
 // Updated import path with explicit extension for reliability
 import TestRunnerPanel from '../test-runner/TestRunnerPanel.jsx';
+import { useTestRunner } from '../../hooks/useTestRunner.js';
 
 const BuilderPreviewPanel = ({
     // State
@@ -20,6 +21,28 @@ const BuilderPreviewPanel = ({
     const navigate = useNavigate();
     const [showBlueprint, setShowBlueprint] = React.useState(false);
     const [blueprintStructure, setBlueprintStructure] = React.useState([]);
+
+    // Initialize Architect for Blueprint Generation
+    const architect = useTestRunner(globalApiKey, globalOpenAIKey);
+
+    // Watch for Architect's Blueprint Result
+    React.useEffect(() => {
+        if (architect.result && showBlueprint && blueprintStructure.length <= 3) { // Only update if we have a real result and currently viewing mock/empty
+            try {
+                // Attempt to parse if it's a JSON string, or use directly if object
+                const data = typeof architect.result === 'string' ? JSON.parse(architect.result) : architect.result;
+
+                // If the result contains a structure buffer/file-tree
+                if (Array.isArray(data)) {
+                    setBlueprintStructure(data);
+                } else if (data.structure && Array.isArray(data.structure)) {
+                    setBlueprintStructure(data.structure);
+                }
+            } catch (e) {
+                console.warn("Could not parse Blueprint result:", e);
+            }
+        }
+    }, [architect.result, showBlueprint]);
 
     const renderHighlightedPrompt = (text) => {
         if (!text) return <span className="text-slate-500 italic">Your prompt will appear here...</span>;
@@ -75,12 +98,15 @@ const BuilderPreviewPanel = ({
                                 <button
                                     onClick={() => {
                                         setShowBlueprint(true);
-                                        // Mock data generation if empty
-                                        if (blueprintStructure.length === 0) setBlueprintStructure([
-                                            { path: "src", type: "directory" },
-                                            { path: "src/App.jsx", type: "file" },
-                                            { path: "package.json", type: "file" }
-                                        ]);
+                                        // Trigger generation if empty
+                                        if (blueprintStructure.length === 0) {
+                                            architect.runTest(generatedPrompt, 'architect');
+                                            // Set loading mock state
+                                            setBlueprintStructure([
+                                                { path: "src", type: "directory" },
+                                                { path: "src/loading...", type: "file" }
+                                            ]);
+                                        }
                                     }}
                                     className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${showBlueprint ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white'}`}
                                 >
