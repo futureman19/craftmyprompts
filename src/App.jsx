@@ -10,6 +10,7 @@ import SavedView from './views/SavedView.jsx';
 import HistoryView from './views/HistoryView.jsx';
 import BuilderView from './views/BuilderView.jsx';
 import AgentView from './views/AgentView.jsx';
+import DashboardView from './views/DashboardView.jsx'; // 3. Import Dashboard View
 import ProfileView from './views/ProfileView.jsx'; // 2. Import Profile View
 
 // Import Orchestrator Hook
@@ -86,7 +87,7 @@ const App = () => {
 
   const loadPrompt = (data) => {
     setPromptToLoad(data);
-    navigate('/');
+    navigate('/builder'); // Redirect to Builder, not Home
   };
 
   const handleLogout = async () => {
@@ -122,7 +123,16 @@ const App = () => {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative pb-20 md:pb-0">
         <Routes>
+
+          {/* DASHBOARD (Home) */}
           <Route path="/" element={
+            <DashboardView
+              onConfigureApi={() => showToast("Configure via Keys button in Test Runner for now.")}
+            />
+          } />
+
+          {/* BUILDER (Previously Home) */}
+          <Route path="/builder" element={
             <BuilderView
               user={user}
               initialData={promptToLoad}
