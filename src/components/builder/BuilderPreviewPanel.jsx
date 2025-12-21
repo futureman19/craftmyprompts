@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     FileText, Zap, RefreshCw, Check, Copy as CopyIcon, Braces,
@@ -36,6 +36,18 @@ const BuilderPreviewPanel = ({
 
     // Calculate if we are in Social Mode to conditionally show the Virality Scorecard
     const isSocialMode = state.mode === 'text' && state.textSubMode === 'social';
+
+    // Auto-detect the correct Hivemind Squad based on current mode
+    const activeCategory = useMemo(() => {
+        // Coding Mode -> Tech Squad (Architect, Visionary, Critic)
+        if (state.mode === 'text' && state.textSubMode === 'coding') return 'code';
+
+        // Data/Analytics Mode (Future proofing) -> Data Squad
+        if (state.mode === 'text' && state.textSubMode === 'data') return 'data';
+
+        // Writing, Social, Art, Video -> Creative Squad (Muse, Editor, Publisher)
+        return 'text';
+    }, [state.mode, state.textSubMode]);
 
     return (
         <div className={`bg-slate-900 text-slate-100 flex-col h-full border-l border-slate-800 shadow-xl z-20 flex-shrink-0 transition-all ${mobileTab === 'edit' ? 'hidden md:flex' : 'flex w-full'} md:w-[600px]`}>
@@ -113,6 +125,7 @@ const BuilderPreviewPanel = ({
                     defaultOpenAIKey={globalOpenAIKey}
                     onSaveSnippet={handleSaveSnippet}
                     isSocialMode={isSocialMode} // <--- PASSING THE PROP
+                    activeCategory={activeCategory} // <--- NEW PROP
                 />
             </div>
         </div>
