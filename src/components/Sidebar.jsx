@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Layout, Globe, Bookmark, List, LogOut, LogIn, Bot, UserCircle2, MonitorPlay, Sun, Moon } from 'lucide-react';
+import { Layout, Globe, Bookmark, List, LogOut, LogIn, Bot, UserCircle2, MonitorPlay, Sun, Moon, BrainCircuit, LayoutDashboard } from 'lucide-react';
 
 const Sidebar = ({ handleLogin, handleLogout, user, darkMode, toggleDarkMode }) => {
     const navigate = useNavigate();
@@ -28,7 +28,17 @@ const Sidebar = ({ handleLogin, handleLogout, user, darkMode, toggleDarkMode }) 
             {/* Navigation Items */}
             <div className="flex flex-row md:flex-col justify-around md:justify-start w-full md:w-auto gap-1 md:gap-6 items-center flex-1 md:flex-none">
 
-                {/* 1. AGENT (Prioritized) */}
+                {/* 1. MISSION CONTROL (Profile) */}
+                <button
+                    onClick={() => navigate('/profile')}
+                    className={`hidden md:flex flex-col items-center justify-center gap-1 p-2 rounded-xl transition-all w-16 md:w-14 ${isActive('/profile')}`}
+                    title="Mission Control"
+                >
+                    <LayoutDashboard size={20} className="md:w-6 md:h-6" />
+                    <span className="text-[10px] font-medium">Mission</span>
+                </button>
+
+                {/* 2. AGENT (Prioritized) */}
                 <button
                     onClick={() => navigate('/agent')}
                     className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl transition-all w-16 md:w-14 ${isAgentActive}`}
@@ -38,19 +48,24 @@ const Sidebar = ({ handleLogin, handleLogout, user, darkMode, toggleDarkMode }) 
                     <span className="text-[10px] font-bold">Agent</span>
                 </button>
 
-                {/* 2. BUILDER */}
+                {/* 3. HIVEMIND (Formerly Runner) */}
+                <button onClick={() => navigate('/test-runner')} className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl transition-all w-16 md:w-14 ${isActive('/test-runner')}`}>
+                    <BrainCircuit size={20} className="md:w-6 md:h-6" /><span className="text-[10px] font-medium">Hivemind</span>
+                </button>
+
+                {/* 4. BUILDER */}
                 <button onClick={() => navigate('/')} className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl transition-all w-16 md:w-14 ${isActive('/')}`}>
                     <Layout size={20} className="md:w-6 md:h-6" /><span className="text-[10px] font-medium">Builder</span>
                 </button>
 
-                {/* 3. TEST RUNNER */}
-                <button onClick={() => navigate('/test-runner')} className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl transition-all w-16 md:w-14 ${isActive('/test-runner')}`}>
-                    <MonitorPlay size={20} className="md:w-6 md:h-6" /><span className="text-[10px] font-medium">Runner</span>
+                {/* 5. COMMUNITY FEED */}
+                <button onClick={() => navigate('/feed')} className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl transition-all w-16 md:w-14 ${isActive('/feed')}`}>
+                    <Globe size={20} className="md:w-6 md:h-6" /><span className="text-[10px] font-medium">Feed</span>
                 </button>
 
-                {/* Secondary Links */}
+                {/* 6. SAVED PROMPTS */}
                 <button onClick={() => navigate('/library')} className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl transition-all w-16 md:w-14 ${isActive('/library')}`}>
-                    <Bookmark size={20} className="md:w-6 md:h-6" /><span className="text-[10px] font-medium">Library</span>
+                    <Bookmark size={20} className="md:w-6 md:h-6" /><span className="text-[10px] font-medium">Saved</span>
                 </button>
             </div>
 
@@ -63,15 +78,6 @@ const Sidebar = ({ handleLogin, handleLogout, user, darkMode, toggleDarkMode }) 
                     title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
                 >
                     {darkMode ? <Moon size={20} /> : <Sun size={20} />}
-                </button>
-
-                {/* User Dock */}
-                <button
-                    onClick={() => navigate('/profile')}
-                    className={`p-2 rounded-lg transition-all ${isActive('/profile')}`}
-                    title="User Dashboard"
-                >
-                    <UserCircle2 size={24} />
                 </button>
 
                 {user && user.uid !== 'demo' ? (
