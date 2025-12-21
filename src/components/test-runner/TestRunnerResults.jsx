@@ -336,29 +336,90 @@ const TestRunnerResults = ({
         );
     }
 
-    // 4. SWARM MODE
+    // 4. SWARM MODE (Storyline / Narrative)
     if (provider === 'swarm' && (loading || swarmHistory?.length > 0)) {
         return (
-            <div className="space-y-4 animate-in fade-in pb-4">
-                {swarmHistory.map((msg, idx) => (
-                    <div key={idx} className={`flex ${msg.provider === 'openai' ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[85%] rounded-2xl p-4 border ${msg.provider === 'openai' ? 'bg-emerald-50' : 'bg-indigo-50'} dark:bg-slate-800`}>
-                            <div className="flex items-center gap-2 text-xs font-bold uppercase mb-2 border-b pb-1">
-                                {msg.role} <button onClick={() => copyToClipboard(msg.text, idx)} className="ml-auto p-1"><Copy size={12} /></button>
+            <div className="h-full flex flex-col">
+                {/* Timeline Container */}
+                <div className="flex-1 flex gap-6 overflow-x-auto p-4 snap-x scrollbar-thin scrollbar-thumb-slate-700">
+
+                    {/* Render History Cards */}
+                    {swarmHistory.map((msg, idx) => {
+                        const isLast = idx === swarmHistory.length - 1;
+
+                        // Map Role to Icon/Color
+                        let RoleIcon = Bot;
+                        let roleColor = 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300';
+
+                        if (msg.role?.includes('Visionary') || msg.role?.includes('CEO')) { RoleIcon = Sparkles; roleColor = 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-300'; }
+                        else if (msg.role?.includes('Architect')) { RoleIcon = Code; roleColor = 'bg-cyan-100 text-cyan-600 dark:bg-cyan-900/50 dark:text-cyan-300'; }
+                        else if (msg.role?.includes('Critic')) { RoleIcon = AlertTriangle; roleColor = 'bg-rose-100 text-rose-600 dark:bg-rose-900/50 dark:text-rose-300'; }
+                        else if (msg.role?.includes('Executive')) { RoleIcon = Check; roleColor = 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/50 dark:text-emerald-300'; }
+
+                        return (
+                            <div key={idx} className="min-w-[300px] w-[85%] md:w-[400px] snap-center flex flex-col h-full bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm animate-in slide-in-from-right-4 duration-500">
+                                {/* Card Header */}
+                                <div className="p-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`p-2 rounded-lg ${roleColor}`}>
+                                            <RoleIcon size={18} />
+                                        </div>
+                                        <div>
+                                            <div className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Phase {idx + 1}</div>
+                                            <div className="font-bold text-slate-800 dark:text-slate-100">{msg.role}</div>
+                                        </div>
+                                    </div>
+                                    <button onClick={() => copyToClipboard(msg.text, idx)} className="text-slate-400 hover:text-white p-1"><Copy size={14} /></button>
+                                </div>
+
+                                {/* Card Content */}
+                                <div className="flex-1 p-5 overflow-y-auto font-mono text-sm leading-relaxed text-slate-700 dark:text-slate-300">
+                                    <AoTResult text={msg.text} renderContent={renderResultContent} />
+                                </div>
+
+                                {/* Interactive Footer (Only for the latest step) */}
+                                {isLast && !loading && (
+                                    <div className="p-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex flex-col gap-2">
+                                        <div className="text-[10px] font-bold text-center text-slate-400 uppercase mb-1">
+                                            Recommended Action
+                                        </div>
+                                        {/* Dynamic Buttons based on Role */}
+                                        {msg.role?.includes('Visionary') ? (
+                                            <button onClick={() => onContinueSwarm("Approve Vision")} className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-900/20">
+                                                <Sparkles size={16} /> Approve & Architect
+                                            </button>
+                                        ) : msg.role?.includes('Architect') ? (
+                                            <button onClick={() => onContinueSwarm("Approve Blueprint")} className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-cyan-900/20">
+                                                <AlertTriangle size={16} /> Send to Critic
+                                            </button>
+                                        ) : msg.role?.includes('Critic') ? (
+                                            <button onClick={onCompileSwarm} className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-900/20">
+                                                <FileCode size={16} /> Synthesize & Build
+                                            </button>
+                                        ) : (
+                                            <button onClick={() => onContinueSwarm("Continue")} className="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-bold">
+                                                Continue
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
                             </div>
-                            <div className="text-sm">
-                                <AoTResult text={msg.text} renderContent={renderResultContent} />
+                        );
+                    })}
+
+                    {/* Loading Card (Ghost) */}
+                    {loading && (
+                        <div className="min-w-[300px] w-[85%] md:w-[400px] snap-center flex flex-col h-full bg-slate-50 dark:bg-slate-900/20 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 items-center justify-center gap-4 animate-pulse">
+                            <div className="w-12 h-12 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center">
+                                <Loader size={24} className="animate-spin text-slate-400" />
                             </div>
+                            <div className="text-sm font-medium text-slate-400">{statusMessage}</div>
                         </div>
-                    </div>
-                ))}
-                {loading && <div className="text-center text-sm font-bold text-violet-500 animate-pulse">{statusMessage}</div>}
-                {!loading && swarmHistory.length > 0 && (
-                    <div className="flex gap-2 pt-2">
-                        <button onClick={() => onContinueSwarm(prompt)} className="flex-1 py-2 bg-violet-100 text-violet-700 rounded-lg text-xs font-bold flex items-center justify-center gap-2"><PlayCircle size={16} /> Continue</button>
-                        <button onClick={onCompileSwarm} className="flex-1 py-2 bg-slate-800 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-2"><FileCode size={16} /> Compile</button>
-                    </div>
-                )}
+                    )}
+
+                    {/* Spacer for scrolling */}
+                    <div className="min-w-[20px]"></div>
+                </div>
             </div>
         );
     }

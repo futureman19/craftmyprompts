@@ -57,6 +57,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
     `;
 
     // --- 3. EXECUTION STATE ---
+    const [storyStep, setStoryStep] = useState('idle'); // 'idle', 'vision', 'blueprint', 'critique', 'synthesis'
     const [swarmHistory, setSwarmHistory] = useState([]);
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState(null);
@@ -408,20 +409,103 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         }
     };
 
+    // --- 10. NARRATIVE STATE MACHINE ---
+    // Helper to call a specific agent (Narrative Mode)
+    const runSingleAgent = async (agentId, userPrompt, contextHistory = []) => {
+        setLoading(true);
+        setStatusMessage(`Creating Signal for ${agentId}...`);
+        try {
+            const apiKeys = {
+                openai: openaiKey,
+                anthropic: anthropicKey,
+                gemini: geminiKey,
+                groq: groqKey
+            };
+
+            const response = await fetch('/api/swarm', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    prompt: userPrompt,
+                    keys: apiKeys,
+                    targetAgentId: agentId, // <--- TARGET SPECIFIC AGENT
+                    context: contextHistory // Optional: Pass history if backend supports it
+                })
+            });
+
+            if (!response.ok) throw new Error("Agent Unreachable");
+
+            const data = await response.json();
+            const agentResult = data.swarm[0];
+
+            // Map result for UI
+            const uiMessage = {
+                ...agentResult,
+                text: agentResult.content,
+                provider: agentResult.meta?.model || agentId
+            };
+
+            // Update History
+            setSwarmHistory(prev => [...prev, uiMessage]);
+            return uiMessage;
+
+        } catch (e) {
+            console.error("Single Agent Error:", e);
+            setError(e.message);
+        } finally {
+            setLoading(false);
+            setStatusMessage('');
+        }
+    };
+
+    // Narrative Methods
+    const startNarrative = async (prompt) => {
+        setSwarmHistory([]); // Clear previous
+        setStoryStep('vision');
+        await runSingleAgent('visionary', prompt);
+    };
+
+    const approveVision = async () => {
+        setStoryStep('blueprint');
+        const visionContext = swarmHistory.map(m => `[${m.role}]: ${m.text}`).join('\n');
+        await runSingleAgent('architect', `APPROVED VISION. Create the technical blueprint based on:\n${visionContext}`);
+    };
+
+    const approveBlueprint = async () => {
+        setStoryStep('critique');
+        const context = swarmHistory.map(m => `[${m.role}]: ${m.text}`).join('\n');
+        await runSingleAgent('critic', `Review this plan for security and logic flaws:\n${context}`);
+    };
+
+    const submitFeedback = async (userFeedback) => {
+        setStoryStep('synthesis');
+        const context = swarmHistory.map(m => `[${m.role}]: ${m.text}`).join('\n');
+        // Call Executive (Manager) which is default for 'synthesize' mode, or explicit ID
+        await runSingleAgent('executive', `Finalize the Master Plan. Address this feedback: "${userFeedback}"\n\nFull Context:\n${context}`);
+    };
+
+    const resetNarrative = () => {
+        setStoryStep('idle');
+        setSwarmHistory([]);
+        setResult(null);
+    };
+
     return {
         // State
         viewMode, provider, refineView, showGithub, codeToShip, refineConfig, swarmConfig, swarmHistory,
         geminiKey, openaiKey, groqKey, anthropicKey, battleConfig, loading, result, battleResults,
         refineSteps, statusMessage, error, selectedModel, availableModels, isLoggedIn, githubToken,
-        showHelpModal, routerReasoning, swarmCategory,
+        showHelpModal, routerReasoning, swarmCategory, storyStep,
 
         // Setters
         setGeminiKey, setOpenaiKey, setGroqKey, setAnthropicKey, setProvider, setRefineView,
         setShowGithub, setRefineConfig, setSwarmConfig, setBattleConfig, setSelectedModel,
-        setGithubToken, setShowHelpModal, setSwarmCategory,
+        setGithubToken, setShowHelpModal, setSwarmCategory, setStoryStep,
 
         // Methods
         runTest, fetchModels, clearKey, handleShipCode, handleViewChange, continueSwarm,
-        compileSwarmCode, addSwarmAgent, removeSwarmAgent, updateSwarmAgent, shipToGithub
+        compileSwarmCode, addSwarmAgent, removeSwarmAgent, updateSwarmAgent, shipToGithub,
+        // Narrative Methods
+        startNarrative, approveVision, approveBlueprint, submitFeedback, resetNarrative
     };
 };
