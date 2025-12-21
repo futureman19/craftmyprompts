@@ -1,12 +1,10 @@
 import { checkRateLimit } from './_utils/rate-limiter.js';
-// FIXED IMPORT: Reading from local utils instead of src
-import { AGENT_SQUADS, MANAGER_AGENT, CRITIC } from './_utils/squad-config.js';
 
 export const config = {
     maxDuration: 60, // Allow up to 60 seconds for sequential processing
 };
 
-// --- MODEL REGISTRY (2025 STANDARD) ---
+// --- 1. MODEL REGISTRY (Dec 2025 Standard) ---
 const MODELS = {
     gemini: 'gemini-2.5-flash-lite',
     claude: 'claude-haiku-4-5',
@@ -14,96 +12,156 @@ const MODELS = {
     groq: 'llama-3.1-8b-instant'
 };
 
-/**
- * THE CORTEX: Hivemind Orchestrator
- * Implements Sequential Dependency (Waterfall) logic.
- * Flow: Squad (Parallel) -> Critic (Audit) -> Executive (Synthesis)
- */
-export default async function handler(req, res) {
-    // 1. Rate Limit Check
-    const limitStatus = checkRateLimit(req);
-    if (!limitStatus.success) {
-        return res.status(429).json({ error: limitStatus.error });
-    }
+// --- 2. AGENT DEFINITIONS (Inlined for Stability) ---
 
-    if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
-    }
+// Tech Squad
+const VISIONARY = {
+    id: 'visionary', name: 'The Visionary', role: 'Product Strategy', provider: 'openai',
+    systemPrompt: `IDENTITY: You are The Visionary. Goal: Maximize Product-Market Fit.
+    COGNITIVE PROTOCOL: 1. Generate 3 divergent strategic angles. 2. Focus on psychological impact.
+    OUTPUT: North Star, Viral Loop, User Psychology.`
+};
+const ARCHITECT = {
+    id: 'architect', name: 'The Architect', role: 'Tech Implementation', provider: 'claude',
+    systemPrompt: `IDENTITY: You are The Architect. Priority: Clean Code & Modularity.
+    COGNITIVE PROTOCOL: 1. Generate structural Skeleton first. 2. Enforce Separation of Concerns.
+    OUTPUT: Tech Stack, Database Schema, API Specs.`
+};
+const CRITIC = {
+    id: 'critic', name: 'The Critic', role: 'Risk Analysis', provider: 'gemini',
+    systemPrompt: `IDENTITY: You are The Critic (CISO). Job: Destroy the proposal.
+    COGNITIVE PROTOCOL: 1. Analyze for OWASP Top 10. 2. Simulate malicious user behavior.
+    OUTPUT: Threat Model, Compliance Violations, UX Friction.`
+};
+
+// Creative Squad
+const MUSE = {
+    id: 'muse', name: 'The Muse', role: 'Creative Director', provider: 'openai',
+    systemPrompt: `IDENTITY: You are The Muse. Goal: Radical Originality.
+    OUTPUT: Metaphorical Concept, Sensory Palette, Emotional Resonance.`
+};
+const EDITOR = {
+    id: 'editor', name: 'The Editor', role: 'Structural Editor', provider: 'claude',
+    systemPrompt: `IDENTITY: You are The Editor. Goal: Structure & Economy.
+    OUTPUT: Structural Analysis, Pacing Check, Rewritten Excerpts.`
+};
+const PUBLISHER = {
+    id: 'publisher', name: 'The Publisher', role: 'Audience Advocate', provider: 'gemini',
+    systemPrompt: `IDENTITY: You are The Publisher. Bias: Commercial Viability.
+    OUTPUT: Viral Hook Options, SEO Keywords, Readability Score.`
+};
+
+// Data Squad
+const ANALYST = {
+    id: 'analyst', name: 'The Analyst', role: 'Insight Generator', provider: 'openai',
+    systemPrompt: `IDENTITY: You are The Analyst. Transform noise into strategy.
+    OUTPUT: The Insight Narrative, Strategic Drivers, Prescription.`
+};
+const QUANT = {
+    id: 'quant', name: 'The Quant', role: 'Methodology Engineer', provider: 'claude',
+    systemPrompt: `IDENTITY: You are The Quant. You speak in Python/Pandas.
+    OUTPUT: Executable Python Code Block.`
+};
+const SKEPTIC = {
+    id: 'skeptic', name: 'The Skeptic', role: 'Statistical Auditor', provider: 'gemini',
+    systemPrompt: `IDENTITY: You are The Skeptic. Bias: Statistical Pessimism.
+    OUTPUT: Confidence Score, Critical Failures, Warnings.`
+};
+
+// Executive
+const MANAGER_AGENT = {
+    id: 'executive', name: 'The Executive', role: 'Decision Maker', provider: 'openai',
+    systemPrompt: `IDENTITY: You are The Executive. Govern the Boardroom.
+    OUTPUT: Executive Summary, Master Plan, Risk Mitigation.`
+};
+
+// Squad Mapping
+const AGENT_SQUADS = {
+    code: [VISIONARY, ARCHITECT, CRITIC],
+    text: [MUSE, EDITOR, PUBLISHER],
+    data: [ANALYST, QUANT, SKEPTIC],
+    default: [VISIONARY, ARCHITECT, CRITIC]
+};
+
+// --- 3. MAIN HANDLER ---
+export default async function handler(req, res) {
+    // A. Rate Limit
+    const limitStatus = checkRateLimit(req);
+    if (!limitStatus.success) return res.status(429).json({ error: limitStatus.error });
+
+    // B. Method Check
+    if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
     const { prompt, mode, category, keys = {} } = req.body;
     const { openai: openAIKey, anthropic: anthropicKey, gemini: geminiKey, groq: groqKey } = keys;
 
-    // Helper: Execute a single agent
+    // Helper: Run Single Agent
     const runAgent = async (agent, context = "") => {
         try {
-            // A. Resolve Model ID
-            // We map the abstract provider name (e.g. 'gemini') to the strict model ID
             const strictModel = MODELS[agent.provider || 'gemini'] || MODELS.gemini;
-
-            // B. Construct Prompt
-            // If context exists (from previous steps), inject it
             const fullSystemPrompt = context
                 ? `${agent.systemPrompt}\n\n### PREVIOUS CONTEXT (AUDIT MATERIAL):\n${context}`
                 : agent.systemPrompt;
 
             let content = "";
 
-            // C. Provider Dispatch
+            // Provider Switch
             if (agent.provider === 'openai') {
                 if (!openAIKey) throw new Error("Missing OpenAI Key");
-                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                const r = await fetch('https://api.openai.com/v1/chat/completions', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openAIKey}` },
                     body: JSON.stringify({
                         model: strictModel,
-                        messages: [
-                            { role: "system", content: fullSystemPrompt },
-                            { role: "user", content: prompt }
-                        ],
-                        temperature: agent.temperature || 0.7
+                        messages: [{ role: "system", content: fullSystemPrompt }, { role: "user", content: prompt }],
+                        temperature: 0.7
                     })
                 });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.error?.message || "OpenAI Error");
-                content = data.choices[0].message.content;
-
-            } else if (agent.provider === 'claude') {
+                const d = await r.json();
+                if (!r.ok) throw new Error(d.error?.message || "OpenAI Error");
+                content = d.choices[0].message.content;
+            }
+            else if (agent.provider === 'claude') {
                 if (!anthropicKey) throw new Error("Missing Anthropic Key");
-                const response = await fetch('https://api.anthropic.com/v1/messages', {
+                const r = await fetch('https://api.anthropic.com/v1/messages', {
                     method: 'POST',
-                    headers: {
-                        'x-api-key': anthropicKey,
-                        'anthropic-version': '2023-06-01',
-                        'content-type': 'application/json'
-                    },
+                    headers: { 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
                     body: JSON.stringify({
                         model: strictModel,
                         max_tokens: 1024,
                         system: fullSystemPrompt,
-                        messages: [{ role: "user", content: prompt }],
-                        temperature: agent.temperature || 0.7
+                        messages: [{ role: "user", content: prompt }]
                     })
                 });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.error?.message || "Anthropic Error");
-                content = data.content?.[0]?.text;
-
-            } else if (agent.provider === 'gemini') {
+                const d = await r.json();
+                if (!r.ok) throw new Error(d.error?.message || "Anthropic Error");
+                content = d.content?.[0]?.text;
+            }
+            else if (agent.provider === 'gemini') {
                 if (!geminiKey) throw new Error("Missing Gemini Key");
                 const modelPath = strictModel.startsWith('models/') ? strictModel : `models/${strictModel}`;
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/${modelPath}:generateContent?key=${geminiKey}`, {
+                const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/${modelPath}:generateContent?key=${geminiKey}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: `${fullSystemPrompt}\n\nUser Query: ${prompt}` }] }] })
+                });
+                const d = await r.json();
+                if (!r.ok) throw new Error(d.error?.message || "Gemini Error");
+                content = d.candidates?.[0]?.content?.parts?.[0]?.text;
+            }
+            else if (agent.provider === 'groq') {
+                if (!groqKey) throw new Error("Missing Groq Key");
+                const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${groqKey}` },
                     body: JSON.stringify({
-                        contents: [{
-                            role: "user",
-                            parts: [{ text: `${fullSystemPrompt}\n\nUser Query: ${prompt}` }]
-                        }]
+                        model: strictModel,
+                        messages: [{ role: "system", content: fullSystemPrompt }, { role: "user", content: prompt }]
                     })
                 });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.error?.message || "Gemini Error");
-                content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                const d = await r.json();
+                if (!r.ok) throw new Error(d.error?.message || "Groq Error");
+                content = d.choices[0].message.content;
             }
 
             return {
@@ -115,7 +173,7 @@ export default async function handler(req, res) {
             };
 
         } catch (error) {
-            console.error(`Hivemind Agent Failed (${agent.name}):`, error.message);
+            console.error(`Agent Failed (${agent.name}):`, error.message);
             return {
                 id: agent.id,
                 name: agent.name,
@@ -130,38 +188,29 @@ export default async function handler(req, res) {
     try {
         let results = [];
 
-        // MODE 1: SYNTHESIZE (Executive Only)
         if (mode === 'synthesize') {
-            const executiveResult = await runAgent(MANAGER_AGENT);
-            results = [executiveResult];
-        }
-        // MODE 2: FULL HIVE (Sequential Waterfall)
-        else {
-            const activeSquad = AGENT_SQUADS[category] || AGENT_SQUADS.default;
+            const execResult = await runAgent(MANAGER_AGENT);
+            results = [execResult];
+        } else {
+            // Waterfall Logic
+            const squad = AGENT_SQUADS[category] || AGENT_SQUADS.default;
 
-            // --- STEP 1: GENERATION (Parallel) ---
-            const creators = activeSquad.filter(a => a.id !== 'critic');
-            const step1Results = await Promise.all(creators.map(agent => runAgent(agent)));
-            results.push(...step1Results);
+            // 1. Creators (Parallel)
+            const creators = squad.filter(a => a.id !== 'critic');
+            const step1 = await Promise.all(creators.map(a => runAgent(a)));
+            results.push(...step1);
 
-            // Construct context for the Critic
-            const step1Context = step1Results.map(r => `[${r.role}]: ${r.content}`).join('\n\n');
-
-            // --- STEP 2: AUDIT (Sequential) ---
-            let criticAgent = activeSquad.find(a => a.id === 'critic');
-            if (!criticAgent) criticAgent = CRITIC;
-
-            const step2Result = await runAgent(criticAgent, step1Context);
-            results.push(step2Result);
+            // 2. Critic (Sequential)
+            const critic = squad.find(a => a.id === 'critic') || CRITIC;
+            const context = step1.map(r => `[${r.role}]: ${r.content}`).join('\n\n');
+            const step2 = await runAgent(critic, context);
+            results.push(step2);
         }
 
-        return res.status(200).json({
-            swarm: results,
-            timestamp: new Date().toISOString()
-        });
+        return res.status(200).json({ swarm: results, timestamp: new Date().toISOString() });
 
     } catch (globalError) {
-        console.error("Hivemind Orchestration Failed:", globalError);
+        console.error("Swarm Fatal Error:", globalError);
         return res.status(500).json({ error: "The Hivemind failed to synchronize." });
     }
 }
