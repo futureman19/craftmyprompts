@@ -1,11 +1,12 @@
 import { checkRateLimit } from './_utils/rate-limiter.js';
-import { AGENT_SQUADS, MANAGER_AGENT, CRITIC } from '../src/lib/swarm-agents.js';
+// FIXED IMPORT: Reading from local utils instead of src
+import { AGENT_SQUADS, MANAGER_AGENT, CRITIC } from './_utils/squad-config.js';
 
 export const config = {
     maxDuration: 60, // Allow up to 60 seconds for sequential processing
 };
 
-// --- MODEL REGISTRY ---
+// --- MODEL REGISTRY (2025 STANDARD) ---
 const MODELS = {
     gemini: 'gemini-2.5-flash-lite',
     claude: 'claude-haiku-4-5',
@@ -48,8 +49,7 @@ export default async function handler(req, res) {
             let content = "";
 
             // C. Provider Dispatch
-            if (strictModel.startsWith('gpt-')) {
-                // OpenAI
+            if (agent.provider === 'openai') {
                 if (!openAIKey) throw new Error("Missing OpenAI Key");
                 const response = await fetch('https://api.openai.com/v1/chat/completions', {
                     method: 'POST',
@@ -67,8 +67,7 @@ export default async function handler(req, res) {
                 if (!response.ok) throw new Error(data.error?.message || "OpenAI Error");
                 content = data.choices[0].message.content;
 
-            } else if (strictModel.includes('claude')) {
-                // Anthropic
+            } else if (agent.provider === 'claude') {
                 if (!anthropicKey) throw new Error("Missing Anthropic Key");
                 const response = await fetch('https://api.anthropic.com/v1/messages', {
                     method: 'POST',
@@ -89,8 +88,7 @@ export default async function handler(req, res) {
                 if (!response.ok) throw new Error(data.error?.message || "Anthropic Error");
                 content = data.content?.[0]?.text;
 
-            } else if (strictModel.includes('gemini')) {
-                // Google Gemini
+            } else if (agent.provider === 'gemini') {
                 if (!geminiKey) throw new Error("Missing Gemini Key");
                 const modelPath = strictModel.startsWith('models/') ? strictModel : `models/${strictModel}`;
                 const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/${modelPath}:generateContent?key=${geminiKey}`, {
@@ -106,25 +104,6 @@ export default async function handler(req, res) {
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.error?.message || "Gemini Error");
                 content = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-            } else if (strictModel.includes('llama')) {
-                // Groq
-                if (!groqKey) throw new Error("Missing Groq Key");
-                const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${groqKey}` },
-                    body: JSON.stringify({
-                        model: strictModel,
-                        messages: [
-                            { role: "system", content: fullSystemPrompt },
-                            { role: "user", content: prompt }
-                        ],
-                        temperature: agent.temperature || 0.7
-                    })
-                });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.error?.message || "Groq Error");
-                content = data.choices[0].message.content;
             }
 
             return {
@@ -161,7 +140,6 @@ export default async function handler(req, res) {
             const activeSquad = AGENT_SQUADS[category] || AGENT_SQUADS.default;
 
             // --- STEP 1: GENERATION (Parallel) ---
-            // Run the main experts (Visionary, Architect, etc.) but NOT the Critic yet
             const creators = activeSquad.filter(a => a.id !== 'critic');
             const step1Results = await Promise.all(creators.map(agent => runAgent(agent)));
             results.push(...step1Results);
@@ -170,25 +148,11 @@ export default async function handler(req, res) {
             const step1Context = step1Results.map(r => `[${r.role}]: ${r.content}`).join('\n\n');
 
             // --- STEP 2: AUDIT (Sequential) ---
-            // The Critic runs ONLY after Step 1 is done, ingesting their output
-            // We look for a Critic in the squad or fallback to the default Critic
             let criticAgent = activeSquad.find(a => a.id === 'critic');
-            if (!criticAgent) criticAgent = CRITIC; // Fallback if squad has no critic
+            if (!criticAgent) criticAgent = CRITIC;
 
             const step2Result = await runAgent(criticAgent, step1Context);
             results.push(step2Result);
-
-            // --- STEP 3: SYNTHESIS (Sequential) ---
-            // The Executive runs last, seeing everything
-            const fullContext = `
-            ${step1Context}
-            
-            [${step2Result.role}]: ${step2Result.content}
-            `;
-
-            // Note: In the UI, the Executive is usually triggered manually via "Compile", 
-            // but if we wanted full auto-mode, we would run it here.
-            // For now, we return the Squad + Critic results so the UI can display them.
         }
 
         return res.status(200).json({
