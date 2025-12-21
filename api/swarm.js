@@ -92,7 +92,7 @@ export default async function handler(req, res) {
     // B. Method Check
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-    const { prompt, mode, category, keys = {} } = req.body;
+    const { prompt, mode, category, keys = {}, targetAgentId } = req.body;
     const { openai: openAIKey, anthropic: anthropicKey, gemini: geminiKey, groq: groqKey } = keys;
 
     // Helper: Run Single Agent
@@ -188,11 +188,32 @@ export default async function handler(req, res) {
     try {
         let results = [];
 
-        if (mode === 'synthesize') {
+        if (targetAgentId) {
+            // MODE A: SINGLE AGENT (Narrative Step)
+            // Flatten all squads to find the target agent
+            const allAgents = [
+                ...AGENT_SQUADS.code,
+                ...AGENT_SQUADS.text,
+                ...AGENT_SQUADS.data,
+                MANAGER_AGENT // Don't forget the Executive
+            ];
+
+            const targetAgent = allAgents.find(a => a.id === targetAgentId);
+
+            if (!targetAgent) {
+                // Determine which squad the ID might belong to for a fallback, or just error
+                throw new Error(`Agent ID '${targetAgentId}' not found in any squad.`);
+            }
+
+            // Run just this agent
+            const result = await runAgent(targetAgent);
+            results.push(result);
+
+        } else if (mode === 'synthesize') {
             const execResult = await runAgent(MANAGER_AGENT);
             results = [execResult];
         } else {
-            // Waterfall Logic
+            // MODE C: FULL SQUAD (Legacy Waterfall)
             const squad = AGENT_SQUADS[category] || AGENT_SQUADS.default;
 
             // 1. Creators (Parallel)
