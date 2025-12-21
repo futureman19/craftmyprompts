@@ -51,7 +51,7 @@ const TestRunnerControls = ({
 
     const MODES = [
         { id: 'standard', label: 'Standard', icon: <Bot size={14} />, color: 'text-indigo-500' },
-        { id: 'chain', label: 'Chain', icon: <Sparkles size={14} />, color: 'text-amber-500', premium: true },
+        { id: 'chain', label: 'Smart', icon: <Sparkles size={14} />, color: 'text-amber-500', premium: true },
         { id: 'arena', label: 'Arena', icon: <Swords size={14} />, color: 'text-rose-500', premium: true },
         { id: 'swarm', label: 'Hivemind', icon: <Users size={14} />, color: 'text-violet-500', premium: true },
     ];
@@ -165,31 +165,17 @@ const TestRunnerControls = ({
                     </div>
                 )}
 
-                {/* 4. HIVEMIND (Swarm) */}
+                {/* 4. HIVEMIND (Swarm) - AUTO MODE */}
                 {activeTab === 'swarm' && (
-                    <div className="bg-white dark:bg-slate-900 rounded-lg p-3 border border-slate-200 dark:border-slate-800 space-y-2">
-                        {/* SQUAD SELECTOR */}
-                        <div className="space-y-1">
-                            <label className="text-[9px] font-bold uppercase text-slate-400">Select Squad</label>
-                            <div className="grid grid-cols-3 gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-md">
-                                {[
-                                    { id: 'code', label: 'Tech', icon: <Terminal size={12} /> },
-                                    { id: 'text', label: 'Creative', icon: <Sparkles size={12} /> },
-                                    { id: 'data', label: 'Data', icon: <Bot size={12} /> }
-                                ].map((squad) => (
-                                    <button
-                                        key={squad.id}
-                                        onClick={() => onSwarmCategoryChange(squad.id)}
-                                        className={`flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[10px] font-medium transition-all ${swarmCategory === squad.id
-                                            ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-200 dark:border-slate-700'
-                                            : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700/50'
-                                            }`}
-                                    >
-                                        {squad.icon}
-                                        {squad.label}
-                                    </button>
-                                ))}
-                            </div>
+                    <div className="p-3 bg-violet-50 dark:bg-violet-900/10 rounded-lg border border-violet-200 dark:border-violet-800/50 flex items-start gap-3">
+                        <div className="p-1.5 bg-violet-100 dark:bg-violet-800 rounded-md text-violet-600 dark:text-violet-300">
+                            <Zap size={16} />
+                        </div>
+                        <div>
+                            <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">Auto-Squad Active</h4>
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-tight">
+                                Agents selected automatically based on your active Dock category.
+                            </p>
                         </div>
                     </div>
                 )}

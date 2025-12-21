@@ -185,7 +185,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
     const [swarmCategory, setSwarmCategory] = useState('code'); // 'code', 'text', 'data'
 
     // --- 7. SWARM ENGINE (The Boardroom) ---
-    const runSwarm = async (prompt) => {
+    const runSwarm = async (prompt, categoryOverride) => {
         setStatusMessage('The Boardroom is convening... (Connecting to Cortex)');
         setSwarmHistory([]);
 
@@ -198,14 +198,14 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
             };
 
             // Call The Cortex (Server-Side Swarm Orchestrator)
-            // PASS THE CATEGORY HERE
+            // PASS THE CATEGORY HERE (Override takes precedence)
             const response = await fetch('/api/swarm', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     prompt,
                     keys: apiKeys,
-                    category: swarmCategory // <--- NEW: Dynamic Category
+                    category: categoryOverride || swarmCategory // <--- NEW: Dynamic Category Override
                 })
             });
 
@@ -235,7 +235,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
     };
 
     // --- 8. MAIN TEST RUNNER ---
-    const runTest = async (prompt) => {
+    const runTest = async (prompt, categoryOverride) => {
         setLoading(true);
         setError(null);
         setResult(null);
@@ -305,7 +305,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
             // --- STEP 1: EXECUTION PATHS ---
             if (provider === 'swarm') {
                 // Pass current category state implicitly via runSwarm using closure
-                await runSwarm(prompt);
+                await runSwarm(prompt, categoryOverride);
             } else if (provider === 'battle') {
                 setStatusMessage(`Versus: ${battleConfig.fighterA} vs ${battleConfig.fighterB}...`);
                 const [rA, rB] = await Promise.allSettled([

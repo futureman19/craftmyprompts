@@ -6,7 +6,7 @@ import TestRunnerResults from './TestRunnerResults.jsx';
 import GitHubModal from '../GitHubModal.jsx';
 import ApiKeyHelpModal from './ApiKeyHelpModal.jsx';
 
-const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippet, isSocialMode }) => {
+const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippet, isSocialMode, activeCategory = 'code' }) => {
     // 0. UI State
     const [isFullScreen, setIsFullScreen] = useState(false);
 
@@ -23,7 +23,7 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
 
     // 2. Main Run Handler
     const handleRunClick = () => {
-        runner.runTest(prompt);
+        runner.runTest(prompt, activeCategory);
     };
 
     const containerClasses = isFullScreen
