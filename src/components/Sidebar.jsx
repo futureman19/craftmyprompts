@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Layout, Globe, Bookmark, LogOut, LogIn, Bot, UserCircle2, Sun, Moon } from 'lucide-react';
+import { Layout, Globe, Bookmark, LogOut, LogIn, Bot, UserCircle2, Sun, Moon, Users } from 'lucide-react';
 
 const Sidebar = ({ handleLogin, handleLogout, user, darkMode, toggleDarkMode }) => {
     const navigate = useNavigate();
@@ -40,6 +40,11 @@ const Sidebar = ({ handleLogin, handleLogout, user, darkMode, toggleDarkMode }) 
                     <Layout size={20} className="md:w-6 md:h-6" /><span className="text-[10px] font-medium">Builder</span>
                 </button>
 
+                {/* 2.5 HIVEMIND */}
+                <button onClick={() => navigate('/hivemind')} className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl transition-all w-16 md:w-14 ${isActive('/hivemind')}`}>
+                    <Users size={20} className="md:w-6 md:h-6" /><span className="text-[10px] font-medium">Hivemind</span>
+                </button>
+
                 {/* 3. COMMUNITY FEED */}
                 <button onClick={() => navigate('/feed')} className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl transition-all w-16 md:w-14 ${isActive('/feed')}`}>
                     <Globe size={20} className="md:w-6 md:h-6" /><span className="text-[10px] font-medium">Feed</span>
@@ -53,7 +58,7 @@ const Sidebar = ({ handleLogin, handleLogout, user, darkMode, toggleDarkMode }) 
 
             {/* Bottom Actions - Desktop Only */}
             <div className="hidden md:flex flex-col gap-4 pb-4 items-center w-full mt-auto">
-                
+
                 {/* 5. Theme Toggle */}
                 <button
                     onClick={toggleDarkMode}

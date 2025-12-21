@@ -10,6 +10,7 @@ import SavedView from './views/SavedView.jsx';
 import HistoryView from './views/HistoryView.jsx';
 import BuilderView from './views/BuilderView.jsx';
 import AgentView from './views/AgentView.jsx';
+import HivemindView from './views/HivemindView.jsx';
 import ProfileView from './views/ProfileView.jsx'; // 2. Import Profile View
 
 // Import Orchestrator Hook
@@ -145,6 +146,8 @@ const App = () => {
               }}
             />
           } />
+
+          <Route path="/hivemind" element={<HivemindView user={user} globalApiKey={globalApiKey} globalOpenAIKey={import.meta.env.VITE_OPENAI_API_KEY || ''} />} />
 
           <Route path="/feed" element={<FeedView user={user} loadPrompt={loadPrompt} onLoginRequest={handleLoginRequest} />} />
 
