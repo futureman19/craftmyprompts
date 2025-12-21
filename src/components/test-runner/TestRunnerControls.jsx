@@ -58,10 +58,9 @@ const TestRunnerControls = ({
     ];
 
     return (
-        <div className="space-y-6">
-
-            {/* UNIFIED MODE SELECTOR (Tabs) */}
-            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl overflow-x-auto no-scrollbar">
+        <div className="space-y-3">
+            {/* UNIFIED MODE SELECTOR (Compact Tabs) */}
+            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg overflow-x-auto no-scrollbar gap-1">
                 {MODES.map(mode => {
                     const isActive = activeTab === mode.id;
                     const isLocked = mode.premium && !isLoggedIn;
@@ -71,13 +70,13 @@ const TestRunnerControls = ({
                             <button
                                 key={mode.id}
                                 disabled
-                                className="flex-1 min-w-[100px] flex flex-col items-center justify-center py-2 px-1 rounded-lg text-xs font-bold text-slate-300 dark:text-slate-600 cursor-not-allowed opacity-70 relative group"
+                                className="flex-1 min-w-[70px] flex flex-col items-center justify-center py-1.5 px-1 rounded-md text-[10px] font-bold text-slate-300 dark:text-slate-600 cursor-not-allowed opacity-70 group"
                             >
-                                <div className="flex items-center gap-1.5 mb-0.5">
+                                <div className="flex items-center gap-1">
                                     {mode.icon}
                                     <span>{mode.label}</span>
                                 </div>
-                                <span className="text-[9px] uppercase tracking-wider opacity-60 flex items-center gap-1">
+                                <span className="text-[8px] uppercase tracking-wider opacity-60 flex items-center gap-0.5 mt-0.5">
                                     <Lock size={8} /> Pro
                                 </span>
                             </button>
@@ -88,18 +87,15 @@ const TestRunnerControls = ({
                         <button
                             key={mode.id}
                             onClick={() => handleModeSelect(mode.id)}
-                            className={`flex-1 min-w-[100px] flex flex-col items-center justify-center py-2 px-1 rounded-lg text-xs font-bold transition-all ${isActive
+                            className={`flex-1 min-w-[70px] flex flex-col items-center justify-center py-1.5 px-1 rounded-md text-[10px] font-bold transition-all ${isActive
                                 ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-800 dark:text-slate-100 ring-1 ring-black/5 dark:ring-white/10'
                                 : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
                                 }`}
                         >
-                            <div className={`flex items-center gap-1.5 mb-0.5 ${isActive ? mode.color : ''}`}>
+                            <div className={`flex items-center gap-1.5 ${isActive ? mode.color : ''}`}>
                                 {mode.icon}
                                 <span>{mode.label}</span>
                             </div>
-                            {/* <span className="text-[9px] uppercase tracking-wider opacity-60">
-                                {mode.sub || 'Active'}
-                            </span> */}
                         </button>
                     );
                 })}
@@ -111,35 +107,32 @@ const TestRunnerControls = ({
                 {/* 1. TEST WITH AI (Standard) */}
                 {activeTab === 'simple' && (
                     <div className="space-y-2">
-                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase flex items-center justify-between">
-                            <span>Select Model</span>
-                        </label>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
-                            Direct Access. Single model execution for quick tasks.
-                        </p>
                         <select
                             value={provider}
                             onChange={(e) => onProviderChange(e.target.value)}
-                            className="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-medium outline-none focus:border-indigo-500 transition-colors"
+                            className="w-full p-2.5 rounded-lg border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-medium outline-none focus:border-indigo-500 transition-colors"
                         >
                             <option value="gemini">Gemini 2.5 Flash Lite (Default)</option>
                             <option value="openai">GPT-4o (OpenAI)</option>
                             <option value="anthropic">Claude 3.5 Sonnet</option>
                             <option value="groq">Llama 3 (Groq)</option>
                         </select>
+                        <p className="text-[10px] text-slate-400 px-1">
+                            Direct Access. Single model execution for quick tasks.
+                        </p>
                     </div>
                 )}
 
                 {/* 2. SMART PROMPT (Smart Chain) */}
                 {activeTab === 'smart_chain' && (
-                    <div className="p-4 bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-200 dark:border-amber-800/50 flex items-start gap-4">
-                        <div className="p-2 bg-amber-100 dark:bg-amber-800 rounded-lg text-amber-600 dark:text-amber-300">
-                            <Sparkles size={20} />
+                    <div className="p-3 bg-amber-50 dark:bg-amber-900/10 rounded-lg border border-amber-200 dark:border-amber-800/50 flex items-start gap-3">
+                        <div className="p-1.5 bg-amber-100 dark:bg-amber-800 rounded-md text-amber-600 dark:text-amber-300">
+                            <Sparkles size={16} />
                         </div>
                         <div>
-                            <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">MoE Pipeline Active</h4>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                                Your prompt will flow through 4 specialized stages: drafting (Gemini), reasoning (GPT-4), filtering (Llama), and polishing (Claude).
+                            <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">MoE Pipeline Active</h4>
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-tight">
+                                4 Stages: Drafting, Reasoning, Filtering, Polishing.
                             </p>
                         </div>
                     </div>
@@ -147,33 +140,25 @@ const TestRunnerControls = ({
 
                 {/* 3. BATTLE MODE */}
                 {activeTab === 'battle' && (
-                    <div className="p-4 bg-rose-50 dark:bg-rose-900/10 rounded-xl border border-rose-200 dark:border-rose-800/50 space-y-4">
-                        <div className="flex items-center justify-between border-b border-rose-200 dark:border-rose-800 pb-2 mb-2">
-                            <h4 className="text-xs font-bold uppercase text-rose-600 dark:text-rose-400 flex items-center gap-2">
-                                <Swords size={14} /> Arena Configuration
-                            </h4>
-                        </div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
-                            Model Battle. Compare output quality across multiple AIs side-by-side.
-                        </p>
+                    <div className="p-3 bg-rose-50 dark:bg-rose-900/10 rounded-lg border border-rose-200 dark:border-rose-800/50 space-y-2">
                         <div className="flex items-center gap-3">
                             <div className="flex-1">
                                 <select
                                     value={battleConfig?.fighterA || 'gemini'}
                                     onChange={(e) => onBattleConfigChange('fighterA', e.target.value)}
-                                    className="w-full text-xs p-2 rounded-lg border border-rose-200 dark:border-rose-800 bg-white dark:bg-slate-800 outline-none"
+                                    className="w-full text-[10px] p-1.5 rounded-md border border-rose-200 dark:border-rose-800 bg-white dark:bg-slate-800 outline-none"
                                 >
                                     <option value="gemini">Gemini</option>
                                     <option value="openai">GPT-4o</option>
                                     <option value="anthropic">Claude</option>
                                 </select>
                             </div>
-                            <span className="text-rose-400 font-bold font-mono">VS</span>
+                            <span className="text-rose-400 font-bold font-mono text-xs">VS</span>
                             <div className="flex-1">
                                 <select
                                     value={battleConfig?.fighterB || 'openai'}
                                     onChange={(e) => onBattleConfigChange('fighterB', e.target.value)}
-                                    className="w-full text-xs p-2 rounded-lg border border-rose-200 dark:border-rose-800 bg-white dark:bg-slate-800 outline-none"
+                                    className="w-full text-[10px] p-1.5 rounded-md border border-rose-200 dark:border-rose-800 bg-white dark:bg-slate-800 outline-none"
                                 >
                                     <option value="gemini">Gemini</option>
                                     <option value="openai">GPT-4o</option>
@@ -181,38 +166,54 @@ const TestRunnerControls = ({
                                 </select>
                             </div>
                         </div>
+                        <p className="text-[10px] text-slate-400 text-center">
+                            Compare output quality side-by-side.
+                        </p>
                     </div>
                 )}
 
                 {/* 4. HIVEMIND (Swarm) */}
                 {activeTab === 'swarm' && (
-                    <div className="p-4 bg-violet-50 dark:bg-violet-900/10 rounded-xl border border-violet-200 dark:border-violet-800/50 flex items-center gap-4">
-                        <div className="p-2 bg-violet-100 dark:bg-violet-800 rounded-lg text-violet-600 dark:text-violet-300">
-                            <Users size={20} />
-                        </div>
-                        <div>
-                            <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">The Hivemind is Listening</h4>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                                Cognitive Swarm. A specialized team of agents collaborates on complex problems.
-                            </p>
+                    <div className="bg-white dark:bg-slate-900 rounded-lg p-3 border border-slate-200 dark:border-slate-800 space-y-2">
+                        {/* SQUAD SELECTOR */}
+                        <div className="space-y-1">
+                            <label className="text-[9px] font-bold uppercase text-slate-400">Select Squad</label>
+                            <div className="grid grid-cols-3 gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-md">
+                                {[
+                                    { id: 'code', label: 'Tech', icon: <Terminal size={12} /> },
+                                    { id: 'text', label: 'Creative', icon: <Sparkles size={12} /> },
+                                    { id: 'data', label: 'Data', icon: <Bot size={12} /> }
+                                ].map((squad) => (
+                                    <button
+                                        key={squad.id}
+                                        onClick={() => onSwarmCategoryChange(squad.id)}
+                                        className={`flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[10px] font-medium transition-all ${swarmCategory === squad.id
+                                                ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-200 dark:border-slate-700'
+                                                : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700/50'
+                                            }`}
+                                    >
+                                        {squad.icon}
+                                        {squad.label}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     </div>
                 )}
 
             </div>
 
-            {/* 3. API KEY MANAGEMENT (Centralized) */}
-            <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
-                <div className="flex items-center gap-2 text-xs text-slate-400">
-                    <ShieldCheck size={12} className="text-emerald-500" />
+            {/* 3. API KEY MANAGEMENT (Compact) */}
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
+                    <ShieldCheck size={10} className="text-emerald-500" />
                     <span>Secure Local Storage</span>
                 </div>
-
                 <button
                     onClick={() => setShowHelpModal(true)}
-                    className="text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-indigo-500 text-slate-700 dark:text-slate-300 px-3 py-2 rounded-lg font-bold transition-all shadow-sm flex items-center gap-2"
+                    className="text-[10px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-indigo-500 text-slate-700 dark:text-slate-300 px-2 py-1 rounded-md font-bold transition-all shadow-sm flex items-center gap-1.5"
                 >
-                    <Key size={12} /> Manage API Keys
+                    <Key size={10} /> Keys
                 </button>
             </div>
         </div>
