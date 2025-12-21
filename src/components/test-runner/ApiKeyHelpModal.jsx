@@ -77,8 +77,8 @@ export default function ApiKeyHelpModal({ isOpen, onClose, onSave }) {
                             key={p.id}
                             onClick={() => setActiveTab(p.id)}
                             className={`flex-1 py-3 text-sm font-medium transition-colors border-b-2 ${activeTab === p.id
-                                    ? 'text-white border-emerald-500 bg-slate-800'
-                                    : 'text-slate-500 border-transparent hover:text-slate-300 hover:bg-slate-800/50'
+                                ? 'text-white border-emerald-500 bg-slate-800'
+                                : 'text-slate-500 border-transparent hover:text-slate-300 hover:bg-slate-800/50'
                                 }`}
                         >
                             {p.label}
@@ -99,6 +99,7 @@ export default function ApiKeyHelpModal({ isOpen, onClose, onSave }) {
                                 value={keys[activeTab]}
                                 onChange={(e) => setKeys({ ...keys, [activeTab]: e.target.value })}
                                 placeholder={currentProvider.placeholder}
+                                maxLength={1000} // Explicit high limit for Project Keys
                                 className="w-full bg-slate-950 border border-slate-700 rounded-lg py-3 px-4 text-white placeholder:text-slate-600 focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none font-mono text-sm transition-all"
                             />
                             <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
