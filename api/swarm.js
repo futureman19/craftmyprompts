@@ -1,13 +1,22 @@
 import { checkRateLimit } from './_utils/rate-limiter.js';
-import { AGENT_SQUADS, MANAGER_AGENT } from '../src/lib/swarm-agents.js';
+import { AGENT_SQUADS, MANAGER_AGENT, CRITIC } from '../src/lib/swarm-agents.js';
 
 export const config = {
-    maxDuration: 60, // Allow up to 60 seconds for parallel processing
+    maxDuration: 60, // Allow up to 60 seconds for sequential processing
+};
+
+// --- MODEL REGISTRY ---
+const MODELS = {
+    gemini: 'gemini-2.5-flash-lite',
+    claude: 'claude-haiku-4-5',
+    openai: 'gpt-4o',
+    groq: 'llama-3.1-8b-instant'
 };
 
 /**
- * THE CORTEX: Swarm Intelligence Orchestrator
- * Handles parallel execution of multiple AI agents with specialized roles.
+ * THE CORTEX: Hivemind Orchestrator
+ * Implements Sequential Dependency (Waterfall) logic.
+ * Flow: Squad (Parallel) -> Critic (Audit) -> Executive (Synthesis)
  */
 export default async function handler(req, res) {
     // 1. Rate Limit Check
@@ -21,108 +30,101 @@ export default async function handler(req, res) {
     }
 
     const { prompt, mode, category, keys = {} } = req.body;
-    const { openai: openAIKey, anthropic: anthropicKey, gemini: geminiKey } = keys;
-
-    // Helper: Knowledge Base Stub (RAG)
-    const searchKnowledgeBase = async (query) => {
-        if (!query) return ""; // Handle undefined query
-        // In a real implementation, this would query Pinecone/Supabase
-        // For now, we return a mock context based on the query signature
-        return `[Knowledge Base Result] Optimized patterns found for: ${query}. (Stub)`;
-    };
+    const { openai: openAIKey, anthropic: anthropicKey, gemini: geminiKey, groq: groqKey } = keys;
 
     // Helper: Execute a single agent
-    const runAgent = async (agent) => {
+    const runAgent = async (agent, context = "") => {
         try {
-            // A. Thought Process (RAG)
-            // Handle agents without RAG modifiers (like the Executive)
-            let ragContext = "";
-            if (agent.ragQueryModifier) {
-                const ragQuery = `${prompt} ${agent.ragQueryModifier}`;
-                ragContext = await searchKnowledgeBase(ragQuery);
-            }
+            // A. Resolve Model ID
+            // We map the abstract provider name (e.g. 'gemini') to the strict model ID
+            const strictModel = MODELS[agent.provider || 'gemini'] || MODELS.gemini;
 
-            // B. Construct System Prompt
-            const fullSystemPrompt = ragContext
-                ? `${agent.systemPrompt}\n\nCONTEXT FROM KNOWLEDGE BASE:\n${ragContext}`
+            // B. Construct Prompt
+            // If context exists (from previous steps), inject it
+            const fullSystemPrompt = context
+                ? `${agent.systemPrompt}\n\n### PREVIOUS CONTEXT (AUDIT MATERIAL):\n${context}`
                 : agent.systemPrompt;
 
-            // C. Inference (Provider Dispatch)
             let content = "";
-            let usedModel = agent.model; // For metadata
 
-            if (agent.model.startsWith('gpt-')) {
-                // OpenAI Handling
-                const targetKey = openAIKey || process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
-                if (!targetKey) throw new Error("Missing OpenAI Key");
-
+            // C. Provider Dispatch
+            if (strictModel.startsWith('gpt-')) {
+                // OpenAI
+                if (!openAIKey) throw new Error("Missing OpenAI Key");
                 const response = await fetch('https://api.openai.com/v1/chat/completions', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${targetKey}`
-                    },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openAIKey}` },
                     body: JSON.stringify({
-                        model: agent.model,
+                        model: strictModel,
                         messages: [
                             { role: "system", content: fullSystemPrompt },
                             { role: "user", content: prompt }
                         ],
-                        temperature: agent.temperature
+                        temperature: agent.temperature || 0.7
                     })
                 });
-
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.error?.message || "OpenAI Error");
                 content = data.choices[0].message.content;
 
-            } else if (agent.model.includes('claude')) {
-                // Anthropic Handling
-                const targetKey = anthropicKey || process.env.ANTHROPIC_API_KEY || process.env.VITE_ANTHROPIC_API_KEY;
-                if (!targetKey) throw new Error("Missing Anthropic Key");
-
+            } else if (strictModel.includes('claude')) {
+                // Anthropic
+                if (!anthropicKey) throw new Error("Missing Anthropic Key");
                 const response = await fetch('https://api.anthropic.com/v1/messages', {
                     method: 'POST',
                     headers: {
-                        'x-api-key': targetKey,
+                        'x-api-key': anthropicKey,
                         'anthropic-version': '2023-06-01',
                         'content-type': 'application/json'
                     },
                     body: JSON.stringify({
-                        model: agent.model, // e.g. claude-haiku-4-5
+                        model: strictModel,
                         max_tokens: 1024,
-                        system: fullSystemPrompt, // Claude supports top-level system field
+                        system: fullSystemPrompt,
                         messages: [{ role: "user", content: prompt }],
-                        temperature: agent.temperature
+                        temperature: agent.temperature || 0.7
                     })
                 });
-
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.error?.message || "Anthropic Error");
                 content = data.content?.[0]?.text;
 
-            } else if (agent.model.includes('gemini')) {
-                // Google Gemini Handling
-                const targetKey = geminiKey || process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
-                if (!targetKey) throw new Error("Missing Gemini Key");
-
-                // Construct model path (e.g. models/gemini-2.0-flash...)
-                const modelPath = agent.model.startsWith('models/') ? agent.model : `models/${agent.model}`;
-
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/${modelPath}:generateContent?key=${targetKey}`, {
+            } else if (strictModel.includes('gemini')) {
+                // Google Gemini
+                if (!geminiKey) throw new Error("Missing Gemini Key");
+                const modelPath = strictModel.startsWith('models/') ? strictModel : `models/${strictModel}`;
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/${modelPath}:generateContent?key=${geminiKey}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         contents: [{
                             role: "user",
-                            parts: [{ text: `${fullSystemPrompt}\n\nUser Query: ${prompt}` }] // Gemini System Prompt is complex, usually just prepend
+                            parts: [{ text: `${fullSystemPrompt}\n\nUser Query: ${prompt}` }]
                         }]
                     })
                 });
-
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.error?.message || "Gemini Error");
                 content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+            } else if (strictModel.includes('llama')) {
+                // Groq
+                if (!groqKey) throw new Error("Missing Groq Key");
+                const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${groqKey}` },
+                    body: JSON.stringify({
+                        model: strictModel,
+                        messages: [
+                            { role: "system", content: fullSystemPrompt },
+                            { role: "user", content: prompt }
+                        ],
+                        temperature: agent.temperature || 0.7
+                    })
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error?.message || "Groq Error");
+                content = data.choices[0].message.content;
             }
 
             return {
@@ -130,24 +132,18 @@ export default async function handler(req, res) {
                 name: agent.name,
                 role: agent.role,
                 content: content,
-                meta: {
-                    trace: agent.ragQueryModifier ? `Searched for: "${agent.ragQueryModifier}"` : "Synthesis Mode",
-                    model: agent.model
-                }
+                meta: { model: strictModel, status: 'success' }
             };
 
         } catch (error) {
-            console.error(`Swarm Agent Failed (${agent.name}):`, error.message);
+            console.error(`Hivemind Agent Failed (${agent.name}):`, error.message);
             return {
                 id: agent.id,
                 name: agent.name,
                 role: agent.role,
-                content: `⚠️ Agent Offline (${agent.name} experienced a connection error: ${error.message})`,
+                content: `⚠️ Agent Offline: ${error.message}`,
                 error: true,
-                meta: {
-                    trace: "Connection Failed",
-                    model: agent.model
-                }
+                meta: { model: agent.provider, status: 'failed' }
             };
         }
     };
@@ -155,20 +151,44 @@ export default async function handler(req, res) {
     try {
         let results = [];
 
-        // MODE SWITCH: SYNTHESIZE vs PARALLEL
+        // MODE 1: SYNTHESIZE (Executive Only)
         if (mode === 'synthesize') {
-            // Run only the Executive
             const executiveResult = await runAgent(MANAGER_AGENT);
             results = [executiveResult];
-        } else {
-            // DYNAMIC SQUAD SELECTION
-            // Default to 'tech' (code) if no category provided
+        }
+        // MODE 2: FULL HIVE (Sequential Waterfall)
+        else {
             const activeSquad = AGENT_SQUADS[category] || AGENT_SQUADS.default;
 
-            console.log(`[Cortex] Activating Squad: ${category || 'default'} (${activeSquad.length} agents)`);
+            // --- STEP 1: GENERATION (Parallel) ---
+            // Run the main experts (Visionary, Architect, etc.) but NOT the Critic yet
+            const creators = activeSquad.filter(a => a.id !== 'critic');
+            const step1Results = await Promise.all(creators.map(agent => runAgent(agent)));
+            results.push(...step1Results);
 
-            // Run all Swarm Agents simultaneously
-            results = await Promise.all(activeSquad.map(agent => runAgent(agent)));
+            // Construct context for the Critic
+            const step1Context = step1Results.map(r => `[${r.role}]: ${r.content}`).join('\n\n');
+
+            // --- STEP 2: AUDIT (Sequential) ---
+            // The Critic runs ONLY after Step 1 is done, ingesting their output
+            // We look for a Critic in the squad or fallback to the default Critic
+            let criticAgent = activeSquad.find(a => a.id === 'critic');
+            if (!criticAgent) criticAgent = CRITIC; // Fallback if squad has no critic
+
+            const step2Result = await runAgent(criticAgent, step1Context);
+            results.push(step2Result);
+
+            // --- STEP 3: SYNTHESIS (Sequential) ---
+            // The Executive runs last, seeing everything
+            const fullContext = `
+            ${step1Context}
+            
+            [${step2Result.role}]: ${step2Result.content}
+            `;
+
+            // Note: In the UI, the Executive is usually triggered manually via "Compile", 
+            // but if we wanted full auto-mode, we would run it here.
+            // For now, we return the Squad + Critic results so the UI can display them.
         }
 
         return res.status(200).json({
@@ -177,7 +197,7 @@ export default async function handler(req, res) {
         });
 
     } catch (globalError) {
-        console.error("Swarm Orchestration Failed:", globalError);
-        return res.status(500).json({ error: "The Cortex failed to synchronize agents." });
+        console.error("Hivemind Orchestration Failed:", globalError);
+        return res.status(500).json({ error: "The Hivemind failed to synchronize." });
     }
 }
