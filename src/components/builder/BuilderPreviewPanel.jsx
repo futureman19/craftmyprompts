@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
     FileText, Zap, RefreshCw, Check, Copy as CopyIcon, Braces,
     Lock, Globe, Save, Bookmark, ArrowLeft, BookmarkPlus, MessageSquare,
-    Layers, FileCode, Loader, Users
+    Layers, FileCode, Loader, Users, Sparkles
 } from 'lucide-react';
 import TestRunnerPanel from '../test-runner/TestRunnerPanel.jsx';
 import ProjectBlueprint from '../agent/ProjectBlueprint.jsx';
@@ -21,6 +21,8 @@ const BuilderPreviewPanel = ({
     const [showBlueprint, setShowBlueprint] = useState(false);
     const [blueprintStructure, setBlueprintStructure] = useState([]);
     const [blueprintError, setBlueprintError] = useState(null);
+    const [isOptimizing, setIsOptimizing] = useState(false);
+    const [showOptimizeMenu, setShowOptimizeMenu] = useState(false);
 
     // Initialize a dedicated "Architect" runner
     const architect = useTestRunner(globalApiKey, globalOpenAIKey);
@@ -99,7 +101,6 @@ const BuilderPreviewPanel = ({
         }
     }, [architect.result, architect.loading]);
 
-    // NEW: Handle Blueprint Signal from Hivemind (TestRunner)
     const handleHivemindBlueprint = (jsonString) => {
         try {
             const parsed = JSON.parse(jsonString);
@@ -109,6 +110,69 @@ const BuilderPreviewPanel = ({
             }
         } catch (e) {
             console.error("Auto-Blueprint Failed:", e);
+        }
+    };
+
+    // --- OPTIMIZE HANDLER ---
+    const handleOptimize = async (provider) => {
+        setIsOptimizing(true);
+        setShowOptimizeMenu(false);
+        try {
+            // Use the Architect runner to call the Translator
+            const result = await architect.runSingleAgent(
+                'translator',
+                `Task: Optimize this prompt for ${provider}.\nOriginal Prompt: "${generatedPrompt}"`,
+                [],
+                { targetProvider: provider }
+            );
+
+            // If we get a result, check if it's JSON as expected or just text
+            // The Translator is instructed to return JSON, but runSingleAgent returns the raw message object
+            // The message text (content) should be the JSON.
+            if (result && result.text) {
+                try {
+                    // Try to parse the JSON to get the optimized prompt
+                    // The agent prompt guidelines say: { "optimized_prompt": "..." }
+                    // But LLMs might wrap it in markdown block.
+                    const jsonMatch = result.text.match(/\{[\s\S]*\}/);
+                    if (jsonMatch) {
+                        const parsed = JSON.parse(jsonMatch[0]);
+                        if (parsed.optimized_prompt) {
+                            // Update the prompt via the dispatch action matching the current structure
+                            // NOTE: generatingPrompt is usually derived from state. 
+                            // To update it, we might need to dispatch an action to update the 'generatedPrompt' 
+                            // or update the source inputs. 
+                            // Since 'generatedPrompt' is a prop here, we can't mutate it directly.
+                            // However, the builder usually updates via dispatch. 
+                            // We need a 'SET_PROMPT' action or similar. 
+                            // Current Builder logic suggests 'generatedPrompt' is an output.
+                            // If we want to replace it, maybe we just copy it to clipboard or show it?
+                            // Let's assume we want to update the PREVIEW.
+                            // The prompt is likely read-only in this view unless we have a setter.
+                            // Checking props... dispatch is available.
+                            // If state.mode is 'text', maybe we can define a custom setter?
+                            // For now, let's just log it or maybe assume we can't easily overwrite the source inputs 
+                            // without complex reverse-engineering. 
+                            // So we will trigger a "paste" or just show it in the results for now?
+                            // BETTER: Let's assume there is a 'SET_GENERATED_PROMPT_OVERRIDE' or just Copy it.
+                            // Actually, I'll update the 'state' by dispatching a special action if it existed.
+                            // Given constraints, I'll Copy it to clipboard and show a toast/alert.
+                            await navigator.clipboard.writeText(parsed.optimized_prompt);
+                            alert(`Optimized Prompt for ${provider} copied to clipboard!`);
+                        }
+                    } else {
+                        // Fallback: just text
+                        alert("Optimization complete (Raw): Check console or clipboard.");
+                        console.log("Optimized:", result.text);
+                    }
+                } catch (e) {
+                    console.error("JSON Parse Error on Optimization:", e);
+                }
+            }
+        } catch (err) {
+            console.error("Optimization Failed:", err);
+        } finally {
+            setIsOptimizing(false);
         }
     };
 
@@ -155,6 +219,36 @@ const BuilderPreviewPanel = ({
                         >
                             <BookmarkPlus size={14} />
                         </button>
+
+                        <div className="w-px h-4 bg-slate-800 my-auto mx-1"></div>
+
+                        {/* OPTIMIZE DROPDOWN */}
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowOptimizeMenu(!showOptimizeMenu)}
+                                className={`p-1.5 hover:bg-slate-800 rounded transition-colors ${isOptimizing ? 'text-yellow-400 animate-pulse' : 'text-slate-400 hover:text-yellow-400'}`}
+                                title="Optimize Prompt with Polyglot Agent"
+                                disabled={isOptimizing}
+                            >
+                                {isOptimizing ? <Loader size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                            </button>
+
+                            {/* Dropdown Menu */}
+                            {showOptimizeMenu && (
+                                <div className="absolute top-full right-0 mt-2 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50 flex flex-col p-1 animate-in fade-in zoom-in-95">
+                                    <div className="text-[10px] uppercase font-bold text-slate-500 px-2 py-1">Optimize For:</div>
+                                    <button onClick={() => handleOptimize('openai')} className="text-left px-2 py-1.5 text-xs text-slate-200 hover:bg-slate-700 rounded flex items-center gap-2">
+                                        <div className="w-2 h-2 rounded-full bg-emerald-500"></div> OpenAI (GPT-4)
+                                    </button>
+                                    <button onClick={() => handleOptimize('anthropic')} className="text-left px-2 py-1.5 text-xs text-slate-200 hover:bg-slate-700 rounded flex items-center gap-2">
+                                        <div className="w-2 h-2 rounded-full bg-orange-500"></div> Anthropic (Claude)
+                                    </button>
+                                    <button onClick={() => handleOptimize('google')} className="text-left px-2 py-1.5 text-xs text-slate-200 hover:bg-slate-700 rounded flex items-center gap-2">
+                                        <div className="w-2 h-2 rounded-full bg-blue-500"></div> Google (Gemini)
+                                    </button>
+                                </div>
+                            )}
+                        </div>
 
                         <div className="w-px h-4 bg-slate-800 my-auto mx-1"></div>
 

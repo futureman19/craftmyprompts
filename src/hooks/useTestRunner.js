@@ -411,7 +411,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
 
     // --- 10. NARRATIVE STATE MACHINE ---
     // Helper to call a specific agent (Narrative Mode)
-    const runSingleAgent = async (agentId, userPrompt, contextHistory = []) => {
+    const runSingleAgent = async (agentId, userPrompt, contextHistory = [], extraParams = {}) => {
         setLoading(true);
         setStatusMessage(`Creating Signal for ${agentId}...`);
         try {
@@ -429,7 +429,8 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
                     prompt: userPrompt,
                     keys: apiKeys,
                     targetAgentId: agentId, // <--- TARGET SPECIFIC AGENT
-                    context: contextHistory // Optional: Pass history if backend supports it
+                    context: contextHistory, // Optional: Pass history if backend supports it
+                    ...extraParams // <--- NEW: Support for targetProvider, etc.
                 })
             });
 
@@ -541,6 +542,6 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
         compileSwarmCode, addSwarmAgent, removeSwarmAgent, updateSwarmAgent, shipToGithub,
         // Narrative Methods
         startNarrative, approveVision, approveBlueprint, submitFeedback, resetNarrative,
-        loopBack, synthesizeProject
+        loopBack, synthesizeProject, runSingleAgent
     };
 };

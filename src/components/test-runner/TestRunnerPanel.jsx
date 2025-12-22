@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Terminal, Maximize2, Minimize2 } from 'lucide-react';
 import { useTestRunner } from '../../hooks/useTestRunner.js';
 import TestRunnerControls from './TestRunnerControls.jsx';
@@ -11,6 +12,7 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
     const [isFullScreen, setIsFullScreen] = useState(false);
 
     // 1. Initialize the "Brain"
+    const navigate = useNavigate();
     const runner = useTestRunner(defaultApiKey, defaultOpenAIKey);
 
     // CRITICAL: State Sanitization & Crash Prevention
@@ -40,13 +42,15 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
                         <Terminal size={18} className="text-indigo-500" /> Test your prompt
                     </h3>
 
-                    <button
-                        onClick={() => setIsFullScreen(!isFullScreen)}
-                        className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-md text-slate-400 transition-colors"
-                        title={isFullScreen ? "Exit Fullscreen" : "Enter Fullscreen (Zen Mode)"}
-                    >
-                        {isFullScreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-                    </button>
+                    {/* Minimize Button (Only visible when maximized) */}
+                    {isFullScreen && (
+                        <button
+                            onClick={() => setIsFullScreen(false)}
+                            className="flex items-center gap-1.5 px-2 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-md text-xs font-bold text-slate-500 transition-colors"
+                        >
+                            <Minimize2 size={14} /> Minimize
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -76,7 +80,16 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
 
                     // Handlers
                     onViewChange={runner.handleViewChange}
-                    onProviderChange={runner.setProvider}
+                    onProviderChange={(val) => {
+                        if (val === 'swarm') {
+                            // REDIRECT TO HIVEMIND VIEW
+                            navigate('/hivemind', { state: { prompt: prompt } });
+                        } else {
+                            // STANDARD TABS -> MAXIMIZE (Command Center Mode)
+                            runner.setProvider(val);
+                            setIsFullScreen(true);
+                        }
+                    }}
                     onGeminiKeyChange={runner.setGeminiKey}
                     onOpenaiKeyChange={runner.setOpenaiKey}
                     onGroqKeyChange={runner.setGroqKey}
