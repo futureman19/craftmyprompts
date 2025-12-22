@@ -359,17 +359,19 @@ const TestRunnerResults = ({
 
                         // --- ARCHITECT SPECIAL RENDER (Visual Blueprint) ---
                         if (msg.role?.includes('Architect')) {
-                            let structure = null;
+                            let blueprintData = null;
                             try {
-                                const cleanJson = msg.text.match(/\{[\s\S]*\}/)?.[0];
-                                if (cleanJson) {
-                                    const parsed = JSON.parse(cleanJson);
-                                    if (parsed.structure) structure = parsed.structure;
+                                const jsonMatch = msg.text.match(/\{[\s\S]*\}/);
+                                if (jsonMatch) {
+                                    const parsed = JSON.parse(jsonMatch[0]);
+                                    if (parsed.structure) blueprintData = parsed.structure;
                                 }
-                            } catch (e) { }
+                            } catch (e) {
+                                console.log("Blueprint parse error", e);
+                            }
 
                             return (
-                                <div key={idx} className="min-w-[300px] w-[85%] md:w-[500px] snap-center flex flex-col h-full bg-slate-900 border border-cyan-500/30 rounded-2xl shadow-xl overflow-hidden">
+                                <div key={idx} className="min-w-[300px] w-[85%] md:w-[500px] snap-center flex flex-col h-full bg-slate-900 border border-cyan-500/30 rounded-2xl shadow-xl overflow-hidden animate-in slide-in-from-right-4 duration-500">
                                     {/* Header */}
                                     <div className="p-4 border-b border-cyan-500/20 bg-slate-950/50 flex items-center gap-3">
                                         <div className="p-2 bg-cyan-900/30 rounded-lg text-cyan-400">
@@ -382,9 +384,11 @@ const TestRunnerResults = ({
                                     </div>
 
                                     {/* Content: Visual Tree or Text */}
-                                    <div className="flex-1 overflow-y-auto bg-slate-900/50 p-2">
-                                        {structure ? (
-                                            <ProjectBlueprint structure={structure} />
+                                    <div className="flex-1 overflow-y-auto bg-slate-950/30">
+                                        {blueprintData ? (
+                                            <div className="p-2">
+                                                <ProjectBlueprint structure={blueprintData} />
+                                            </div>
                                         ) : (
                                             <div className="p-4 font-mono text-xs text-slate-300 whitespace-pre-wrap">
                                                 {msg.text}
@@ -394,8 +398,11 @@ const TestRunnerResults = ({
 
                                     {/* Footer Actions */}
                                     {isLast && !loading && (
-                                        <div className="p-4 border-t border-cyan-500/20 bg-slate-950/50">
-                                            <button onClick={() => onContinueSwarm("Approve Blueprint")} className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all">
+                                        <div className="p-4 border-t border-cyan-500/20 bg-slate-950/50 flex justify-between items-center">
+                                            <span className="text-[10px] text-slate-500 font-medium">
+                                                {blueprintData ? "Structure Generated" : "Awaiting Structure..."}
+                                            </span>
+                                            <button onClick={() => onContinueSwarm("Approve Blueprint")} className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-cyan-900/20">
                                                 <AlertTriangle size={14} /> Send to Critic
                                             </button>
                                         </div>
