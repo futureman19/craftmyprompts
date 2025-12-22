@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     Sparkles, MessageSquare, Palette, Video, Command, Search, Dices,
     TrendingUp, Bookmark, BookmarkPlus, BookOpen, FileCode
@@ -14,6 +15,25 @@ const BuilderHeader = ({
     handleSaveAsPreset, applyKnowledge
 }) => {
     const [activeMenu, setActiveMenu] = useState(null);
+    const navigate = useNavigate(); // <--- Initialize Hook
+
+    const handleLaunchHivemind = () => {
+        // Grab the current prompt from the state
+        const prompt = currentData?.customTopic || state.customTopic || "";
+
+        if (!prompt.trim()) {
+            showToast("Please enter a mission first!", "error");
+            return;
+        }
+
+        navigate('/hivemind', {
+            state: {
+                prompt: prompt,
+                category: 'code', // Hardcoded for now per requirements
+                timestamp: Date.now()
+            }
+        });
+    };
 
     const handleRandomize = () => {
         dispatch({ type: 'RANDOMIZE', payload: currentData });
@@ -82,6 +102,16 @@ const BuilderHeader = ({
             </div>
 
             <div className="flex gap-2">
+                {/* HIVEMIND BUTTON */}
+                {state.mode === 'coding' && (
+                    <button
+                        onClick={handleLaunchHivemind}
+                        className="px-3 py-1.5 bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 hover:to-purple-500 text-white rounded-lg text-xs font-bold shadow-md shadow-fuchsia-500/20 flex items-center gap-1.5 transition-all transform hover:scale-105 active:scale-95 mr-2"
+                    >
+                        <Sparkles size={14} /> Hivemind
+                    </button>
+                )}
+
                 {/* Trend Button */}
                 {state.mode === 'text' && (
                     <button
