@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Users, Zap, Terminal, Edit3, Download } from 'lucide-react';
-import { useHivemind } from '../hooks/useHivemind.js';
+import { ArrowLeft, Users, Zap, Edit3 } from 'lucide-react';
+import { useHivemind } from '../hooks/useHivemind.js'; // <--- IMPORTING THE NEW BRAIN
 import TestRunnerResults from '../components/test-runner/TestRunnerResults.jsx';
 import ApiKeyHelpModal from '../components/test-runner/ApiKeyHelpModal.jsx';
 
@@ -10,10 +10,7 @@ const HivemindView = ({ user, globalApiKey, globalOpenAIKey }) => {
     const navigate = useNavigate();
     const incomingPrompt = location.state?.prompt || '';
 
-    // 0. Local UI State
-    const [showHelpModal, setShowHelpModal] = useState(false);
-
-    // 1. Initialize Dedicated Brain
+    // 1. Initialize the DEDICATED Hivemind Brain
     const hivemind = useHivemind({
         openai: globalOpenAIKey,
         gemini: globalApiKey,
@@ -25,16 +22,18 @@ const HivemindView = ({ user, globalApiKey, globalOpenAIKey }) => {
     const hasStarted = useRef(false);
 
     useEffect(() => {
+        // If we have a prompt and haven't started yet...
         if (incomingPrompt && !hasStarted.current) {
             hasStarted.current = true;
-            console.log("🚀 Hivemind Launching...");
+            console.log("🚀 Hivemind Protocol Initiated:", incomingPrompt);
+
+            // Trigger the Mission using the new hook
             hivemind.startMission(incomingPrompt);
         }
     }, [incomingPrompt]);
 
     // 3. Navigation Back
     const handleBack = () => {
-        // Carry the prompt back to the builder so user doesn't lose text
         navigate('/', { state: { prompt: incomingPrompt, category: 'code' } });
     };
 
@@ -60,14 +59,6 @@ const HivemindView = ({ user, globalApiKey, globalOpenAIKey }) => {
 
                 {/* Status Indicator */}
                 <div className="flex items-center gap-3">
-                    {/* Keys Button */}
-                    <button
-                        onClick={() => setShowHelpModal(true)}
-                        className="text-[10px] uppercase font-bold text-slate-500 hover:text-slate-300 transition-colors"
-                    >
-                        Keys
-                    </button>
-                    <div className="w-px h-4 bg-slate-800"></div>
                     <div className="text-xs font-mono text-slate-400">
                         {hivemind.loading ? (
                             <span className="flex items-center gap-2 text-amber-400">
@@ -97,11 +88,11 @@ const HivemindView = ({ user, globalApiKey, globalOpenAIKey }) => {
                     {/* Agent Outputs */}
                     <TestRunnerResults
                         loading={hivemind.loading}
-                        result={null} // Hivemind doesn't use single result
+                        result={null}
                         provider="swarm" // Force swarm rendering style
-                        swarmHistory={hivemind.history} // Use new history state
+                        swarmHistory={hivemind.history} // Use history from new hook
 
-                        // Pass handlers (Mapped to new hook methods)
+                        // Pass handlers from new hook
                         onLoopBack={hivemind.refineLoop}
                         onSynthesize={hivemind.compileBuild}
 
@@ -147,10 +138,10 @@ const HivemindView = ({ user, globalApiKey, globalOpenAIKey }) => {
                 </div>
             )}
 
-            {/* Help Modal Hook */}
+            {/* API Key Modal (Reused) */}
             <ApiKeyHelpModal
-                isOpen={showHelpModal}
-                onClose={() => setShowHelpModal(false)}
+                isOpen={false} // Managed by global state or profile if needed
+                onClose={() => { }}
             />
         </div>
     );
