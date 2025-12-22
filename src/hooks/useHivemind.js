@@ -10,12 +10,12 @@ export const useHivemind = (initialKeys = {}) => {
     const [contextData, setContextData] = useState({}); // Stores user choices
 
     // --- KEY MANAGEMENT (Self-Healing) ---
-    // Merge props with localStorage to guarantee we find a key if it exists
+    // User Manual Input (localStorage) > Environment Variables (initialKeys)
     const getEffectiveKeys = () => ({
-        gemini: initialKeys.gemini || localStorage.getItem('gemini_key') || '',
-        openai: initialKeys.openai || localStorage.getItem('openai_key') || '',
-        anthropic: initialKeys.anthropic || localStorage.getItem('anthropic_key') || '',
-        groq: initialKeys.groq || localStorage.getItem('groq_key') || ''
+        gemini: localStorage.getItem('gemini_key') || initialKeys.gemini || '',
+        openai: localStorage.getItem('openai_key') || initialKeys.openai || '',
+        anthropic: localStorage.getItem('anthropic_key') || initialKeys.anthropic || '',
+        groq: localStorage.getItem('groq_key') || initialKeys.groq || ''
     });
 
     // --- HELPER: CALL API (Targeted) ---
