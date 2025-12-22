@@ -94,7 +94,10 @@ const HivemindView = ({ user, globalApiKey, globalOpenAIKey }) => {
                                 <span className="truncate max-w-md italic">"{mission}"</span>
                             </div>
                             <button
-                                onClick={() => { setIsStarted(false); navigate('/'); }}
+                                onClick={() => {
+                                    setIsStarted(false);
+                                    navigate('/', { state: { prompt: mission, category: 'code' } });
+                                }}
                                 className="flex items-center gap-1 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
                             >
                                 <Edit3 size={12} /> Refine Prompt

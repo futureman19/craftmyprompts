@@ -614,6 +614,55 @@ const TestRunnerResults = ({
                     {/* Spacer for scrolling */}
                     <div className="min-w-[20px]"></div>
                 </div>
+
+                {/* HIVEMIND ACTIONS (Persistent Command Deck) */}
+                {provider === 'swarm' && !loading && swarmHistory.length > 0 && (
+                    <div className="w-full max-w-2xl mx-auto mb-4 p-4 bg-slate-800/80 rounded-xl border border-slate-700 backdrop-blur-sm animate-in slide-in-from-bottom-4 shadow-2xl z-20">
+                        <div className="flex items-center gap-2 mb-3">
+                            <div className="h-px flex-1 bg-slate-700"></div>
+                            <span className="text-[10px] uppercase font-bold text-slate-500">Command Deck</span>
+                            <div className="h-px flex-1 bg-slate-700"></div>
+                        </div>
+
+                        <div className="flex gap-3">
+                            {/* INPUT FOR REFINEMENT */}
+                            <div className="flex-1 flex gap-2">
+                                <input
+                                    type="text"
+                                    placeholder="Feedback (e.g., 'Add sound features')"
+                                    className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none placeholder:text-slate-600"
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && e.target.value.trim()) {
+                                            onLoopBack(e.target.value);
+                                            e.target.value = '';
+                                        }
+                                    }}
+                                    id="loop-input"
+                                />
+                                <button
+                                    onClick={() => {
+                                        const input = document.getElementById('loop-input');
+                                        if (input.value.trim()) {
+                                            onLoopBack(input.value);
+                                            input.value = '';
+                                        }
+                                    }}
+                                    className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-bold transition-all border border-slate-600"
+                                >
+                                    Refine Loop
+                                </button>
+                            </div>
+
+                            {/* COMPILE BUTTON */}
+                            <button
+                                onClick={onCompileSwarm}
+                                className="px-6 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-lg text-xs font-bold shadow-lg shadow-emerald-900/20 flex items-center gap-2 transition-all transform hover:scale-105 active:scale-95"
+                            >
+                                <Zap size={14} /> Compile Build
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
         );
     }

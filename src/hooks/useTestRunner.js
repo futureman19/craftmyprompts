@@ -368,8 +368,8 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
     };
 
     const compileSwarmCode = async () => {
-        setStatusMessage('The Executive is consolidating the Master Plan...');
         setLoading(true);
+        setStatusMessage("Compiling build... Please wait.");
         try {
             const apiKeys = {
                 openai: openaiKey,
