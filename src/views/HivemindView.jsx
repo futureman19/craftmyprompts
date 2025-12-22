@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Users, Zap, Edit3 } from 'lucide-react';
+import { ArrowLeft, Users, Zap, Edit3, MessageSquare } from 'lucide-react';
 import { useHivemind } from '../hooks/useHivemind.js'; // <--- IMPORTING THE NEW BRAIN
 import ApiKeyHelpModal from '../components/test-runner/ApiKeyHelpModal.jsx';
 import HivemindFeed from '../components/hivemind/HivemindFeed.jsx';
@@ -113,14 +113,6 @@ const HivemindView = ({ user, globalApiKey, globalOpenAIKey }) => {
                 <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-slate-950 via-slate-950 to-transparent pointer-events-none">
                     <div className="max-w-3xl mx-auto flex justify-end gap-2 pointer-events-auto">
 
-                        {/* Manager Trigger */}
-                        <button
-                            onClick={() => hivemind.setIsDrawerOpen(true)}
-                            className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-indigo-900/20 flex items-center gap-2 transition-all active:scale-95"
-                        >
-                            <Users size={16} /> Consult Manager
-                        </button>
-
                         {/* Compile Button */}
                         <button
                             onClick={hivemind.compileBuild}
@@ -131,6 +123,17 @@ const HivemindView = ({ user, globalApiKey, globalOpenAIKey }) => {
                     </div>
                 </div>
             )}
+
+            {/* SWARM OPS TRIGGER */}
+            <button
+                onClick={() => hivemind.setIsDrawerOpen(true)}
+                className="fixed bottom-6 right-6 p-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full shadow-2xl shadow-indigo-900/50 hover:scale-105 transition-all z-40 group flex items-center gap-0 hover:gap-2 overflow-hidden"
+            >
+                <MessageSquare size={24} />
+                <span className="max-w-0 group-hover:max-w-xs transition-all duration-300 opacity-0 group-hover:opacity-100 whitespace-nowrap font-bold text-sm">
+                    Swarm Manager
+                </span>
+            </button>
 
             {/* --- MANAGER DRAWER --- */}
             <ManagerDrawer
