@@ -2,8 +2,8 @@ import React, { useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Users, Zap, Edit3 } from 'lucide-react';
 import { useHivemind } from '../hooks/useHivemind.js'; // <--- IMPORTING THE NEW BRAIN
-import TestRunnerResults from '../components/test-runner/TestRunnerResults.jsx';
 import ApiKeyHelpModal from '../components/test-runner/ApiKeyHelpModal.jsx';
+import HivemindFeed from '../components/hivemind/HivemindFeed.jsx';
 
 const HivemindView = ({ user, globalApiKey, globalOpenAIKey }) => {
     const location = useLocation();
@@ -85,21 +85,20 @@ const HivemindView = ({ user, globalApiKey, globalOpenAIKey }) => {
                         <p className="text-lg text-slate-100 font-medium italic">"{incomingPrompt}"</p>
                     </div>
 
-                    {/* Agent Outputs */}
-                    <TestRunnerResults
-                        loading={hivemind.loading}
-                        result={null}
-                        provider="swarm" // Force swarm rendering style
-                        swarmHistory={hivemind.history} // Use history from new hook
-
-                        // Pass handlers from new hook
-                        onLoopBack={hivemind.currentPhase === 'vision' ? hivemind.submitChoices : hivemind.refineLoop}
-                        onSynthesize={hivemind.compileBuild}
-
-                        // Pass State
-                        statusMessage={hivemind.statusMessage}
-                        error={hivemind.error}
-                    />
+                    {/* MAIN CONTENT AREA */}
+                    <div className="relative">
+                        <HivemindFeed
+                            history={hivemind.history}
+                            loading={hivemind.loading}
+                            statusMessage={hivemind.statusMessage}
+                            currentPhase={hivemind.currentPhase} // Pass phase!
+                            actions={{
+                                submitChoices: hivemind.submitChoices,
+                                sendToAudit: hivemind.sendToAudit,
+                                compileBuild: hivemind.compileBuild
+                            }}
+                        />
+                    </div>
                 </div>
             </div>
 

@@ -39,7 +39,7 @@ export const useHivemind = (apiKeys = {}) => {
             const msg = data.swarm[0];
 
             // Add to history
-            setHistory([{ ...msg, role: 'The Visionary', type: 'vision_options' }]);
+            setHistory([{ ...msg, text: msg.content, role: 'The Visionary', type: 'vision_options' }]);
         } catch (e) { console.error(e); setStatusMessage("Error: " + e.message); }
         finally { setLoading(false); }
     };
@@ -65,7 +65,7 @@ export const useHivemind = (apiKeys = {}) => {
                 contextString
             );
             const msg = data.swarm[0];
-            setHistory(prev => [...prev, { ...msg, role: 'The Architect', type: 'blueprint' }]);
+            setHistory(prev => [...prev, { ...msg, text: msg.content, role: 'The Architect', type: 'blueprint' }]);
         } catch (e) { console.error(e); }
         finally { setLoading(false); }
     };
@@ -82,7 +82,7 @@ export const useHivemind = (apiKeys = {}) => {
         try {
             const data = await callAgent('critic', "Review this blueprint for flaws.", fullContext);
             const msg = data.swarm[0];
-            setHistory(prev => [...prev, { ...msg, role: 'The Critic', type: 'critique' }]);
+            setHistory(prev => [...prev, { ...msg, text: msg.content, role: 'The Critic', type: 'critique' }]);
         } catch (e) { console.error(e); }
         finally { setLoading(false); }
     };
@@ -98,7 +98,7 @@ export const useHivemind = (apiKeys = {}) => {
         try {
             const data = await callAgent('executive', "Finalize build.", fullContext, { mode: 'synthesize' });
             const msg = data.swarm[0];
-            setHistory(prev => [...prev, { ...msg, role: 'The Executive', type: 'final' }]);
+            setHistory(prev => [...prev, { ...msg, text: msg.content, role: 'The Executive', type: 'final' }]);
         } catch (e) { console.error(e); }
         finally { setLoading(false); }
     };
