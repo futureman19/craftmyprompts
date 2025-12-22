@@ -360,13 +360,37 @@ const TestRunnerResults = ({
 
                         // --- VISIONARY OPTIONS RENDER ---
                         if (msg.type === 'vision_options') {
+                            let deckData = null;
                             try {
-                                const data = typeof msg.text === 'string' ? JSON.parse(msg.text) : msg.text;
-                                return <VisionaryDeck key={idx} data={data} onConfirm={onLoopBack} />;
+                                // 1. If it's already an object, use it.
+                                if (typeof msg.text === 'object' && msg.text !== null) {
+                                    deckData = msg.text;
+                                } else {
+                                    // 2. If string, try to extract the JSON block { ... }
+                                    const jsonMatch = msg.text.match(/\{[\s\S]*\}/);
+                                    if (jsonMatch) {
+                                        deckData = JSON.parse(jsonMatch[0]);
+                                    } else {
+                                        // Fallback: Try cleaning markdown code blocks explicitly
+                                        const clean = msg.text.replace(/```json|```/g, '').trim();
+                                        deckData = JSON.parse(clean);
+                                    }
+                                }
                             } catch (e) {
-                                console.error("Failed to parse Visionary options", e);
-                                // Fallback to standard render if JSON fails
+                                console.error("Deck JSON Parse Error", e);
+                                // Keep deckData null to trigger the error UI in the component
                             }
+
+                            return (
+                                <VisionaryDeck
+                                    key={idx}
+                                    data={deckData}
+                                    onConfirm={(choices) => {
+                                        // Safety check: ensure onLoopBack is valid
+                                        if (onLoopBack) onLoopBack(choices);
+                                    }}
+                                />
+                            );
                         }
 
                         // --- ARCHITECT SPECIAL RENDER (Visual Blueprint) ---

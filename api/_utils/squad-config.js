@@ -31,7 +31,8 @@ const VISIONARY = {
     }
     RULES:
     1. Always offer 2-3 strategic choices based on the prompt.
-    2. Keep options short (1-3 words).`
+    2. Keep options short (1-3 words).
+    3. IMPORTANT: Return RAW JSON only. Do NOT use markdown code blocks (\`\`\`json). Do NOT add conversational text. Just the { object }.`
 };
 
 const ARCHITECT = {
