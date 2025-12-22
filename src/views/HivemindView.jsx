@@ -94,6 +94,7 @@ const HivemindView = ({ user, globalApiKey, globalOpenAIKey }) => {
                             currentPhase={hivemind.currentPhase} // Pass phase!
                             actions={{
                                 submitChoices: hivemind.submitChoices,
+                                submitSpecs: hivemind.submitSpecs,
                                 sendToAudit: hivemind.sendToAudit,
                                 compileBuild: hivemind.compileBuild
                             }}

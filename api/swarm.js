@@ -5,6 +5,7 @@ import { getProviderGuide } from './_utils/doc-reader.js';
 import { VISIONARY } from './_agents/visionary.js';
 import { ARCHITECT } from './_agents/architect.js';
 import { CRITIC } from './_agents/critic.js';
+import { TECH_LEAD } from './_agents/tech_lead.js';
 import { MANAGER_AGENT } from './_agents/executive.js';
 
 export const config = {
@@ -111,7 +112,7 @@ export default async function handler(req, res) {
 
         // 1. TARGETED RUN (Specific Agent requested by Frontend)
         if (targetAgentId) {
-            const allAgents = [VISIONARY, ARCHITECT, CRITIC, MANAGER_AGENT];
+            const allAgents = [VISIONARY, ARCHITECT, CRITIC, TECH_LEAD, MANAGER_AGENT];
             const targetAgent = allAgents.find(a => a.id === targetAgentId);
 
             if (!targetAgent) throw new Error(`Agent ID '${targetAgentId}' not found.`);

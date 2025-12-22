@@ -3,6 +3,7 @@ import { Loader, Layers, ShieldCheck, Zap, Package, Download, AlertTriangle } fr
 import VisionaryDeck from '../agent/VisionaryDeck.jsx';
 import ProjectBlueprint from '../agent/ProjectBlueprint.jsx';
 import FileDeck from '../agent/FileDeck.jsx';
+import SpecsDeck from '../agent/SpecsDeck.jsx';
 import CriticDeck from '../agent/CriticDeck.jsx';
 import { generateProjectZip } from '../../utils/artifactEngine.js'; // Ensure path is correct
 
@@ -11,6 +12,7 @@ const HivemindFeed = ({ history, loading, statusMessage, actions, currentPhase }
     // --- 1. FIND LATEST AGENT OUTPUTS ---
     // We scan history to find the latest data for each role
     const visionaryMsg = history.findLast(m => m.role === 'The Visionary');
+    const techMsg = history.findLast(m => m.role === 'The Tech Lead'); // <--- New Tech Lead Logic
     const architectMsg = history.findLast(m => m.role === 'The Architect');
     const criticMsg = history.findLast(m => m.role === 'The Critic');
     const executiveMsg = history.findLast(m => m.role === 'The Executive');
@@ -87,7 +89,40 @@ const HivemindFeed = ({ history, loading, statusMessage, actions, currentPhase }
         );
     };
 
-    // PHASE 2: BLUEPRINT (Architect)
+    // PHASE 2: SPECS (Tech Lead)
+    const renderSpecs = () => {
+        if (!techMsg) return null;
+        let data = null;
+
+        // 1. Get String
+        const rawText = typeof techMsg.text === 'string' ? techMsg.text : JSON.stringify(techMsg.text);
+
+        try {
+            // 2. Surgical Extraction (Find JSON inside text)
+            const start = rawText.indexOf('{');
+            const end = rawText.lastIndexOf('}');
+
+            if (start !== -1 && end !== -1) {
+                const jsonBlock = rawText.substring(start, end + 1);
+                data = JSON.parse(jsonBlock);
+            }
+        } catch (e) {
+            console.error("Tech Lead Parse Error", e);
+        }
+
+        // 3. Render
+        if (data && data.spec_options) {
+            return (
+                <SpecsDeck
+                    data={data}
+                    onConfirm={(selections) => actions.submitSpecs(selections)}
+                />
+            );
+        }
+        return null;
+    };
+
+    // PHASe 3: BLUEPRINT (Architect)
     const renderBlueprint = () => {
         if (!architectMsg) return null;
         let data = null;
@@ -220,6 +255,7 @@ const HivemindFeed = ({ history, loading, statusMessage, actions, currentPhase }
     return (
         <div className="pb-32"> {/* Padding for footer */}
             {currentPhase === 'vision' && renderVision()}
+            {currentPhase === 'specs' && renderSpecs()}
             {currentPhase === 'blueprint' && renderBlueprint()}
             {currentPhase === 'critique' && (
                 <>

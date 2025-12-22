@@ -72,28 +72,67 @@ export const useHivemind = (initialKeys = {}) => {
         finally { setLoading(false); }
     };
 
-    // --- STEP 2: ARCHITECT (Build) ---
+    // --- STEP 2: SPECS (Tech Lead) ---
     const submitChoices = async (choices) => {
         setLoading(true);
-        setCurrentPhase('blueprint');
-        setStatusMessage('The Architect is drafting the blueprint...');
+        setCurrentPhase('specs'); // <--- NEW PHASE
+        setStatusMessage('The Tech Lead is defining specifications...');
 
-        // Save choices to context
-        const newContext = { ...contextData, ...choices };
+        // Save strategy choices
+        const newContext = { ...contextData, strategy: choices }; // Store explicitly as strategy
         setContextData(newContext);
 
         const contextString = `
         ORIGINAL PROMPT: "${newContext.originalPrompt}"
-        USER STRATEGY CHOICES: ${JSON.stringify(choices)}
+        STRATEGY CHOICES: ${JSON.stringify(choices)}
         `;
 
         try {
-            const data = await callAgent('architect',
-                "Generate the File Structure and Core Code based on these choices.",
+            // CALL TECH LEAD
+            const data = await callAgent('tech_lead',
+                "Define technical specs based on this strategy.",
                 contextString
             );
             const msg = data.swarm[0];
-            setHistory(prev => [...prev, { ...msg, text: msg.content, role: 'The Architect', type: 'blueprint' }]);
+            setHistory(prev => [...prev, {
+                ...msg,
+                text: msg.content,
+                role: 'The Tech Lead',
+                type: 'spec_options' // <--- NEW TYPE
+            }]);
+        } catch (e) { console.error(e); }
+        finally { setLoading(false); }
+    };
+
+    // --- STEP 3: BLUEPRINT (Architect) ---
+    const submitSpecs = async (specs) => {
+        setLoading(true);
+        setCurrentPhase('blueprint');
+        setStatusMessage('The Architect is drafting the blueprint...');
+
+        // Save spec choices
+        const newContext = { ...contextData, specs };
+        setContextData(newContext);
+
+        const contextString = `
+        ORIGINAL PROMPT: "${newContext.originalPrompt}"
+        STRATEGY CHOICES: ${JSON.stringify(newContext.strategy)}
+        TECHNICAL SPECS: ${JSON.stringify(specs)}
+        `;
+
+        try {
+            // CALL ARCHITECT
+            const data = await callAgent('architect',
+                "Generate the File Structure and Core Code based on these specs.",
+                contextString
+            );
+            const msg = data.swarm[0];
+            setHistory(prev => [...prev, {
+                ...msg,
+                text: msg.content,
+                role: 'The Architect',
+                type: 'blueprint'
+            }]);
         } catch (e) { console.error(e); }
         finally { setLoading(false); }
     };
@@ -138,6 +177,7 @@ export const useHivemind = (initialKeys = {}) => {
         statusMessage,
         startMission,
         submitChoices,
+        submitSpecs, // <--- Exported
         sendToAudit,
         compileBuild
     };
