@@ -1,25 +1,26 @@
-# Anthropic Prompting Guide (Claude)
+# Anthropic Claude Prompting Guide
 
-## Core Principles
-1. **XML Tags**: Use XML tags (e.g., `<input>`, `<instructions>`) to structure the prompt. This helps Claude separate instructions from data.
-2. **Chain of Thought**: Ask Claude to "Think step-by-step" or use `<thinking>` tags before the `<answer>`.
-3. **Role Prompting**: Assign a strict persona ("You are an expert physicist").
-4. **Clear Delimiters**: Use triple quotes `"""` or other distinct separators for input text.
+## Key Principles
+1. **Be Clear and Direct**: detailed context, specific goals.
+2. **Use XML Tags**: Structure prompts with `<task>`, `<context>`, `<examples>`, `<input>`.
+3. **Chain of Thought**: Ask Claude to "think step-by-step" before answering in `<thinking>` tags.
+4. **Prefill**: Start the assistant response to guide output (e.g. `{"`).
 
-## Example Structure
+## Structure Template
 ```xml
-<system>
-You are a helpful assistant.
-</system>
+<system_role>
+You are an expert...
+</system_role>
 
-<user>
 <context>
-The user is asking about quantum mechanics.
+{{context_data}}
 </context>
 
-<instruction>
-Explain the concept of superposition simply.
-Thinking step-by-step in <thinking> tags before answering.
-</instruction>
-</user>
+<task>
+{{instructions}}
+</task>
+
+<output_format>
+Return strictly JSON.
+</output_format>
 ```

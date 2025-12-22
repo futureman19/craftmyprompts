@@ -1,5 +1,6 @@
 import { checkRateLimit } from './_utils/rate-limiter.js';
 import { getProviderGuide } from './_utils/doc-reader.js';
+import { compileContext } from './_utils/context-compiler.js';
 
 export const config = {
     maxDuration: 60, // Allow up to 60 seconds for sequential processing
@@ -166,8 +167,17 @@ export default async function handler(req, res) {
     // B. Method Check
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-    const { prompt, mode, category, keys = {}, targetAgentId, targetProvider } = req.body;
+    const { prompt: rawPrompt, mode, category, keys = {}, targetAgentId, targetProvider: reqProvider, context } = req.body;
     const { openai: openAIKey, anthropic: anthropicKey, gemini: geminiKey, groq: groqKey } = keys;
+
+    // 4.5 Auto-Compile Context (Hivemind Logic)
+    // Default to 'anthropic' for Hivemind reasoning depth if not specified
+    const optimProvider = reqProvider || 'anthropic';
+    let prompt = rawPrompt;
+
+    if (rawPrompt && !context) {
+        prompt = await compileContext(rawPrompt, optimProvider);
+    }
 
     // Helper: Run Single Agent
     const runAgent = async (agent, context = "") => {

@@ -1,22 +1,18 @@
-# Google Prompting Guide (Gemini)
+# Google Gemini Prompting Guide
 
-## Core Principles
-1.  **Clear Instructions**: Be direct. Use natural language.
-2.  **Delimiters**: Use triple quotes `"""` to separate data/text from instructions.
-3.  **Role Definition**: "You are a helpful assistant."
-4.  **Task Decomposition**: Break complex problems into smaller steps.
-5.  **Multi-turn Context**: Gemini handles long contexts well; provide sufficient background.
+## Key Principles
+1. **Task/Role Definition**: Explicitly state "Your task is..."
+2. **Negative Constraints**: Explicitly state what NOT to do.
+3. **Clear Delimiters**: Use clear headers.
+4. **Safety**: Gemini is sensitive to safety; avoid ambiguous framing.
 
-## Example Structure
-```text
-Task: Classify the following text into positive, neutral, or negative.
+## Structure Template
+Role: Expert Coder.
+Task: Write a function to...
 
-Text: """
-The product was okay, but the shipping was delayed.
-"""
+Constraints:
+- Do NOT use external libraries.
+- Do NOT add comments.
 
-Analysis:
-1. Product quality: Neutral
-2. Shipping: Negative
-3. Overall sentiment: Mixed/Neutral
-```
+Input:
+{{context_data}}

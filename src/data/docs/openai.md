@@ -1,26 +1,26 @@
-# OpenAI Prompting Guide (GPT-4)
+# OpenAI Prompting Guide
 
-## Core Principles
-1. **Clear Instructions**: Be explicit about what you want. "Do X, then Y."
-2. **Reference to Roles**: "Act as a senior software engineer."
-3. **Markdown Organization**: Use headers and bullet points in your instructions.
-4. **Few-Shot Prompting**: Provide examples of input -> desired output to guide the model.
+## Key Principles
+1. **Markdown Hierarchy**: Use `# Identity`, `## Instructions`, `## Constraints`.
+2. **Role Separation**: distinct `system` (rules) vs `user` (data) messages.
+3. **Delimiters**: Use triple quotes `"""` or backticks ` ``` ` to separate data.
+4. **Reference**: Explicitly tell the model "Use the provided text...".
 
-## Best Practices
-- **Split Complex Tasks**: Break down big prompts into a series of steps.
-- **Specify Output Format**: "Return the result as a JSON object with keys: foo, bar."
-- **Context Handling**: Provide relevant background info before the main instruction.
-
-## Example
+## Structure Template
 ```markdown
-# Role
-You are an expert copywriter.
+# Identity
+You are an expert...
 
-# Task
-Write a landing page headline for a new coffee brand.
+# Instructions
+1. Step one...
+2. Step two...
 
 # Constraints
-- Under 10 words
-- Punchy and emotional
-- No puns
+- No prose.
+- Output JSON only.
+
+# Context
+"""
+{{context_data}}
+"""
 ```
