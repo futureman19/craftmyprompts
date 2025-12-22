@@ -1,14 +1,28 @@
 import React, { useState } from 'react';
-import { Folder, FileCode, Check, Edit, Layers, Code } from 'lucide-react';
+import { Folder, FileCode, Check, Edit, Layers, Code, Loader } from 'lucide-react';
 
 const ProjectBlueprint = ({ structure = [], onApprove, onRefine }) => {
     const [viewMode, setViewMode] = useState('tree'); // 'tree' | 'raw'
 
     // Safety check for data
-    if (!structure || !Array.isArray(structure) || structure.length === 0) {
+    const hasStructure = structure && Array.isArray(structure) && structure.length > 0;
+
+    if (!hasStructure) {
         return (
-            <div className="p-4 bg-slate-800 border border-slate-700 rounded-lg text-amber-400 text-center text-xs">
-                Waiting for architecture data...
+            <div className="p-6 bg-slate-900 border border-dashed border-slate-700 rounded-xl text-center">
+                <div className="flex justify-center mb-2">
+                    <Loader size={24} className="animate-spin text-cyan-500" />
+                </div>
+                <p className="text-slate-400 text-xs font-mono">
+                    Architecting system... (If this persists, the Architect returned invalid JSON)
+                </p>
+                {/* Debug View */}
+                <details className="mt-4 text-[10px] text-slate-600 text-left">
+                    <summary className="cursor-pointer hover:text-slate-400">Raw Data Debug</summary>
+                    <pre className="mt-2 p-2 bg-black rounded overflow-auto max-h-32">
+                        {JSON.stringify(structure, null, 2)}
+                    </pre>
+                </details>
             </div>
         );
     }

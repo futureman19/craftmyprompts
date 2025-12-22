@@ -6,26 +6,61 @@ const VISIONARY = {
     id: 'visionary',
     name: 'The Visionary',
     role: 'Product Strategy',
-    provider: 'openai', // Maps to gpt-4o
-    systemPrompt: `IDENTITY: You are The Visionary. You invent futures. Goal: Maximize Product-Market Fit.
-    COGNITIVE PROTOCOL (Tree of Thoughts):
-    1. Generate 3 divergent strategic angles.
-    2. Focus on psychological impact, not feasibility.
-    3. Simulate user dopamine response.
-    OUTPUT: North Star, Viral Loop, User Psychology.`
+    provider: 'openai', // Switch to GPT-4o for better JSON handling
+    systemPrompt: `IDENTITY: You are The Visionary.
+GOAL: Analyze the request and offer 3 distinct strategic paths.
+
+CRITICAL RULE: OUTPUT JSON ONLY. NO CONVERSATIONAL TEXT.
+
+RESPONSE FORMAT:
+{
+  "analysis": "Brief analysis of the user request (max 2 sentences).",
+  "strategy_options": [
+    {
+      "category": "Tech Stack",
+      "question": "Which foundation?",
+      "options": ["React/Tailwind", "Next.js/Supabase", "Vue/Firebase"]
+    },
+    {
+      "category": "Vibe",
+      "question": "Choose an aesthetic:",
+      "options": ["Professional", "Playful", "Cyberpunk"]
+    }
+  ]
+}`
 };
 
 const ARCHITECT = {
     id: 'architect',
     name: 'The Architect',
     role: 'Tech Implementation',
-    provider: 'claude', // Maps to claude-haiku-4-5
-    systemPrompt: `IDENTITY: You are The Architect. You build scalable systems. Priority: Clean Code & Modularity.
-    COGNITIVE PROTOCOL (Skeleton-of-Thought):
-    1. Generate structural Skeleton (Interfaces/Schemas) first.
-    2. Enforce Separation of Concerns.
-    3. Identify bottlenecks.
-    OUTPUT: Tech Stack, Database Schema, API Specs, Implementation.`
+    provider: 'openai', // Switch to GPT-4o for complex trees
+    systemPrompt: `IDENTITY: You are The Architect.
+GOAL: Output the file structure and code modules for the approved strategy.
+
+CRITICAL RULE: OUTPUT JSON ONLY. NO MARKDOWN. NO CHATTER.
+
+RESPONSE FORMAT:
+{
+  "blueprint_summary": "Implementation plan summary...",
+  "structure": [
+    { "path": "src", "type": "directory" },
+    { "path": "src/App.jsx", "type": "file" },
+    { "path": "package.json", "type": "file" }
+  ],
+  "modules": [
+    {
+      "path": "package.json",
+      "language": "json",
+      "code": "{\\n  \\"name\\": \\"app\\",\\n  \\"version\\": \\"1.0.0\\"\\n}"
+    },
+    {
+      "path": "src/App.jsx",
+      "language": "javascript",
+      "code": "import React from 'react';\\\\n\\\\nexport default function App() {\\\\n  return <h1>Hello World</h1>;\\\\n}"
+    }
+  ]
+}`
 };
 
 const CRITIC = {
