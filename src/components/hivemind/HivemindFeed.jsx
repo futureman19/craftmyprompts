@@ -3,6 +3,7 @@ import { Loader, Layers, ShieldCheck, Zap, Package, Download, AlertTriangle } fr
 import VisionaryDeck from '../agent/VisionaryDeck.jsx';
 import ProjectBlueprint from '../agent/ProjectBlueprint.jsx';
 import FileDeck from '../agent/FileDeck.jsx';
+import CriticDeck from '../agent/CriticDeck.jsx';
 import { generateProjectZip } from '../../utils/artifactEngine.js'; // Ensure path is correct
 
 const HivemindFeed = ({ history, loading, statusMessage, actions, currentPhase }) => {
@@ -136,30 +137,40 @@ const HivemindFeed = ({ history, loading, statusMessage, actions, currentPhase }
     // PHASE 3: CRITIQUE (Critic)
     const renderCritique = () => {
         if (!criticMsg) return null;
-        return (
-            <div className="w-full max-w-3xl mx-auto mt-8 animate-in slide-in-from-bottom-4">
-                <div className="bg-slate-900 border border-rose-500/30 rounded-2xl p-6 shadow-2xl">
-                    <div className="flex items-center gap-3 mb-4 text-rose-400">
-                        <ShieldCheck size={24} />
-                        <h3 className="text-lg font-bold">Audit Report</h3>
-                    </div>
-                    <div className="prose prose-invert prose-sm max-w-none text-slate-300">
-                        <pre className="whitespace-pre-wrap font-sans">{criticMsg.text}</pre>
-                    </div>
+        let data = null;
 
-                    {/* The Loop Controls are handled by the Footer in HivemindView, 
-                        but we can add a 'Compile' shortcut here if satisfied */}
-                    {!loading && (
-                        <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-800">
-                            <button
-                                onClick={actions.compileBuild}
-                                className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold flex items-center gap-2"
-                            >
-                                <Zap size={16} /> LGTM - Compile
-                            </button>
-                        </div>
-                    )}
-                </div>
+        // 1. Get String
+        const rawText = typeof criticMsg.text === 'string' ? criticMsg.text : JSON.stringify(criticMsg.text);
+
+        try {
+            // 2. Surgical Extraction (Find JSON inside text)
+            const start = rawText.indexOf('{');
+            const end = rawText.lastIndexOf('}');
+
+            if (start !== -1 && end !== -1) {
+                const jsonBlock = rawText.substring(start, end + 1);
+                data = JSON.parse(jsonBlock);
+            }
+        } catch (e) {
+            console.error("Critic Parse Error", e);
+        }
+
+        // 3. Render
+        if (data && data.risk_options) {
+            return (
+                <CriticDeck
+                    data={data}
+                    onConfirm={(selections) => actions.compileBuild(selections)}
+                />
+            );
+        }
+
+        // Fallback (If parsing failed, show raw text)
+        return (
+            <div className="w-full max-w-3xl mx-auto mt-8 p-6 bg-slate-900 border border-slate-700 rounded-xl">
+                <div className="text-slate-500 font-bold mb-2 uppercase text-xs">Raw Audit Log</div>
+                <pre className="text-xs text-slate-400 whitespace-pre-wrap font-mono">{rawText}</pre>
+                <button onClick={actions.compileBuild} className="mt-4 px-4 py-2 bg-emerald-600 text-white rounded text-xs font-bold">Force Compile</button>
             </div>
         );
     };

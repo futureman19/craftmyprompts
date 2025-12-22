@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { AlertTriangle, ShieldAlert, CheckCircle, ArrowRight } from 'lucide-react';
+import { ShieldAlert, CheckCircle } from 'lucide-react';
 
 const CriticDeck = ({ data, onConfirm }) => {
-    // Default selections (optional: could default to first option)
     const [selections, setSelections] = useState({});
 
+    // Safety check
     if (!data || !data.risk_options) return null;
 
     const handleSelect = (category, value) => {
@@ -14,62 +14,59 @@ const CriticDeck = ({ data, onConfirm }) => {
     return (
         <div className="w-full max-w-3xl mx-auto mt-8 animate-in slide-in-from-bottom-4">
 
-            {/* Header Card */}
-            <div className="bg-slate-900 border border-rose-500/30 rounded-2xl p-6 shadow-2xl relative overflow-hidden mb-6">
-                <div className="absolute top-0 left-0 w-1 h-full bg-rose-500" />
+            {/* Header */}
+            <div className="bg-slate-900 border border-rose-500/30 rounded-2xl p-6 shadow-2xl mb-6 relative overflow-hidden">
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-rose-500"></div>
                 <div className="flex items-start gap-4">
                     <div className="p-3 bg-rose-500/10 rounded-xl text-rose-500">
                         <ShieldAlert size={28} />
                     </div>
                     <div>
                         <h3 className="text-xl font-bold text-white">Critical Audit</h3>
-                        <p className="text-sm text-slate-400 mt-2 leading-relaxed">
-                            {data.critique_summary}
-                        </p>
+                        <p className="text-sm text-slate-400 mt-2">{data.critique_summary}</p>
                     </div>
                 </div>
             </div>
 
-            {/* Risk Cards */}
+            {/* The Cards */}
             <div className="grid grid-cols-1 gap-4 mb-8">
-                {data.risk_options.map((risk, idx) => {
-                    const isSelected = (val) => selections[risk.category] === val;
+                {data.risk_options.map((risk, idx) => (
+                    <div key={idx} className="bg-slate-950/80 border border-slate-800 p-5 rounded-xl hover:border-slate-700 transition-all">
+                        <div className="flex justify-between mb-3">
+                            <span className="text-xs font-bold text-slate-500 uppercase">{risk.category}</span>
+                            <span className={`text-[10px] px-2 py-1 rounded font-bold uppercase ${risk.severity === 'high' ? 'bg-rose-500/20 text-rose-400' :
+                                    risk.severity === 'medium' ? 'bg-amber-500/20 text-amber-400' :
+                                        'bg-slate-700 text-slate-300'
+                                }`}>
+                                {risk.severity} Risk
+                            </span>
+                        </div>
 
-                    return (
-                        <div key={idx} className="bg-slate-950/80 border border-slate-800 p-5 rounded-xl hover:border-slate-700 transition-colors">
-                            <div className="flex items-center justify-between mb-3">
-                                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                                    {risk.category}
-                                </span>
-                                {risk.severity === 'high' && <span className="text-[10px] bg-rose-500/20 text-rose-400 px-2 py-1 rounded font-bold">HIGH RISK</span>}
-                                {risk.severity === 'medium' && <span className="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-1 rounded font-bold">MEDIUM</span>}
-                            </div>
+                        <h4 className="text-slate-200 font-medium text-sm mb-4">{risk.question}</h4>
 
-                            <h4 className="text-slate-200 font-medium text-sm mb-4">
-                                {risk.question}
-                            </h4>
-
-                            <div className="flex flex-wrap gap-2">
-                                {risk.options.map((opt) => (
+                        <div className="flex flex-wrap gap-2">
+                            {risk.options.map((opt) => {
+                                const active = selections[risk.category] === opt;
+                                return (
                                     <button
                                         key={opt}
                                         onClick={() => handleSelect(risk.category, opt)}
-                                        className={`px-4 py-2 rounded-lg text-xs font-bold border transition-all flex items-center gap-2 ${isSelected(opt)
+                                        className={`px-4 py-2 rounded-lg text-xs font-bold border transition-all flex items-center gap-2 ${active
                                                 ? 'bg-rose-600 border-rose-500 text-white shadow-lg shadow-rose-900/20'
                                                 : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200'
                                             }`}
                                     >
-                                        {isSelected(opt) && <CheckCircle size={12} />}
+                                        {active && <CheckCircle size={12} />}
                                         {opt}
                                     </button>
-                                ))}
-                            </div>
+                                );
+                            })}
                         </div>
-                    );
-                })}
+                    </div>
+                ))}
             </div>
 
-            {/* Action Bar */}
+            {/* Confirm Button */}
             <div className="flex justify-end pt-4 border-t border-slate-800">
                 <button
                     onClick={() => onConfirm(selections)}
