@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Package, Github, Download, ExternalLink, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Package, Github, Download, ExternalLink, CheckCircle, AlertTriangle, Edit3 } from 'lucide-react';
 import { generateProjectZip } from '../../utils/artifactEngine.js';
 
 const DeploymentDeck = ({ projectData, githubToken, onSaveToken, onDeploy }) => {
@@ -10,16 +10,19 @@ const DeploymentDeck = ({ projectData, githubToken, onSaveToken, onDeploy }) => 
     const [isZipping, setIsZipping] = useState(false);
     const [showHelp, setShowHelp] = useState(false);
 
+    // NEW: Local state for renaming
+    const [projectName, setProjectName] = useState(projectData.project_name || 'hivemind-build');
+
     const handleAction = async (actionType) => {
-        // --- 1. LOCAL ZIP DOWNLOAD (REAL ENGINE) ---
+        // Create a payload with the UPDATED name
+        const finalData = { ...projectData, project_name: projectName };
+
+        // --- 1. LOCAL ZIP DOWNLOAD ---
         if (actionType === 'zip') {
             setIsZipping(true);
             try {
-                // Check if engine exists
-                if (typeof generateProjectZip !== 'function') {
-                    throw new Error("Artifact Engine not found. Check imports.");
-                }
-                await generateProjectZip(projectData);
+                if (typeof generateProjectZip !== 'function') throw new Error("Artifact Engine missing.");
+                await generateProjectZip(finalData);
             } catch (e) {
                 console.error("Zip Error:", e);
                 alert("Zip Failed: " + e.message);
@@ -34,12 +37,17 @@ const DeploymentDeck = ({ projectData, githubToken, onSaveToken, onDeploy }) => 
         setErrorMsg('');
 
         try {
-            const result = await onDeploy(actionType, projectData);
+            const result = await onDeploy(actionType, finalData);
             setDeployUrl(result.html_url);
             setDeployStatus('success');
         } catch (e) {
             setDeployStatus('error');
-            setErrorMsg(e.message);
+            // Friendly error for duplicate repos
+            if (e.message.includes('422')) {
+                setErrorMsg(`Repository "${projectName}" already exists. Please rename it above.`);
+            } else {
+                setErrorMsg(e.message);
+            }
         }
     };
 
@@ -52,8 +60,20 @@ const DeploymentDeck = ({ projectData, githubToken, onSaveToken, onDeploy }) => 
                     <Package size={32} />
                 </div>
 
-                <h2 className="text-2xl font-bold text-white mb-2">{projectData.project_name || "Build Complete"}</h2>
-                <p className="text-slate-400 mb-8">{projectData.description || "Ready for deployment."}</p>
+                {/* EDITABLE NAME FIELD */}
+                <div className="group relative inline-block w-full max-w-md">
+                    <input
+                        type="text"
+                        value={projectName}
+                        onChange={(e) => setProjectName(e.target.value.replace(/\s+/g, '-'))} // Force slug-friendly
+                        className="text-2xl font-bold text-white bg-transparent border-b border-transparent hover:border-slate-600 focus:border-emerald-500 text-center outline-none transition-all w-full pb-1"
+                    />
+                    <Edit3 size={14} className="absolute right-0 top-2 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                </div>
+                <p className="text-slate-500 mb-8 text-xs mt-1">
+                    {projectData.description || "Ready for deployment."}
+                    <span className="ml-2 text-slate-600">(Rename project above to avoid conflicts)</span>
+                </p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* ZIP BUTTON */}
@@ -124,7 +144,7 @@ const DeploymentDeck = ({ projectData, githubToken, onSaveToken, onDeploy }) => 
                 {deployStatus === 'error' && (
                     <div className="mt-6 text-xs text-rose-400 bg-rose-500/10 p-3 rounded border border-rose-500/20">
                         <AlertTriangle className="inline-block mr-2" size={14} />
-                        Deployment Failed: {errorMsg}
+                        {errorMsg}
                     </div>
                 )}
                 {deployStatus === 'success' && (
