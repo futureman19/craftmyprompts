@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Users, Zap, Terminal, Edit3, Download } from 'lucide-react';
-import { useTestRunner } from '../hooks/useTestRunner.js';
+import { useHivemind } from '../hooks/useHivemind.js';
 import TestRunnerResults from '../components/test-runner/TestRunnerResults.jsx';
 import ApiKeyHelpModal from '../components/test-runner/ApiKeyHelpModal.jsx';
 
@@ -10,9 +10,16 @@ const HivemindView = ({ user, globalApiKey, globalOpenAIKey }) => {
     const navigate = useNavigate();
     const incomingPrompt = location.state?.prompt || '';
 
-    // 1. Initialize the Brain (Hook)
-    // We pass the keys directly so it can execute.
-    const runner = useTestRunner(globalApiKey, globalOpenAIKey);
+    // 0. Local UI State
+    const [showHelpModal, setShowHelpModal] = useState(false);
+
+    // 1. Initialize Dedicated Brain
+    const hivemind = useHivemind({
+        openai: globalOpenAIKey,
+        gemini: globalApiKey,
+        anthropic: localStorage.getItem('anthropic_key'),
+        groq: localStorage.getItem('groq_key')
+    });
 
     // 2. Auto-Start Logic (Run Once)
     const hasStarted = useRef(false);
@@ -20,13 +27,8 @@ const HivemindView = ({ user, globalApiKey, globalOpenAIKey }) => {
     useEffect(() => {
         if (incomingPrompt && !hasStarted.current) {
             hasStarted.current = true;
-            console.log("🚀 Hivemind Auto-Start:", incomingPrompt);
-
-            // Force provider to 'swarm' so the hook behaves correctly
-            runner.setProvider('swarm');
-
-            // Trigger the Swarm Execution (Category forced to 'code')
-            runner.runTest(incomingPrompt, 'code');
+            console.log("🚀 Hivemind Launching...");
+            hivemind.startMission(incomingPrompt);
         }
     }, [incomingPrompt]);
 
@@ -58,11 +60,19 @@ const HivemindView = ({ user, globalApiKey, globalOpenAIKey }) => {
 
                 {/* Status Indicator */}
                 <div className="flex items-center gap-3">
+                    {/* Keys Button */}
+                    <button
+                        onClick={() => setShowHelpModal(true)}
+                        className="text-[10px] uppercase font-bold text-slate-500 hover:text-slate-300 transition-colors"
+                    >
+                        Keys
+                    </button>
+                    <div className="w-px h-4 bg-slate-800"></div>
                     <div className="text-xs font-mono text-slate-400">
-                        {runner.loading ? (
+                        {hivemind.loading ? (
                             <span className="flex items-center gap-2 text-amber-400">
                                 <span className="w-2 h-2 bg-amber-400 rounded-full animate-ping" />
-                                {runner.statusMessage || "Agents thinking..."}
+                                {hivemind.statusMessage || "Agents thinking..."}
                             </span>
                         ) : (
                             <span className="flex items-center gap-2 text-emerald-400">
@@ -86,24 +96,25 @@ const HivemindView = ({ user, globalApiKey, globalOpenAIKey }) => {
 
                     {/* Agent Outputs */}
                     <TestRunnerResults
-                        loading={runner.loading}
-                        result={runner.result}
+                        loading={hivemind.loading}
+                        result={null} // Hivemind doesn't use single result
                         provider="swarm" // Force swarm rendering style
-                        swarmHistory={runner.swarmHistory}
+                        swarmHistory={hivemind.history} // Use new history state
 
-                        // Pass handlers
-                        onLoopBack={runner.loopBack}
-                        onSynthesize={runner.compileSwarmCode} // Maps to "Compile"
+                        // Pass handlers (Mapped to new hook methods)
+                        onLoopBack={hivemind.refineLoop}
+                        onSynthesize={hivemind.compileBuild}
 
                         // Pass State
-                        statusMessage={runner.statusMessage}
+                        statusMessage={hivemind.statusMessage}
+                        error={hivemind.error}
                     />
                 </div>
             </div>
 
             {/* --- COMMAND DECK (Footer) --- */}
             {/* Only show when not loading and we have history */}
-            {!runner.loading && runner.swarmHistory.length > 0 && (
+            {!hivemind.loading && hivemind.history.length > 0 && (
                 <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-slate-950 via-slate-950 to-transparent">
                     <div className="max-w-3xl mx-auto bg-slate-900 border border-slate-700 p-2 rounded-2xl shadow-2xl flex gap-2 ring-1 ring-white/10">
 
@@ -118,7 +129,7 @@ const HivemindView = ({ user, globalApiKey, globalOpenAIKey }) => {
                                 className="w-full h-full bg-slate-950/50 rounded-xl pl-12 pr-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/50 border border-transparent focus:border-fuchsia-500/50 transition-all"
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter' && e.target.value) {
-                                        runner.loopBack(e.target.value);
+                                        hivemind.refineLoop(e.target.value);
                                         e.target.value = '';
                                     }
                                 }}
@@ -127,7 +138,7 @@ const HivemindView = ({ user, globalApiKey, globalOpenAIKey }) => {
 
                         {/* Compile Button */}
                         <button
-                            onClick={runner.compileSwarmCode}
+                            onClick={hivemind.compileBuild}
                             className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-emerald-900/20 flex items-center gap-2 transition-all active:scale-95 whitespace-nowrap"
                         >
                             <Zap size={16} /> Compile Build
@@ -138,8 +149,8 @@ const HivemindView = ({ user, globalApiKey, globalOpenAIKey }) => {
 
             {/* Help Modal Hook */}
             <ApiKeyHelpModal
-                isOpen={runner.showHelpModal}
-                onClose={() => runner.setShowHelpModal(false)}
+                isOpen={showHelpModal}
+                onClose={() => setShowHelpModal(false)}
             />
         </div>
     );
