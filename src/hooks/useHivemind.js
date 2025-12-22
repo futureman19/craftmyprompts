@@ -1,15 +1,33 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
-export const useHivemind = (apiKeys = {}) => {
+export const useHivemind = (initialKeys = {}) => {
     // --- STATE ---
     const [history, setHistory] = useState([]);
     const [currentPhase, setCurrentPhase] = useState('idle'); // 'idle', 'vision', 'blueprint', 'critique', 'done'
     const [statusMessage, setStatusMessage] = useState('');
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
     const [contextData, setContextData] = useState({}); // Stores user choices
+
+    // --- KEY MANAGEMENT (Self-Healing) ---
+    // Merge props with localStorage to guarantee we find a key if it exists
+    const getEffectiveKeys = () => ({
+        gemini: initialKeys.gemini || localStorage.getItem('gemini_key') || '',
+        openai: initialKeys.openai || localStorage.getItem('openai_key') || '',
+        anthropic: initialKeys.anthropic || localStorage.getItem('anthropic_key') || '',
+        groq: initialKeys.groq || localStorage.getItem('groq_key') || ''
+    });
 
     // --- HELPER: CALL API (Targeted) ---
     const callAgent = async (agentId, prompt, context = "", extraPayload = {}) => {
+        const effectiveKeys = getEffectiveKeys();
+
+        // Simple validation to prevent "Agent Offline" before we even start
+        // Visionary usually uses OpenAI or Gemini.
+        if (!effectiveKeys.openai && !effectiveKeys.gemini) {
+            throw new Error("No API Keys found. Please add an OpenAI or Gemini key in Settings.");
+        }
+
         const response = await fetch('/api/swarm', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -17,11 +35,21 @@ export const useHivemind = (apiKeys = {}) => {
                 prompt,
                 targetAgentId: agentId, // <--- TARGET SPECIFIC AGENT
                 context, // Pass history so they know what happened before
-                keys: apiKeys,
+                keys: effectiveKeys, // Send the resolved keys
                 ...extraPayload
             })
         });
-        if (!response.ok) throw new Error("Agent Unreachable");
+
+        if (!response.ok) {
+            // Try to parse error details
+            let errMsg = "Agent Unreachable";
+            try {
+                const errData = await response.json();
+                errMsg = errData.error || errMsg;
+            } catch (e) { }
+            throw new Error(errMsg);
+        }
+
         return await response.json();
     };
 

@@ -83,7 +83,7 @@ export const useTestRunner = (defaultApiKey, defaultOpenAIKey) => {
             if (name === 'gemini') body.model = selectedModel || 'gemini-2.0-flash-lite-preview-02-05';
             if (name === 'openai') body.model = 'gpt-4o';
             if (name === 'groq') body.model = 'llama-3.3-70b-versatile';
-            if (name === 'anthropic') body.model = 'claude-3-5-sonnet-20241022';
+            if (name === 'anthropic') body.model = 'claude-haiku-4-5';
         }
         const res = await fetch(`/api/${name}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
         const data = await res.json();

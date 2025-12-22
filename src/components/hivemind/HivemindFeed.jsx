@@ -1,5 +1,5 @@
 import React from 'react';
-import { Loader, Layers, ShieldCheck, Zap, Package, Download } from 'lucide-react';
+import { Loader, Layers, ShieldCheck, Zap, Package, Download, AlertTriangle } from 'lucide-react';
 import VisionaryDeck from '../agent/VisionaryDeck.jsx';
 import ProjectBlueprint from '../agent/ProjectBlueprint.jsx';
 import FileDeck from '../agent/FileDeck.jsx';
@@ -20,15 +20,60 @@ const HivemindFeed = ({ history, loading, statusMessage, actions, currentPhase }
     const renderVision = () => {
         if (!visionaryMsg) return null;
         let data = null;
+        let parseError = null;
+
         try {
-            // Clean parsing logic
+            // Attempt to parse
             const raw = typeof visionaryMsg.text === 'string' ? visionaryMsg.text : JSON.stringify(visionaryMsg.text);
+
+            // Check for Agent Error String first
+            if (raw.includes("Agent Offline") || raw.includes("Error")) {
+                throw new Error(raw);
+            }
+
             const clean = raw.replace(/```json|```/g, '').trim();
-            data = JSON.parse(clean);
+            // Find the first { and last } to isolate JSON from any conversational intro/outro
+            const jsonStart = clean.indexOf('{');
+            const jsonEnd = clean.lastIndexOf('}');
+            if (jsonStart !== -1 && jsonEnd !== -1) {
+                data = JSON.parse(clean.substring(jsonStart, jsonEnd + 1));
+            } else {
+                throw new Error("No JSON object found in response.");
+            }
+
         } catch (e) {
-            return <div className="text-red-500">Visionary Data Error: {e.message}</div>;
+            parseError = e.message;
         }
 
+        // If parsing failed or API returned an error string, show the Error Card
+        if (!data || parseError) {
+            return (
+                <div className="w-full max-w-2xl mx-auto mt-10 p-6 bg-slate-900 border border-red-500/50 rounded-2xl shadow-2xl animate-in zoom-in-95">
+                    <div className="flex items-center gap-3 text-red-500 mb-4">
+                        <AlertTriangle size={24} />
+                        <h3 className="text-lg font-bold">Signal Interrupted</h3>
+                    </div>
+                    <p className="text-slate-400 text-sm mb-4">
+                        The Visionary could not generate a strategy. This usually means the AI model failed or returned invalid data.
+                    </p>
+                    <div className="bg-black/50 p-4 rounded-lg font-mono text-xs text-red-300 overflow-auto max-h-40 mb-6 border border-red-900/30">
+                        {visionaryMsg.text || parseError}
+                    </div>
+
+                    <div className="flex justify-end gap-3">
+                        {/* Fallback button to skip Visionary if it keeps failing */}
+                        <button
+                            onClick={() => actions.submitChoices({ strategy: "Manual Override" })}
+                            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm font-medium transition-colors"
+                        >
+                            Skip Strategy Phase
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        // Success Case
         return (
             <VisionaryDeck
                 data={data}

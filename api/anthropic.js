@@ -51,7 +51,7 @@ export default async function handler(req, res) {
         'content-type': 'application/json'
       },
       body: JSON.stringify({
-        model: model || "claude-3-5-sonnet-20241022",
+        model: model || "claude-haiku-4-5",
         max_tokens: 1024,
         messages: [
           { role: "user", content: finalPrompt }
