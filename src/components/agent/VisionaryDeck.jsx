@@ -41,8 +41,12 @@ const VisionaryDeck = ({ data, onConfirm }) => {
                         {/* Options Grid */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                             {cat.options.map((opt, i) => {
-                                // DEFENSIVE CODE: Find the label regardless of what the AI called it
-                                const label = opt.label || opt.name || opt.title || opt.value || "Option";
+                                // SMART PARSER: Handle String vs Object
+                                const isString = typeof opt === 'string';
+                                const label = isString ? opt : (opt.label || opt.name || opt.value || "Option");
+                                const description = isString ? "No description available." : (opt.description || "");
+                                const isRecommended = !isString && opt.recommended;
+
                                 const isSelected = selections[cat.category] === label;
 
                                 return (
@@ -57,7 +61,7 @@ const VisionaryDeck = ({ data, onConfirm }) => {
                                         >
                                             <div className="flex justify-between items-start w-full mb-1">
                                                 {isSelected ? <CheckCircle size={14} /> : <div className="w-3.5 h-3.5 rounded-full border border-slate-600" />}
-                                                {opt.recommended && !isSelected && (
+                                                {isRecommended && !isSelected && (
                                                     <Star size={12} className="text-amber-400 fill-amber-400/20" />
                                                 )}
                                             </div>
@@ -65,15 +69,14 @@ const VisionaryDeck = ({ data, onConfirm }) => {
                                         </button>
 
                                         {/* Tooltip */}
-                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-black/90 text-white text-[10px] p-3 rounded-lg border border-slate-700 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 shadow-xl backdrop-blur-sm">
+                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-black/90 text-white text-[10px] p-3 rounded-lg border border-slate-700 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 shadow-xl backdrop-blur-sm pointer-events-none">
                                             <div className="font-bold mb-1 text-indigo-300">{label}</div>
-                                            <div className="leading-relaxed text-slate-300">{opt.description || "No description available."}</div>
-                                            {opt.recommended && (
+                                            <div className="leading-relaxed text-slate-300">{description}</div>
+                                            {isRecommended && (
                                                 <div className="mt-2 text-amber-400 font-bold flex items-center gap-1">
                                                     <Star size={8} /> Recommended
                                                 </div>
                                             )}
-                                            <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-black/90" />
                                         </div>
                                     </div>
                                 );
