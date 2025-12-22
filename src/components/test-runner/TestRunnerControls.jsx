@@ -92,6 +92,7 @@ const TestRunnerControls = ({
                             <span className={isActive ? mode.color : ''}>{mode.icon}</span>
                             <span>{mode.label}</span>
                         </button>
+                    );
                 })}
             </div>
 
