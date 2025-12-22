@@ -40,10 +40,7 @@ const Sidebar = ({ handleLogin, handleLogout, user, darkMode, toggleDarkMode }) 
                     <Layout size={20} className="md:w-6 md:h-6" /><span className="text-[10px] font-medium">Builder</span>
                 </button>
 
-                {/* 2.5 HIVEMIND */}
-                <button onClick={() => navigate('/hivemind')} className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl transition-all w-16 md:w-14 ${isActive('/hivemind')}`}>
-                    <Users size={20} className="md:w-6 md:h-6" /><span className="text-[10px] font-medium">Hivemind</span>
-                </button>
+
 
                 {/* 3. COMMUNITY FEED */}
                 <button onClick={() => navigate('/feed')} className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl transition-all w-16 md:w-14 ${isActive('/feed')}`}>

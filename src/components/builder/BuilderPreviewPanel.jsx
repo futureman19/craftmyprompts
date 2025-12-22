@@ -260,13 +260,7 @@ const BuilderPreviewPanel = ({
                             <MessageSquare size={14} />
                         </button>
 
-                        <button
-                            onClick={() => navigate('/hivemind', { state: { prompt: generatedPrompt } })}
-                            className="px-3 py-1.5 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-lg shadow-lg shadow-violet-900/20 flex items-center gap-2 transition-all ml-2"
-                            title="Execute this prompt in the Hivemind"
-                        >
-                            <Users size={14} /> Launch Hivemind
-                        </button>
+
 
                         {state.mode === 'art' && (
                             <button onClick={() => dispatch({ type: 'MAGIC_EXPAND' })} className="p-1.5 bg-gradient-to-r from-yellow-500 to-orange-500 rounded hover:opacity-90 transition-opacity text-white" title="Magic Expand"><Zap size={14} /></button>

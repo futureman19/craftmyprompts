@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
     Sparkles, MessageSquare, Palette, Video, Command, Search, Dices,
-    TrendingUp, Bookmark, BookmarkPlus, BookOpen
+    TrendingUp, Bookmark, BookmarkPlus, BookOpen, FileCode
 } from 'lucide-react';
 import { PRESETS } from '../../data/presets';
 
@@ -46,12 +46,13 @@ const BuilderHeader = ({
             <div className="flex flex-col gap-2 mb-2">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <div className={`p-1.5 rounded-lg text-white ${state.mode === 'text' ? 'bg-indigo-600' : (state.mode === 'art' ? 'bg-pink-600' : 'bg-purple-600')}`}><Sparkles size={16} /></div>
+                        <div className={`p-1.5 rounded-lg text-white ${state.mode === 'coding' ? 'bg-teal-600' : (state.mode === 'text' ? 'bg-indigo-600' : (state.mode === 'art' ? 'bg-pink-600' : 'bg-purple-600'))}`}><Sparkles size={16} /></div>
                         <h1 className="text-lg font-bold text-slate-800 dark:text-slate-100 hidden md:block">CraftMyPrompt</h1>
                     </div>
 
                     {/* Mode Switcher */}
                     <div className="flex bg-slate-100 dark:bg-slate-700 p-0.5 rounded-lg">
+                        <button onClick={() => dispatch({ type: 'SET_MODE', payload: 'coding' })} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${state.mode === 'coding' ? 'bg-white dark:bg-slate-600 text-teal-600 dark:text-teal-300 shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}><FileCode size={12} /> Coding</button>
                         <button onClick={() => dispatch({ type: 'SET_MODE', payload: 'text' })} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${state.mode === 'text' ? 'bg-white dark:bg-slate-600 text-indigo-600 dark:text-indigo-300 shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}><MessageSquare size={12} /> Text</button>
                         <button onClick={() => dispatch({ type: 'SET_MODE', payload: 'art' })} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${state.mode === 'art' ? 'bg-white dark:bg-slate-600 text-pink-600 dark:text-pink-300 shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}><Palette size={12} /> Art</button>
                         <button onClick={() => dispatch({ type: 'SET_MODE', payload: 'video' })} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${state.mode === 'video' ? 'bg-white dark:bg-slate-600 text-purple-600 dark:text-purple-300 shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}><Video size={12} /> Video</button>
@@ -61,7 +62,7 @@ const BuilderHeader = ({
                 {/* Sub-Mode / Target Selectors */}
                 {state.mode === 'text' && (
                     <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
-                        {['general', 'coding', 'social'].map(m => (
+                        {['general', 'social'].map(m => (
                             <button key={m} onClick={() => dispatch({ type: 'SET_SUBMODE', payload: m })} className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] border whitespace-nowrap transition-colors capitalize ${state.textSubMode === m ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:border-slate-300'}`}>{m}</button>
                         ))}
                     </div>
@@ -86,8 +87,8 @@ const BuilderHeader = ({
                     <button
                         onClick={() => setShowTrendWidget(!showTrendWidget)}
                         className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs font-bold shadow-md transition-all animate-in fade-in ${showTrendWidget
-                                ? 'bg-indigo-600 text-white'
-                                : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300'
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300'
                             }`}
                         title="Viral Trends"
                     >
