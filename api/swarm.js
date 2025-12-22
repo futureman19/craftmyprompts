@@ -6,7 +6,7 @@ import { VISIONARY } from './_agents/visionary.js';
 import { ARCHITECT } from './_agents/architect.js';
 import { CRITIC } from './_agents/critic.js';
 import { TECH_LEAD } from './_agents/tech_lead.js';
-import { MANAGER_AGENT } from './_agents/executive.js';
+import { MANAGER_AGENT } from './_agents/manager.js';
 
 export const config = {
     maxDuration: 60,
@@ -21,7 +21,6 @@ const MODELS = {
 };
 
 // --- SQUAD MAPPING ---
-// We can expand this later, but for now we map the core squad
 const AGENT_SQUADS = {
     code: [VISIONARY, ARCHITECT, CRITIC],
     default: [VISIONARY, ARCHITECT, CRITIC]
@@ -59,7 +58,6 @@ export default async function handler(req, res) {
                     temperature: 0.7
                 };
 
-                // CRITICAL FIX: Only force JSON if the agent demands it
                 if (agent.responseType === 'json') {
                     body.response_format = { type: "json_object" };
                 }
@@ -73,7 +71,7 @@ export default async function handler(req, res) {
                 if (!r.ok) throw new Error(d.error?.message || "OpenAI Error");
                 content = d.choices[0].message.content;
             }
-            // ... (Other providers can be added back if needed, focusing on OpenAI for stability now) ...
+            // --- GEMINI HANDLER ---
             else if (agent.provider === 'gemini') {
                 if (!geminiKey) throw new Error("Missing Gemini Key");
                 const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODELS.gemini}:generateContent?key=${geminiKey}`, {
@@ -112,6 +110,7 @@ export default async function handler(req, res) {
 
         // 1. TARGETED RUN (Specific Agent requested by Frontend)
         if (targetAgentId) {
+            // Add MANAGER_AGENT to the roster
             const allAgents = [VISIONARY, ARCHITECT, CRITIC, TECH_LEAD, MANAGER_AGENT];
             const targetAgent = allAgents.find(a => a.id === targetAgentId);
 

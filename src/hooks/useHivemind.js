@@ -9,6 +9,8 @@ export const useHivemind = (initialKeys = {}) => {
     const [error, setError] = useState(null);
     const [contextData, setContextData] = useState({}); // Stores user choices
     const [githubToken, setGithubToken] = useState(localStorage.getItem('github_token') || ''); // <--- NEW TOKEN STATE
+    const [managerMessages, setManagerMessages] = useState([]);
+    const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
     // --- KEY MANAGEMENT (Self-Healing) ---
     // User Manual Input (localStorage) > Environment Variables (initialKeys)
@@ -177,6 +179,55 @@ export const useHivemind = (initialKeys = {}) => {
         finally { setLoading(false); }
     };
 
+    // --- SWARM OPS: MANAGER FEEDBACK ---
+    const handleManagerFeedback = async (userText, setInput) => {
+        if (!userText.trim()) return;
+
+        // 1. Add User Message to Chat
+        const userMsg = { role: 'user', content: userText };
+        setManagerMessages(prev => [...prev, userMsg]);
+        setInput(''); // Clear input
+        setLoading(true);
+
+        try {
+            // 2. Call Manager Agent
+            // Context includes current phase and recent history
+            const contextString = `Current Phase: ${currentPhase}\nUser Request: ${userText}`;
+
+            const data = await callAgent('manager', "Analyze feedback and direct the swarm.", contextString);
+            const decision = JSON.parse(data.swarm[0].content); // Expecting JSON reply
+
+            // 3. Add Manager Reply to Chat
+            setManagerMessages(prev => [...prev, { role: 'assistant', content: decision.reply }]);
+
+            // 4. EXECUTE REWIND / PIVOT
+            if (decision.target_phase === 'specs') {
+                // Rewind to Tech Lead (Specs)
+                setStatusMessage("Manager: Rewinding to Specifications...");
+                // We re-run submitChoices but pass the *existing* strategy + the new instruction
+                const updatedStrategy = { ...contextData.strategy, _refinement: decision.refined_instruction };
+                await submitChoices(updatedStrategy);
+            }
+            else if (decision.target_phase === 'blueprint') {
+                // Rewind to Architect (Blueprint)
+                setStatusMessage("Manager: Updating Blueprint...");
+                const updatedSpecs = { ...contextData.specs, _refinement: decision.refined_instruction };
+                await submitSpecs(updatedSpecs);
+            }
+            else if (decision.target_phase === 'vision') {
+                // Total Reset (Vision)
+                setStatusMessage("Manager: Rebooting Strategy...");
+                startMission(contextData.originalPrompt + " " + decision.refined_instruction);
+            }
+
+        } catch (e) {
+            console.error(e);
+            setManagerMessages(prev => [...prev, { role: 'assistant', content: "Error: I couldn't process that request." }]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     // --- ACTION: DEPLOY (GitHub) ---
     const deployToGithub = async (type, projectData) => {
         if (!githubToken) throw new Error("No GitHub Token provided.");
@@ -254,6 +305,10 @@ export const useHivemind = (initialKeys = {}) => {
         compileBuild,
         githubToken, // <--- Expose state
         saveGithubToken, // <--- Expose setter
-        deployToGithub // <--- Expose action
+        deployToGithub, // <--- Expose action
+        managerMessages,
+        isDrawerOpen,
+        setIsDrawerOpen,
+        handleManagerFeedback
     };
 };
