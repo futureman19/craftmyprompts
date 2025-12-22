@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { Cpu, CheckCircle } from 'lucide-react';
+import { Cpu, CheckCircle, ArrowRight, Star } from 'lucide-react';
 
 const SpecsDeck = ({ data, onConfirm }) => {
     const [selections, setSelections] = useState({});
 
-    // Safety check
     if (!data || !data.spec_options) return null;
 
     const handleSelect = (category, value) => {
@@ -12,13 +11,13 @@ const SpecsDeck = ({ data, onConfirm }) => {
     };
 
     return (
-        <div className="w-full max-w-3xl mx-auto mt-8 animate-in slide-in-from-bottom-4">
+        <div className="w-full max-w-4xl mx-auto mt-6 animate-in fade-in">
 
             {/* Header */}
-            <div className="bg-slate-900 border border-cyan-500/30 rounded-2xl p-6 shadow-2xl mb-6 relative overflow-hidden">
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-cyan-500"></div>
+            <div className="bg-slate-900 border border-cyan-500/30 rounded-2xl p-6 shadow-2xl relative overflow-hidden mb-6">
+                <div className="absolute top-0 left-0 w-1 h-full bg-cyan-500" />
                 <div className="flex items-start gap-4">
-                    <div className="p-3 bg-cyan-500/10 rounded-xl text-cyan-500">
+                    <div className="p-3 bg-cyan-500/10 rounded-xl text-cyan-400">
                         <Cpu size={28} />
                     </div>
                     <div>
@@ -28,31 +27,49 @@ const SpecsDeck = ({ data, onConfirm }) => {
                 </div>
             </div>
 
-            {/* The Cards */}
-            <div className="grid grid-cols-1 gap-4 mb-8">
-                {data.spec_options.map((spec, idx) => (
-                    <div key={idx} className="bg-slate-950/80 border border-slate-800 p-5 rounded-xl hover:border-slate-700 transition-all">
-                        <div className="flex justify-between mb-3">
-                            <span className="text-xs font-bold text-slate-500 uppercase">{spec.category}</span>
+            {/* Options Grid */}
+            <div className="grid grid-cols-1 gap-6 mb-8">
+                {data.spec_options.map((cat, idx) => (
+                    <div key={idx} className="bg-slate-950/50 border border-slate-800 p-5 rounded-xl hover:border-slate-700 transition-colors">
+                        <div className="text-xs font-bold text-cyan-400 uppercase tracking-wider mb-2">
+                            {cat.category}
                         </div>
+                        <h4 className="text-white font-medium text-lg mb-4">
+                            {cat.question}
+                        </h4>
 
-                        <h4 className="text-slate-200 font-medium text-sm mb-4">{spec.question}</h4>
-
-                        <div className="flex flex-wrap gap-2">
-                            {spec.options.map((opt) => {
-                                const active = selections[spec.category] === opt;
+                        {/* Options */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                            {cat.options.map((opt) => {
+                                const isSelected = selections[cat.category] === opt.label;
                                 return (
-                                    <button
-                                        key={opt}
-                                        onClick={() => handleSelect(spec.category, opt)}
-                                        className={`px-4 py-2 rounded-lg text-xs font-bold border transition-all flex items-center gap-2 ${active
-                                                ? 'bg-cyan-600 border-cyan-500 text-white shadow-lg shadow-cyan-900/20'
-                                                : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200'
-                                            }`}
-                                    >
-                                        {active && <CheckCircle size={12} />}
-                                        {opt}
-                                    </button>
+                                    <div key={opt.label} className="relative group">
+                                        <button
+                                            onClick={() => handleSelect(cat.category, opt.label)}
+                                            className={`w-full h-full p-3 rounded-xl text-left border transition-all relative overflow-hidden ${isSelected
+                                                    ? 'bg-cyan-600 border-cyan-500 text-white shadow-lg shadow-cyan-500/20'
+                                                    : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200'
+                                                }`}
+                                        >
+                                            <div className="flex justify-between items-start mb-1">
+                                                {isSelected ? <CheckCircle size={14} /> : <div className="w-3.5 h-3.5 rounded-full border border-slate-600" />}
+                                                {opt.recommended && !isSelected && <Star size={12} className="text-cyan-300 fill-cyan-300/20" />}
+                                            </div>
+                                            <div className="font-bold text-xs">{opt.label}</div>
+                                        </button>
+
+                                        {/* Tooltip */}
+                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-black/90 text-white text-[10px] p-3 rounded-lg border border-slate-700 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 shadow-xl backdrop-blur-sm">
+                                            <div className="font-bold mb-1 text-cyan-300">{opt.label}</div>
+                                            <div className="leading-relaxed text-slate-300">{opt.description}</div>
+                                            {opt.recommended && (
+                                                <div className="mt-2 text-cyan-300 font-bold flex items-center gap-1">
+                                                    <Star size={8} /> Tech Lead Recommended
+                                                </div>
+                                            )}
+                                            <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-black/90" />
+                                        </div>
+                                    </div>
                                 );
                             })}
                         </div>
@@ -60,14 +77,14 @@ const SpecsDeck = ({ data, onConfirm }) => {
                 ))}
             </div>
 
-            {/* Confirm Button */}
+            {/* Confirm */}
             <div className="flex justify-end pt-4 border-t border-slate-800">
                 <button
                     onClick={() => onConfirm(selections)}
-                    className="px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-emerald-900/20 flex items-center gap-2 transition-all active:scale-95"
+                    disabled={Object.keys(selections).length < data.spec_options.length}
+                    className="px-6 py-3 bg-white hover:bg-cyan-50 text-slate-900 rounded-xl font-bold text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
-                    <CheckCircle size={18} />
-                    Generate Blueprint
+                    Confirm Specs <ArrowRight size={16} />
                 </button>
             </div>
         </div>

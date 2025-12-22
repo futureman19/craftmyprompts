@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { ShieldAlert, CheckCircle } from 'lucide-react';
+import { ShieldAlert, CheckCircle, Star } from 'lucide-react';
 
 const CriticDeck = ({ data, onConfirm }) => {
     const [selections, setSelections] = useState({});
 
-    // Safety check
     if (!data || !data.risk_options) return null;
 
     const handleSelect = (category, value) => {
@@ -12,7 +11,7 @@ const CriticDeck = ({ data, onConfirm }) => {
     };
 
     return (
-        <div className="w-full max-w-3xl mx-auto mt-8 animate-in slide-in-from-bottom-4">
+        <div className="w-full max-w-4xl mx-auto mt-8 animate-in slide-in-from-bottom-4">
 
             {/* Header */}
             <div className="bg-slate-900 border border-rose-500/30 rounded-2xl p-6 shadow-2xl mb-6 relative overflow-hidden">
@@ -28,8 +27,8 @@ const CriticDeck = ({ data, onConfirm }) => {
                 </div>
             </div>
 
-            {/* The Cards */}
-            <div className="grid grid-cols-1 gap-4 mb-8">
+            {/* Risk Cards */}
+            <div className="grid grid-cols-1 gap-6 mb-8">
                 {data.risk_options.map((risk, idx) => (
                     <div key={idx} className="bg-slate-950/80 border border-slate-800 p-5 rounded-xl hover:border-slate-700 transition-all">
                         <div className="flex justify-between mb-3">
@@ -42,23 +41,40 @@ const CriticDeck = ({ data, onConfirm }) => {
                             </span>
                         </div>
 
-                        <h4 className="text-slate-200 font-medium text-sm mb-4">{risk.question}</h4>
+                        <h4 className="text-slate-200 font-medium text-lg mb-4">{risk.question}</h4>
 
-                        <div className="flex flex-wrap gap-2">
+                        {/* Options Grid */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             {risk.options.map((opt) => {
-                                const active = selections[risk.category] === opt;
+                                const active = selections[risk.category] === opt.label;
                                 return (
-                                    <button
-                                        key={opt}
-                                        onClick={() => handleSelect(risk.category, opt)}
-                                        className={`px-4 py-2 rounded-lg text-xs font-bold border transition-all flex items-center gap-2 ${active
-                                                ? 'bg-rose-600 border-rose-500 text-white shadow-lg shadow-rose-900/20'
-                                                : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200'
-                                            }`}
-                                    >
-                                        {active && <CheckCircle size={12} />}
-                                        {opt}
-                                    </button>
+                                    <div key={opt.label} className="relative group">
+                                        <button
+                                            onClick={() => handleSelect(risk.category, opt.label)}
+                                            className={`w-full h-full p-3 rounded-lg text-left border transition-all flex items-start justify-between gap-2 ${active
+                                                    ? 'bg-rose-600 border-rose-500 text-white shadow-lg shadow-rose-900/20'
+                                                    : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200'
+                                                }`}
+                                        >
+                                            <div className="flex flex-col">
+                                                <span className="text-xs font-bold mb-1">{opt.label}</span>
+                                                {opt.recommended && !active && <span className="text-[9px] text-rose-400">★ Suggested</span>}
+                                            </div>
+                                            {active && <CheckCircle size={14} className="mt-1" />}
+                                        </button>
+
+                                        {/* Tooltip */}
+                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-black/90 text-white text-[10px] p-3 rounded-lg border border-slate-700 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 shadow-xl backdrop-blur-sm">
+                                            <div className="font-bold mb-1 text-rose-300">{opt.label}</div>
+                                            <div className="leading-relaxed text-slate-300">{opt.description}</div>
+                                            {opt.recommended && (
+                                                <div className="mt-2 text-rose-400 font-bold flex items-center gap-1">
+                                                    <Star size={8} /> Best Practice
+                                                </div>
+                                            )}
+                                            <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-black/90" />
+                                        </div>
+                                    </div>
                                 );
                             })}
                         </div>
