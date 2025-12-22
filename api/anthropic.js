@@ -1,6 +1,7 @@
 // This function runs on Vercel's servers.
 // It securely handles requests to Anthropic's Claude API.
 import { checkRateLimit } from './_utils/rate-limiter.js';
+import { compileContext } from './_utils/context-compiler.js';
 
 export const config = {
   maxDuration: 60,
@@ -39,6 +40,9 @@ export default async function handler(req, res) {
   };
 
   try {
+    // 4.5 Auto-Compile Context
+    const finalPrompt = await compileContext(prompt, 'anthropic');
+
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -50,7 +54,7 @@ export default async function handler(req, res) {
         model: model || "claude-3-5-sonnet-20241022",
         max_tokens: 1024,
         messages: [
-          { role: "user", content: prompt }
+          { role: "user", content: finalPrompt }
         ]
       })
     });

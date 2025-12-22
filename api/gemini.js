@@ -1,6 +1,7 @@
 // This function runs on Vercel's servers.
 // It securely handles requests to Google's Gemini API (Text & Vision).
 import { checkRateLimit } from './_utils/rate-limiter.js';
+import { compileContext } from './_utils/context-compiler.js';
 
 export const config = {
   maxDuration: 60,
@@ -83,9 +84,12 @@ export default async function handler(req, res) {
       }
     } else {
       // STANDARD TEXT LOGIC
+      // 4.5 Auto-Compile Context
+      const finalPrompt = await compileContext(prompt, 'google');
+
       contents.push({
         role: "user",
-        parts: [{ text: prompt }]
+        parts: [{ text: finalPrompt }]
       });
     }
 

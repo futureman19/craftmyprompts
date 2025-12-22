@@ -1,6 +1,7 @@
 // This file runs on Vercel's servers, not in the user's browser.
 // It acts as a secure proxy to talk to OpenAI.
 import { checkRateLimit } from './_utils/rate-limiter.js';
+import { compileContext } from './_utils/context-compiler.js';
 
 export const config = {
   maxDuration: 60,
@@ -40,6 +41,9 @@ export default async function handler(req, res) {
   const { prompt, model } = req.body;
 
   try {
+    // 4.5 Auto-Compile Context (The Polyglot)
+    const finalPrompt = await compileContext(prompt, 'openai');
+
     // 5. Call OpenAI
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -49,7 +53,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: model || "gpt-4o",
-        messages: [{ role: "user", content: prompt }],
+        messages: [{ role: "user", content: finalPrompt }],
         temperature: 0.7
       })
     });

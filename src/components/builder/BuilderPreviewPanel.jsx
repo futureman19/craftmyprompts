@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
     FileText, Zap, RefreshCw, Check, Copy as CopyIcon, Braces,
     Lock, Globe, Save, Bookmark, ArrowLeft, BookmarkPlus, MessageSquare,
-    Layers, FileCode, Loader, Users, Sparkles
+    Layers, FileCode, Loader, Users
 } from 'lucide-react';
 import TestRunnerPanel from '../test-runner/TestRunnerPanel.jsx';
 import ProjectBlueprint from '../agent/ProjectBlueprint.jsx';
@@ -21,8 +21,7 @@ const BuilderPreviewPanel = ({
     const [showBlueprint, setShowBlueprint] = useState(false);
     const [blueprintStructure, setBlueprintStructure] = useState([]);
     const [blueprintError, setBlueprintError] = useState(null);
-    const [isOptimizing, setIsOptimizing] = useState(false);
-    const [showOptimizeMenu, setShowOptimizeMenu] = useState(false);
+
 
     // Local Prompt State (Allows Optimization Overrides)
     const [localPrompt, setLocalPrompt] = useState(generatedPrompt);
@@ -121,44 +120,7 @@ const BuilderPreviewPanel = ({
         }
     };
 
-    // --- OPTIMIZE HANDLER ---
-    const handleOptimize = async (provider) => {
-        setIsOptimizing(true);
-        setShowOptimizeMenu(false);
-        try {
-            // Use the Architect runner to call the Translator
-            const result = await architect.runSingleAgent(
-                'translator',
-                `Task: Optimize this prompt for ${provider}. Ensure high quality.\nOriginal Prompt: "${localPrompt}"`, // Use current local text
-                [],
-                { targetProvider: provider }
-            );
-
-            // Parse Result
-            if (result && result.text) {
-                let finalPrompt = result.text;
-                try {
-                    // Try to find JSON block
-                    const jsonMatch = result.text.match(/\{[\s\S]*\}/);
-                    if (jsonMatch) {
-                        const parsed = JSON.parse(jsonMatch[0]);
-                        if (parsed.optimized_prompt) {
-                            finalPrompt = parsed.optimized_prompt;
-                        }
-                    }
-                } catch (e) {
-                    console.warn("JSON Parse failed, using raw text", e);
-                }
-
-                // UPDATE UI DIRECTLY
-                setLocalPrompt(finalPrompt);
-            }
-        } catch (err) {
-            console.error("Optimization Failed:", err);
-        } finally {
-            setIsOptimizing(false);
-        }
-    };
+    // --- OPTIMIZE HANDLER REMOVED (Moved to Backend) ---
 
     // Calculate if we are in Social Mode
     const isSocialMode = state.mode === 'text' && state.textSubMode === 'social';
@@ -205,38 +167,6 @@ const BuilderPreviewPanel = ({
                         </button>
 
                         <div className="w-px h-4 bg-slate-800 my-auto mx-1"></div>
-
-                        {/* OPTIMIZE DROPDOWN - PROMINENT */}
-                        <div className="relative">
-                            <button
-                                onClick={() => setShowOptimizeMenu(!showOptimizeMenu)}
-                                className={`px-2 py-1.5 rounded-lg border transition-all flex items-center gap-1.5 text-xs font-bold ${isOptimizing
-                                    ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/50 animate-pulse'
-                                    : 'bg-gradient-to-r from-indigo-500/10 to-purple-500/10 text-indigo-300 border-indigo-500/30 hover:border-indigo-400 hover:text-white'
-                                    }`}
-                                title="Optimize Prompt with Polyglot Agent"
-                                disabled={isOptimizing}
-                            >
-                                {isOptimizing ? <Loader size={14} className="animate-spin" /> : <Sparkles size={14} />}
-                                <span className="hidden xl:inline">Optimize</span>
-                            </button>
-
-                            {/* Dropdown Menu */}
-                            {showOptimizeMenu && (
-                                <div className="absolute top-full right-0 mt-2 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50 flex flex-col p-1 animate-in fade-in zoom-in-95">
-                                    <div className="text-[10px] uppercase font-bold text-slate-500 px-2 py-1">Optimize For:</div>
-                                    <button onClick={() => handleOptimize('openai')} className="text-left px-2 py-1.5 text-xs text-slate-200 hover:bg-slate-700 rounded flex items-center gap-2">
-                                        <div className="w-2 h-2 rounded-full bg-emerald-500"></div> OpenAI (GPT-4)
-                                    </button>
-                                    <button onClick={() => handleOptimize('anthropic')} className="text-left px-2 py-1.5 text-xs text-slate-200 hover:bg-slate-700 rounded flex items-center gap-2">
-                                        <div className="w-2 h-2 rounded-full bg-orange-500"></div> Anthropic (Claude)
-                                    </button>
-                                    <button onClick={() => handleOptimize('google')} className="text-left px-2 py-1.5 text-xs text-slate-200 hover:bg-slate-700 rounded flex items-center gap-2">
-                                        <div className="w-2 h-2 rounded-full bg-blue-500"></div> Google (Gemini)
-                                    </button>
-                                </div>
-                            )}
-                        </div>
 
                         <div className="w-px h-4 bg-slate-800 my-auto mx-1"></div>
 
