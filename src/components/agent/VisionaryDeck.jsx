@@ -1,90 +1,96 @@
 import React, { useState } from 'react';
-import { Check, ArrowRight, Lightbulb } from 'lucide-react';
+import { Lightbulb, CheckCircle, Info, Star } from 'lucide-react';
 
 const VisionaryDeck = ({ data, onConfirm }) => {
-    // State to track selected option per category
-    // Default to first option if available
     const [selections, setSelections] = useState({});
 
-    if (!data || !data.strategy_options) {
-        return (
-            <div className="p-4 bg-amber-500/10 border border-amber-500/30 text-amber-500 rounded-lg text-xs font-mono">
-                Visionary Output Error: Invalid JSON Format.
-                <pre className="mt-2 text-[10px] opacity-50">{JSON.stringify(data, null, 2)}</pre>
-            </div>
-        );
-    }
+    if (!data || !data.strategy_options) return null;
 
     const handleSelect = (category, value) => {
         setSelections(prev => ({ ...prev, [category]: value }));
     };
 
-    const isSelected = (category, value) => {
-        // If nothing selected yet, default to first option logic? 
-        // Or strictly check state. Let's strictly check state.
-        return selections[category] === value;
-    };
-
     return (
-        <div className="w-full max-w-3xl mx-auto mt-6 animate-in slide-in-from-bottom-4">
-            {/* Analysis Card */}
-            <div className="bg-slate-900 border border-indigo-500/30 rounded-2xl p-6 shadow-2xl relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-purple-600" />
+        <div className="w-full max-w-4xl mx-auto mt-6 animate-in fade-in">
 
-                <div className="flex items-start gap-4 mb-6">
+            {/* Header */}
+            <div className="bg-slate-900 border border-indigo-500/30 rounded-2xl p-6 shadow-2xl relative overflow-hidden mb-6">
+                <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500" />
+                <div className="flex items-start gap-4">
                     <div className="p-3 bg-indigo-500/10 rounded-xl text-indigo-400">
-                        <Lightbulb size={24} />
+                        <Lightbulb size={28} />
                     </div>
                     <div>
-                        <h3 className="text-lg font-bold text-white">Strategic Analysis</h3>
-                        <p className="text-sm text-slate-400 leading-relaxed mt-2">
-                            {data.analysis || "Analyzing request..."}
-                        </p>
+                        <h3 className="text-xl font-bold text-white">Strategy Deck</h3>
+                        <p className="text-sm text-slate-400 mt-2">{data.strategy_summary}</p>
                     </div>
                 </div>
+            </div>
 
-                {/* Options Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                    {data.strategy_options.map((opt, idx) => (
-                        <div key={idx} className="bg-slate-950/50 p-4 rounded-xl border border-slate-800">
-                            <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
-                                {opt.category}
-                            </div>
-                            <div className="text-sm font-medium text-white mb-3 min-h-[40px]">
-                                {opt.question}
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                                {opt.options.map((choice) => {
-                                    const active = selections[opt.category] === choice;
-                                    return (
+            {/* Categories Grid */}
+            <div className="grid grid-cols-1 gap-6 mb-8">
+                {data.strategy_options.map((cat, idx) => (
+                    <div key={idx} className="bg-slate-950/50 border border-slate-800 p-5 rounded-xl hover:border-slate-700 transition-colors">
+                        <div className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-2">
+                            {cat.category}
+                        </div>
+                        <h4 className="text-white font-medium text-lg mb-4">
+                            {cat.question}
+                        </h4>
+
+                        {/* Options Grid (4 cols on desktop) */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                            {cat.options.map((opt) => {
+                                const isSelected = selections[cat.category] === opt.label;
+
+                                return (
+                                    <div key={opt.label} className="relative group">
+                                        {/* Button */}
                                         <button
-                                            key={choice}
-                                            onClick={() => handleSelect(opt.category, choice)}
-                                            className={`px-3 py-2 rounded-lg text-xs font-bold transition-all border flex items-center gap-2 ${active
-                                                    ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20'
+                                            onClick={() => handleSelect(cat.category, opt.label)}
+                                            className={`w-full h-full p-3 rounded-xl text-left border transition-all relative overflow-hidden ${isSelected
+                                                    ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-900/20'
                                                     : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200'
                                                 }`}
                                         >
-                                            {active && <Check size={12} />}
-                                            {choice}
+                                            <div className="flex justify-between items-start mb-1">
+                                                {isSelected ? <CheckCircle size={14} /> : <div className="w-3.5 h-3.5 rounded-full border border-slate-600" />}
+                                                {opt.recommended && !isSelected && (
+                                                    <Star size={12} className="text-amber-400 fill-amber-400/20" />
+                                                )}
+                                            </div>
+                                            <div className="font-bold text-xs">{opt.label}</div>
                                         </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    ))}
-                </div>
 
-                {/* Confirm Action */}
-                <div className="flex justify-end pt-4 border-t border-slate-800">
-                    <button
-                        onClick={() => onConfirm(selections)}
-                        disabled={Object.keys(selections).length < data.strategy_options.length}
-                        className="px-6 py-3 bg-white text-slate-900 rounded-xl font-bold text-sm hover:bg-indigo-50 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        Confirm Strategy <ArrowRight size={16} />
-                    </button>
-                </div>
+                                        {/* Tooltip (Appears on Hover) */}
+                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-black/90 text-white text-[10px] p-3 rounded-lg border border-slate-700 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 shadow-xl backdrop-blur-sm">
+                                            <div className="font-bold mb-1 text-indigo-300">{opt.label}</div>
+                                            <div className="leading-relaxed text-slate-300">{opt.description}</div>
+                                            {opt.recommended && (
+                                                <div className="mt-2 text-amber-400 font-bold flex items-center gap-1">
+                                                    <Star size={8} /> Recommended
+                                                </div>
+                                            )}
+                                            {/* Arrow */}
+                                            <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-black/90" />
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Action Bar */}
+            <div className="flex justify-end pt-4 border-t border-slate-800">
+                <button
+                    onClick={() => onConfirm(selections)}
+                    disabled={Object.keys(selections).length < data.strategy_options.length}
+                    className="px-8 py-3 bg-white hover:bg-indigo-50 text-indigo-950 rounded-xl font-bold text-sm shadow-lg shadow-white/10 flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    Confirm Strategy <CheckCircle size={18} />
+                </button>
             </div>
         </div>
     );

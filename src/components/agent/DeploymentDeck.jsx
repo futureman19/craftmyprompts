@@ -43,11 +43,15 @@ const DeploymentDeck = ({ projectData, githubToken, onSaveToken, onDeploy }) => 
             setDeployStatus('success');
         } catch (e) {
             setDeployStatus('error');
-            // Friendly error for duplicate repos
-            if (e.message.includes('422')) {
-                setErrorMsg(`Repository "${projectName}" already exists. Please rename it above.`);
+            const msg = e.message.toLowerCase();
+
+            // Check for specific GitHub duplicate error keywords
+            if (msg.includes('exist') || msg.includes('duplicate') || msg.includes('422')) {
+                setErrorMsg(`⚠️ Name collision! "${finalData.project_name}" already exists on your GitHub.`);
+                // UX MAGIC: Automatically open the edit field so they can fix it
+                setIsEditingName(true);
             } else {
-                setErrorMsg(e.message);
+                setErrorMsg(`❌ Deployment Failed: ${e.message}`);
             }
         }
     };
