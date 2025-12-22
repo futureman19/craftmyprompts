@@ -454,15 +454,111 @@ const TestRunnerResults = ({
                             );
                         }
 
-                        // --- STANDARD RENDER (Visionary, Critic, etc.) ---
+                        // --- SPECIAL RENDER: CRITIC (Decision Card) ---
+                        if (msg.role?.includes('Critic')) {
+                            let data = { critique: msg.text, options: [] };
+                            try {
+                                const jsonMatch = msg.text.match(/\{[\s\S]*\}/);
+                                if (jsonMatch) {
+                                    const parsed = JSON.parse(jsonMatch[0]);
+                                    if (parsed) data = { ...data, ...parsed };
+                                }
+                            } catch (e) { }
 
+                            return (
+                                <div key={idx} className="min-w-[300px] w-[85%] md:w-[400px] snap-center flex flex-col h-full bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-900/50 rounded-2xl shadow-xl overflow-hidden animate-in slide-in-from-right-4 duration-500">
+                                    {/* Header */}
+                                    <div className="p-4 border-b border-rose-100 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/30 flex items-center gap-3">
+                                        <div className="p-2 bg-rose-100 dark:bg-rose-900/50 rounded-lg text-rose-600 dark:text-rose-400">
+                                            <AlertTriangle size={18} />
+                                        </div>
+                                        <div>
+                                            <div className="text-[10px] font-bold uppercase text-rose-500 tracking-wider">Audit Phase</div>
+                                            <div className="font-bold text-slate-800 dark:text-slate-100">The Critic</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Critique Content */}
+                                    <div className="flex-1 p-5 overflow-y-auto text-sm text-slate-600 dark:text-slate-300 space-y-4">
+                                        <div className="whitespace-pre-wrap">{data.critique || msg.text}</div>
+
+                                        {/* The Question */}
+                                        {data.question && (
+                                            <div className="p-3 bg-rose-50 dark:bg-rose-900/20 rounded-lg border border-rose-100 dark:border-rose-900/40">
+                                                <div className="text-[10px] font-bold uppercase text-rose-500 mb-1">Question</div>
+                                                <div className="font-bold text-slate-800 dark:text-slate-100 leading-snug">
+                                                    {data.question}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Footer Actions (Only for latest step) */}
+                                    {isLast && !loading && (
+                                        <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 flex flex-col gap-3">
+
+                                            {/* DECISION CHIPS (The New Feature) */}
+                                            {data.options && data.options.length > 0 && (
+                                                <div className="mb-2">
+                                                    <div className="text-[10px] uppercase text-slate-400 font-bold mb-2">Choose your path:</div>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {data.options.map((opt, i) => (
+                                                            <button
+                                                                key={i}
+                                                                onClick={() => {
+                                                                    onLoopBack(opt);
+                                                                    setFeedback(''); // Clear manual input if any
+                                                                }}
+                                                                className="px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-violet-500 hover:text-violet-600 dark:hover:border-violet-500 dark:hover:text-violet-400 rounded-full text-xs font-medium transition-all shadow-sm hover:shadow-md active:scale-95"
+                                                            >
+                                                                {opt}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Fallback Manual Input */}
+                                            <div className="space-y-2">
+                                                <textarea
+                                                    className="w-full p-3 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-none transition-all placeholder:text-slate-400 dark:text-slate-200"
+                                                    placeholder="Or type manual instructions..."
+                                                    rows={2}
+                                                    value={feedback}
+                                                    onChange={(e) => setFeedback(e.target.value)}
+                                                />
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => {
+                                                            if (!feedback.trim()) return;
+                                                            onLoopBack(feedback);
+                                                            setFeedback('');
+                                                        }}
+                                                        disabled={!feedback.trim()}
+                                                        className="flex-1 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-bold transition-all disabled:opacity-50"
+                                                    >
+                                                        Refine Plan
+                                                    </button>
+                                                    <button
+                                                        onClick={onSynthesize}
+                                                        className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold shadow-lg shadow-emerald-900/20 flex items-center justify-center gap-2"
+                                                    >
+                                                        <Zap size={14} /> Ship It
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        }
+
+                        // --- STANDARD RENDER (Visionary, CEO, etc.) ---
                         // Map Role to Icon/Color
                         let RoleIcon = Bot;
                         let roleColor = 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300';
 
                         if (msg.role?.includes('Visionary') || msg.role?.includes('CEO')) { RoleIcon = Sparkles; roleColor = 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-300'; }
-                        else if (msg.role?.includes('Architect')) { RoleIcon = Code; roleColor = 'bg-cyan-100 text-cyan-600 dark:bg-cyan-900/50 dark:text-cyan-300'; }
-                        else if (msg.role?.includes('Critic')) { RoleIcon = AlertTriangle; roleColor = 'bg-rose-100 text-rose-600 dark:bg-rose-900/50 dark:text-rose-300'; }
                         else if (msg.role?.includes('Executive')) { RoleIcon = Check; roleColor = 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/50 dark:text-emerald-300'; }
 
                         return (
@@ -489,65 +585,16 @@ const TestRunnerResults = ({
                                 {/* Interactive Footer (Only for the latest step) */}
                                 {isLast && !loading && (
                                     <div className="p-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex flex-col gap-3">
-
-                                        {/* SCENARIO A: THE CRITIC (Decision Time) */}
-                                        {msg.role?.includes('Critic') ? (
-                                            <div className="space-y-3 animate-in slide-in-from-bottom-2">
-                                                <div className="text-[10px] font-bold text-center text-slate-400 uppercase tracking-widest">
-                                                    Decision Point
-                                                </div>
-
-                                                {/* Feedback Input */}
-                                                <textarea
-                                                    className="w-full p-3 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-none transition-all placeholder:text-slate-400 dark:text-slate-200"
-                                                    placeholder="Feedback for the Architect (e.g., 'Add a dark mode toggle', 'Use Supabase')..."
-                                                    rows={2}
-                                                    value={feedback}
-                                                    onChange={(e) => setFeedback(e.target.value)}
-                                                />
-
-                                                <div className="flex gap-2">
-                                                    {/* Loop Back Button */}
-                                                    <button
-                                                        onClick={() => {
-                                                            if (!feedback.trim()) return;
-                                                            onLoopBack(feedback);
-                                                            setFeedback(''); // Clear after sending
-                                                        }}
-                                                        disabled={!feedback.trim()}
-                                                        className="flex-1 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                                    >
-                                                        Refine Plan
-                                                    </button>
-
-                                                    {/* Ship It Button */}
-                                                    <button
-                                                        onClick={onSynthesize}
-                                                        className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold shadow-lg shadow-emerald-900/20 flex items-center justify-center gap-2 transition-all transform active:scale-95"
-                                                    >
-                                                        <Zap size={14} /> Ship It
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )
-                                            /* SCENARIO B: THE VISIONARY (Approve Vision) */
-                                            : msg.role?.includes('Visionary') ? (
-                                                <button onClick={() => onContinueSwarm("Approve Vision")} className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-900/20">
-                                                    <Layers size={16} /> Approve & Architect
-                                                </button>
-                                            )
-                                                /* SCENARIO C: THE ARCHITECT (Approve Blueprint) */
-                                                : msg.role?.includes('Architect') ? (
-                                                    <button onClick={() => onContinueSwarm("Approve Blueprint")} className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-cyan-900/20">
-                                                        <AlertTriangle size={16} /> Send to Critic
-                                                    </button>
-                                                )
-                                                    /* DEFAULT SCENARIO */
-                                                    : (
-                                                        <button onClick={() => onContinueSwarm("Continue")} className="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-bold">
-                                                            Continue
-                                                        </button>
-                                                    )}
+                                        {/* SIMPLE VISIONARY APPROVAL */}
+                                        {msg.role?.includes('Visionary') ? (
+                                            <button onClick={() => onContinueSwarm("Approve Vision")} className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-900/20">
+                                                <Layers size={16} /> Approve & Architect
+                                            </button>
+                                        ) : (
+                                            <button onClick={() => onContinueSwarm("Continue")} className="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-bold">
+                                                Continue
+                                            </button>
+                                        )}
                                     </div>
                                 )}
                             </div>
