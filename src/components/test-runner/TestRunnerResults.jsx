@@ -8,6 +8,7 @@ import CodeBlock from './CodeBlock.jsx';
 import SwarmResultGrid from './SwarmResultGrid.jsx';
 import ArenaResultGrid from './ArenaResultGrid.jsx';
 import ProjectBlueprint from '../agent/ProjectBlueprint.jsx';
+import FileDeck from '../agent/FileDeck.jsx';
 import { validateVirality } from '../../utils/viralityValidator.js';
 
 // --- HELPER 1: LIVE PREVIEW IFRAME ---
@@ -137,13 +138,68 @@ const AoTResult = ({ text, renderContent }) => {
     );
 };
 
+// --- HELPER 4: VISIONARY DECK (Interactive Strategy) ---
+const VisionaryDeck = ({ data, onSubmit }) => {
+    const [selections, setSelections] = useState({});
+
+    const handleSelect = (category, choice) => {
+        setSelections(prev => ({
+            ...prev,
+            [category]: choice
+        }));
+    };
+
+    const isSelected = (category, choice) => selections[category] === choice;
+    const isReady = data.strategy_options?.every(opt => selections[opt.category]);
+
+    return (
+        <div className="w-full max-w-2xl mx-auto my-6 bg-slate-900 border border-indigo-500/30 rounded-xl p-6 shadow-2xl animate-in zoom-in-95 duration-500">
+            <h3 className="text-lg font-bold text-indigo-400 mb-4 flex items-center gap-2">
+                <Sparkles size={18} /> Strategy Deck
+            </h3>
+            <p className="text-slate-300 mb-6 text-sm leading-relaxed">{data.analysis}</p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {data.strategy_options?.map((opt, i) => (
+                    <div key={i} className="bg-slate-950 p-4 rounded-lg border border-slate-800">
+                        <div className="text-[10px] font-bold text-slate-500 uppercase mb-2">{opt.category}</div>
+                        <div className="text-sm font-medium text-white mb-3">{opt.question}</div>
+                        <div className="flex flex-wrap gap-2">
+                            {opt.options.map(choice => (
+                                <button
+                                    key={choice}
+                                    onClick={() => handleSelect(opt.category, choice)}
+                                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${isSelected(opt.category, choice) ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-900/50' : 'border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200'}`}
+                                >
+                                    {choice}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            <div className="mt-6 flex justify-end">
+                <button
+                    onClick={() => onSubmit(selections)}
+                    disabled={!isReady}
+                    className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-bold flex items-center gap-2 transition-all shadow-lg shadow-indigo-900/20"
+                >
+                    Confirm Strategy <ChevronRight size={16} />
+                </button>
+            </div>
+        </div>
+    );
+};
+
+
 // --- MAIN COMPONENT ---
 const TestRunnerResults = ({
     loading, result, error, statusMessage,
     provider, battleResults, battleConfig, refineSteps, refineView, swarmHistory,
     prompt, onSaveSnippet, onShipCode, setRefineView,
     onContinueSwarm, onCompileSwarm, isSocialMode, onBlueprintDetected,
-    onLoopBack, onSynthesize  // <--- NEW PROPS
+    onLoopBack, onSynthesize, onSubmitChoices // <--- Added onSubmitChoices
 }) => {
     // Local Feedback State
     const [feedback, setFeedback] = useState('');
@@ -172,7 +228,6 @@ const TestRunnerResults = ({
         }
     }, [result, loading, onBlueprintDetected]);
 
-    // ... (lines 145-224)
 
     // 2. BATTLE MODE (Arena)
     if (provider === 'battle' && (loading || battleResults)) {
@@ -357,14 +412,27 @@ const TestRunnerResults = ({
                     {swarmHistory.map((msg, idx) => {
                         const isLast = idx === swarmHistory.length - 1;
 
+                        // --- VISIONARY OPTIONS RENDER ---
+                        if (msg.type === 'vision_options') {
+                            try {
+                                const data = JSON.parse(msg.text);
+                                return <VisionaryDeck key={idx} data={data} onSubmit={onSubmitChoices} />;
+                            } catch (e) {
+                                console.error("Failed to parse Visionary options", e);
+                                // Fallback to standard render if JSON fails
+                            }
+                        }
+
                         // --- ARCHITECT SPECIAL RENDER (Visual Blueprint) ---
                         if (msg.role?.includes('Architect')) {
                             let blueprintData = null;
+                            let modulesData = [];
                             try {
                                 const jsonMatch = msg.text.match(/\{[\s\S]*\}/);
                                 if (jsonMatch) {
                                     const parsed = JSON.parse(jsonMatch[0]);
                                     if (parsed.structure) blueprintData = parsed.structure;
+                                    if (parsed.modules) modulesData = parsed.modules;
                                 }
                             } catch (e) {
                                 console.log("Blueprint parse error", e);
@@ -388,6 +456,7 @@ const TestRunnerResults = ({
                                         {blueprintData ? (
                                             <div className="p-2">
                                                 <ProjectBlueprint structure={blueprintData} />
+                                                <FileDeck modules={modulesData} />
                                             </div>
                                         ) : (
                                             <div className="p-4 font-mono text-xs text-slate-300 whitespace-pre-wrap">
@@ -402,6 +471,8 @@ const TestRunnerResults = ({
                                             <span className="text-[10px] text-slate-500 font-medium">
                                                 {blueprintData ? "Structure Generated" : "Awaiting Structure..."}
                                             </span>
+                                            {/* Note: In the new flow, this might be handled by auto-transition or explicit confirmation elsewhere, 
+                                                but for now we keep the button if it's the strict 'Architect' role without 'vision_options' type. */}
                                             <button onClick={() => onContinueSwarm("Approve Blueprint")} className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-cyan-900/20">
                                                 <AlertTriangle size={14} /> Send to Critic
                                             </button>
@@ -611,7 +682,7 @@ const TestRunnerResults = ({
                         </div>
                     )}
 
-                    {/* Spacer for scrolling */}
+                    {/* Spencer for scrolling */}
                     <div className="min-w-[20px]"></div>
                 </div>
 

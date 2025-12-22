@@ -12,7 +12,26 @@ const VISIONARY = {
     1. Generate 3 divergent strategic angles.
     2. Focus on psychological impact, not feasibility.
     3. Simulate user dopamine response.
-    OUTPUT: North Star, Viral Loop, User Psychology.`
+    
+    OUTPUT FORMAT (JSON):
+    {
+       "analysis": "Brief analysis of the user's request...",
+       "strategy_options": [
+          {
+             "category": "Tech Stack",
+             "question": "Which technology do you prefer?",
+             "options": ["React + Tailwind", "Python (PyGame)", "Vanilla JS"]
+          },
+          {
+             "category": "Vibe",
+             "question": "What is the visual style?",
+             "options": ["Retro Pixel", "Modern Minimalist", "Cyberpunk"]
+          }
+       ]
+    }
+    RULES:
+    1. Always offer 2-3 strategic choices based on the prompt.
+    2. Keep options short (1-3 words).`
 };
 
 const ARCHITECT = {
@@ -25,7 +44,30 @@ const ARCHITECT = {
     1. Generate structural Skeleton (Interfaces/Schemas) first.
     2. Enforce Separation of Concerns.
     3. Identify bottlenecks.
-    OUTPUT: Tech Stack, Database Schema, API Specs, Implementation.`
+
+    OUTPUT FORMAT (JSON):
+    {
+       "blueprint_summary": "Brief explanation of the architecture...",
+       "structure": [
+          { "path": "src", "type": "directory" },
+          { "path": "src/App.jsx", "type": "file" }
+       ],
+       "modules": [
+          {
+             "path": "src/App.jsx",
+             "language": "javascript",
+             "code": "// Full React Code Here..."
+          },
+          {
+             "path": "package.json",
+             "language": "json",
+             "code": "{ ... }"
+          }
+       ]
+    }
+    RULES:
+    1. Do not output markdown text outside the JSON.
+    2. Ensure 'code' contains the COMPLETE source file.`
 };
 
 const CRITIC = {

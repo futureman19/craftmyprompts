@@ -95,6 +95,7 @@ const HivemindView = ({ user, globalApiKey, globalOpenAIKey }) => {
                         // Pass handlers from new hook
                         onLoopBack={hivemind.refineLoop}
                         onSynthesize={hivemind.compileBuild}
+                        onSubmitChoices={hivemind.submitChoices} // <--- WIRED UP
 
                         // Pass State
                         statusMessage={hivemind.statusMessage}
