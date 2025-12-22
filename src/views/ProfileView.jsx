@@ -17,9 +17,10 @@ const ProfileView = ({ user, darkMode, toggleDarkMode }) => {
     }, []);
 
     const handleSaveToken = (token) => {
+        if (!token) return;
         localStorage.setItem('github_token', token);
         setGithubToken(token);
-        alert("GitHub Connected Successfully!");
+        // Optional: Add a toast notification here
     };
 
     const handleDisconnect = () => {
@@ -184,7 +185,7 @@ const ProfileView = ({ user, darkMode, toggleDarkMode }) => {
                     </div>
 
                     {/* --- GITHUB INTEGRATION CARD --- */}
-                    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 md:col-span-2 lg:col-span-1">
+                    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 transition-all hover:border-slate-700">
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-3">
                                 <div className="p-3 bg-slate-800 rounded-xl text-white">
@@ -196,13 +197,14 @@ const ProfileView = ({ user, darkMode, toggleDarkMode }) => {
                                 </div>
                             </div>
                             {githubToken && (
-                                <span className="px-3 py-1 bg-emerald-500/10 text-emerald-400 text-xs font-bold rounded-full flex items-center gap-1">
+                                <span className="px-3 py-1 bg-emerald-500/10 text-emerald-400 text-xs font-bold rounded-full flex items-center gap-1 border border-emerald-500/20">
                                     <CheckCircle size={12} /> Connected
                                 </span>
                             )}
                         </div>
 
                         {!githubToken ? (
+                            // DISCONNECTED STATE (Input Form)
                             <div className="mt-4 animate-in slide-in-from-top-2">
                                 <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">
                                     Personal Access Token (PAT)
@@ -217,9 +219,9 @@ const ProfileView = ({ user, darkMode, toggleDarkMode }) => {
                                     <button
                                         onClick={() => {
                                             const val = document.getElementById('github-token-input').value;
-                                            if (val) handleSaveToken(val);
+                                            handleSaveToken(val);
                                         }}
-                                        className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-colors"
+                                        className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-colors shadow-lg shadow-indigo-900/20"
                                     >
                                         Connect
                                     </button>
@@ -235,14 +237,14 @@ const ProfileView = ({ user, darkMode, toggleDarkMode }) => {
                                     </button>
 
                                     {showTokenHelp && (
-                                        <div className="mt-3 text-xs text-slate-400 space-y-2">
+                                        <div className="mt-3 text-xs text-slate-400 space-y-2 animate-in slide-in-from-top-1">
                                             <p>1. Log in to GitHub.</p>
                                             <p>2. Create a <b>Classic Token</b> with <code>repo</code> and <code>gist</code> scopes.</p>
                                             <a
                                                 href="https://github.com/settings/tokens/new?scopes=repo,gist&description=CraftMyPrompt+App"
                                                 target="_blank"
                                                 rel="noreferrer"
-                                                className="block text-center mt-2 bg-slate-800 text-white py-2 rounded hover:bg-slate-700 transition-colors font-bold"
+                                                className="block text-center mt-2 bg-slate-800 text-white py-2 rounded hover:bg-slate-700 transition-colors font-bold border border-slate-600"
                                             >
                                                 Generate Token Automatically <ExternalLink size={12} className="inline ml-1" />
                                             </a>
@@ -251,9 +253,10 @@ const ProfileView = ({ user, darkMode, toggleDarkMode }) => {
                                 </div>
                             </div>
                         ) : (
-                            <div className="mt-4 flex items-center gap-4">
+                            // CONNECTED STATE
+                            <div className="mt-4 flex items-center gap-4 animate-in fade-in">
                                 <div className="flex-1 p-3 bg-emerald-900/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-sm font-mono truncate">
-                                    ••••••••••••••••••••••••••••
+                                    {githubToken.substring(0, 8)}...{githubToken.substring(githubToken.length - 4)}
                                 </div>
                                 <button
                                     onClick={handleDisconnect}
