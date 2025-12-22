@@ -93,9 +93,8 @@ const HivemindView = ({ user, globalApiKey, globalOpenAIKey }) => {
                         swarmHistory={hivemind.history} // Use history from new hook
 
                         // Pass handlers from new hook
-                        onLoopBack={hivemind.refineLoop}
+                        onLoopBack={hivemind.currentPhase === 'vision' ? hivemind.submitChoices : hivemind.refineLoop}
                         onSynthesize={hivemind.compileBuild}
-                        onSubmitChoices={hivemind.submitChoices} // <--- WIRED UP
 
                         // Pass State
                         statusMessage={hivemind.statusMessage}
