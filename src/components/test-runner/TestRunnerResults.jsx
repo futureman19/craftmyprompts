@@ -7,6 +7,7 @@ import {
 import CodeBlock from './CodeBlock.jsx';
 import SwarmResultGrid from './SwarmResultGrid.jsx';
 import ArenaResultGrid from './ArenaResultGrid.jsx';
+import ProjectBlueprint from '../agent/ProjectBlueprint.jsx';
 import { validateVirality } from '../../utils/viralityValidator.js';
 
 // --- HELPER 1: LIVE PREVIEW IFRAME ---
@@ -146,6 +147,12 @@ const TestRunnerResults = ({
 }) => {
     // Local Feedback State
     const [feedback, setFeedback] = useState('');
+
+    // Placeholder Handler for Deployment
+    const handleDownloadPlaceholder = () => {
+        alert("Artifact Engine is currently offline. (Development Placeholder)");
+    };
+
     // --- BLUEPRINT DETECTION ---
     useEffect(() => {
         if (result && !loading) {
@@ -349,6 +356,93 @@ const TestRunnerResults = ({
                     {/* Render History Cards */}
                     {swarmHistory.map((msg, idx) => {
                         const isLast = idx === swarmHistory.length - 1;
+
+                        // --- ARCHITECT SPECIAL RENDER (Visual Blueprint) ---
+                        if (msg.role?.includes('Architect')) {
+                            let structure = null;
+                            try {
+                                const cleanJson = msg.text.match(/\{[\s\S]*\}/)?.[0];
+                                if (cleanJson) {
+                                    const parsed = JSON.parse(cleanJson);
+                                    if (parsed.structure) structure = parsed.structure;
+                                }
+                            } catch (e) { }
+
+                            return (
+                                <div key={idx} className="min-w-[300px] w-[85%] md:w-[500px] snap-center flex flex-col h-full bg-slate-900 border border-cyan-500/30 rounded-2xl shadow-xl overflow-hidden">
+                                    {/* Header */}
+                                    <div className="p-4 border-b border-cyan-500/20 bg-slate-950/50 flex items-center gap-3">
+                                        <div className="p-2 bg-cyan-900/30 rounded-lg text-cyan-400">
+                                            <Layers size={18} />
+                                        </div>
+                                        <div>
+                                            <div className="text-[10px] font-bold uppercase text-cyan-500 tracking-wider">Phase {idx + 1}</div>
+                                            <div className="font-bold text-slate-100">The Architect</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Content: Visual Tree or Text */}
+                                    <div className="flex-1 overflow-y-auto bg-slate-900/50 p-2">
+                                        {structure ? (
+                                            <ProjectBlueprint structure={structure} />
+                                        ) : (
+                                            <div className="p-4 font-mono text-xs text-slate-300 whitespace-pre-wrap">
+                                                {msg.text}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Footer Actions */}
+                                    {isLast && !loading && (
+                                        <div className="p-4 border-t border-cyan-500/20 bg-slate-950/50">
+                                            <button onClick={() => onContinueSwarm("Approve Blueprint")} className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all">
+                                                <AlertTriangle size={14} /> Send to Critic
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        }
+
+                        // --- EXECUTIVE SPECIAL RENDER (Deployment Card) ---
+                        if (msg.role?.includes('Executive')) {
+                            return (
+                                <div key={idx} className="min-w-[300px] w-[85%] md:w-[400px] snap-center flex flex-col h-full bg-slate-900 border border-emerald-500/30 rounded-2xl shadow-xl overflow-hidden">
+                                    {/* Header */}
+                                    <div className="p-4 border-b border-emerald-500/20 bg-slate-950/50 flex items-center gap-3">
+                                        <div className="p-2 bg-emerald-900/30 rounded-lg text-emerald-400">
+                                            <Check size={18} />
+                                        </div>
+                                        <div>
+                                            <div className="text-[10px] font-bold uppercase text-emerald-500 tracking-wider">Phase {idx + 1}</div>
+                                            <div className="font-bold text-slate-100">The Executive</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Content */}
+                                    <div className="flex-1 p-6 flex flex-col items-center justify-center text-center gap-4 bg-slate-900/50">
+                                        <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center mb-2 animate-bounce">
+                                            <Sparkles size={32} className="text-emerald-400" />
+                                        </div>
+                                        <h3 className="text-lg font-bold text-white">Project Verified & Ready</h3>
+                                        <p className="text-xs text-slate-400 leading-relaxed max-w-[250px]">
+                                            The Hivemind has finalized the architecture and implementation plan.
+                                        </p>
+                                    </div>
+
+                                    {/* Footer Actions */}
+                                    {isLast && !loading && (
+                                        <div className="p-4 border-t border-emerald-500/20 bg-slate-950/50">
+                                            <button onClick={handleDownloadPlaceholder} className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-900/20">
+                                                <Layers size={16} /> Download Artifact (.zip)
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        }
+
+                        // --- STANDARD RENDER (Visionary, Critic, etc.) ---
 
                         // Map Role to Icon/Color
                         let RoleIcon = Bot;
