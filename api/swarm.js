@@ -170,13 +170,28 @@ export default async function handler(req, res) {
     const { prompt: rawPrompt, mode, category, keys = {}, targetAgentId, targetProvider: reqProvider, context } = req.body;
     const { openai: openAIKey, anthropic: anthropicKey, gemini: geminiKey, groq: groqKey } = keys;
 
-    // 4.5 Auto-Compile Context (Hivemind Logic)
-    // Default to 'anthropic' for Hivemind reasoning depth if not specified
-    const optimProvider = reqProvider || 'anthropic';
+    // CONTEXT OS INTERCEPTOR 🛡️
+    // If this is a fresh start (no existing context history), we compile the prompt.
+    // We default to 'anthropic' if no provider is specified, as it's our "Visionary" default.
     let prompt = rawPrompt;
 
-    if (rawPrompt && !context) {
-        prompt = await compileContext(rawPrompt, optimProvider);
+    if (prompt && (!context || context.length === 0)) {
+        const targetProvider = reqProvider || 'anthropic';
+        console.log(`🧠 Context OS: Optimizing for ${targetProvider}...`);
+
+        try {
+            // Run the compiler middleware
+            const optimizedPrompt = await compileContext(prompt, targetProvider);
+
+            // If optimization changed anything, use it
+            if (optimizedPrompt && optimizedPrompt !== prompt) {
+                prompt = optimizedPrompt;
+                console.log("✅ Prompt optimized successfully.");
+            }
+        } catch (err) {
+            console.error("⚠️ Optimization skipped due to error:", err);
+            // We fail gracefully and proceed with the raw prompt
+        }
     }
 
     // Helper: Run Single Agent
