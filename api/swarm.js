@@ -1,4 +1,5 @@
 import { checkRateLimit } from './_utils/rate-limiter.js';
+import { getProviderGuide } from './_utils/doc-reader.js';
 
 export const config = {
     maxDuration: 60, // Allow up to 60 seconds for sequential processing
@@ -125,6 +126,29 @@ const MANAGER_AGENT = {
     4. FORMAT: Output RAW JSON only. Do not wrap in markdown code fences if possible, or use standard \`\`\`json blocks if necessary.`
 };
 
+const TRANSLATOR = {
+    id: 'translator',
+    name: 'The Polyglot',
+    role: 'Model Optimization',
+    provider: 'openai', // Uses GPT-4o to do the thinking
+    systemPrompt: `IDENTITY: You are a Prompt Optimization Specialist (The Rosetta).
+    
+    YOUR GOAL: Transform the user's prompt to work optimally with a specific AI provider (OpenAI, Claude, etc).
+    
+    CRITICAL RULES:
+    1. OUTPUT THE COMPLETE PROMPT: Do not truncate. No placeholders.
+    2. PRESERVE CONTENT: Keep all original instructions, only change structure/format.
+    3. APPLY GUIDELINES: You will be given specific documentation. Follow it.
+    
+    OUTPUT FORMAT (JSON):
+    {
+        "optimized_prompt": "FULL_PROMPT_HERE",
+        "changes": [
+            { "category": "structure|formatting", "description": "Changed X to Y because..." }
+        ]
+    }`
+};
+
 // Squad Mapping
 const AGENT_SQUADS = {
     code: [VISIONARY, ARCHITECT, CRITIC],
@@ -142,7 +166,7 @@ export default async function handler(req, res) {
     // B. Method Check
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-    const { prompt, mode, category, keys = {}, targetAgentId } = req.body;
+    const { prompt, mode, category, keys = {}, targetAgentId, targetProvider } = req.body;
     const { openai: openAIKey, anthropic: anthropicKey, gemini: geminiKey, groq: groqKey } = keys;
 
     // Helper: Run Single Agent
@@ -245,7 +269,8 @@ export default async function handler(req, res) {
                 ...AGENT_SQUADS.code,
                 ...AGENT_SQUADS.text,
                 ...AGENT_SQUADS.data,
-                MANAGER_AGENT // Don't forget the Executive
+                MANAGER_AGENT,
+                TRANSLATOR // Add Translator to lookup
             ];
 
             const targetAgent = allAgents.find(a => a.id === targetAgentId);
@@ -255,8 +280,17 @@ export default async function handler(req, res) {
                 throw new Error(`Agent ID '${targetAgentId}' not found in any squad.`);
             }
 
+            // SPECIAL LOGIC: The Translator (Rosetta)
+            let dynamicContext = "";
+            if (targetAgent.id === 'translator' && targetProvider) {
+                // Read the specific docs for the target provider
+                const docs = getProviderGuide(targetProvider);
+                dynamicContext = `\n\n### DOCUMENTATION FOR TARGET PROVIDER (${targetProvider.toUpperCase()}):\n${docs}`;
+            }
+
             // Run just this agent
-            const result = await runAgent(targetAgent);
+            // We append dynamicContext (docs) to the prompt if it's the translator, or context if it exists
+            const result = await runAgent(targetAgent, dynamicContext);
             results.push(result);
 
         } else if (mode === 'synthesize') {
