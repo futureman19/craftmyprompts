@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import {
     Loader, AlertTriangle, Check, Copy, Sparkles, Bot,
     MonitorPlay, Bookmark, Eye, Code, X,
-    Gauge, Maximize2, Brain, ChevronDown, ChevronRight, PlayCircle, FileCode, Zap, Layers
+    Gauge, Maximize2, Brain, ChevronDown, ChevronRight, PlayCircle, FileCode, Zap, Layers, Package, Download
 } from 'lucide-react';
 import CodeBlock from './CodeBlock.jsx';
 import SwarmResultGrid from './SwarmResultGrid.jsx';
@@ -150,7 +150,7 @@ const TestRunnerResults = ({
 
     // Placeholder Handler for Deployment
     const handleDownloadPlaceholder = () => {
-        alert("Artifact Engine is currently offline. (Development Placeholder)");
+        alert("Artifact Engine is coming soon! (Development Placeholder)");
     };
 
     // --- BLUEPRINT DETECTION ---
@@ -412,39 +412,44 @@ const TestRunnerResults = ({
                         }
 
                         // --- EXECUTIVE SPECIAL RENDER (Deployment Card) ---
-                        if (msg.role?.includes('Executive')) {
+                        if (msg.role?.includes('Executive') || msg.role?.includes('Build Master')) {
+                            // Attempt to parse JSON name/desc if available, otherwise use defaults
+                            let projectData = { project_name: "Project Alpha", description: "Build complete." };
+                            try {
+                                const cleanJson = msg.text.replace(/```json\n|\n```/g, '');
+                                const parsed = JSON.parse(cleanJson);
+                                if (parsed.project_name) projectData = parsed;
+                            } catch (e) { }
+
                             return (
-                                <div key={idx} className="min-w-[300px] w-[85%] md:w-[400px] snap-center flex flex-col h-full bg-slate-900 border border-emerald-500/30 rounded-2xl shadow-xl overflow-hidden">
-                                    {/* Header */}
-                                    <div className="p-4 border-b border-emerald-500/20 bg-slate-950/50 flex items-center gap-3">
-                                        <div className="p-2 bg-emerald-900/30 rounded-lg text-emerald-400">
-                                            <Check size={18} />
+                                <div key={idx} className="min-w-[300px] w-[85%] md:w-[400px] snap-center flex flex-col h-full bg-slate-900 border border-emerald-500/30 rounded-2xl shadow-xl overflow-hidden animate-in zoom-in-95 duration-500 relative">
+                                    {/* Header Glow */}
+                                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-cyan-500" />
+
+                                    <div className="p-6 flex-1 flex flex-col items-center justify-center text-center gap-4 mt-2">
+                                        {/* Icon */}
+                                        <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center border border-emerald-500/20 shadow-lg shadow-emerald-900/20">
+                                            <Package size={32} className="text-emerald-500" />
                                         </div>
+
+                                        {/* Text */}
                                         <div>
-                                            <div className="text-[10px] font-bold uppercase text-emerald-500 tracking-wider">Phase {idx + 1}</div>
-                                            <div className="font-bold text-slate-100">The Executive</div>
+                                            <h3 className="text-xl font-bold text-white mb-1">
+                                                {projectData.project_name}
+                                            </h3>
+                                            <p className="text-xs text-slate-400 max-w-[250px] mx-auto">
+                                                {projectData.description || "System synthesis complete. Ready for deployment."}
+                                            </p>
                                         </div>
-                                    </div>
 
-                                    {/* Content */}
-                                    <div className="flex-1 p-6 flex flex-col items-center justify-center text-center gap-4 bg-slate-900/50">
-                                        <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center mb-2 animate-bounce">
-                                            <Sparkles size={32} className="text-emerald-400" />
-                                        </div>
-                                        <h3 className="text-lg font-bold text-white">Project Verified & Ready</h3>
-                                        <p className="text-xs text-slate-400 leading-relaxed max-w-[250px]">
-                                            The Hivemind has finalized the architecture and implementation plan.
-                                        </p>
+                                        {/* Disabled Action Button */}
+                                        <button
+                                            onClick={handleDownloadPlaceholder}
+                                            className="w-full py-3 bg-slate-800 text-slate-400 rounded-xl text-sm font-bold flex items-center justify-center gap-2 cursor-not-allowed border border-slate-700 mt-4"
+                                        >
+                                            <Download size={18} /> Download .ZIP (Soon)
+                                        </button>
                                     </div>
-
-                                    {/* Footer Actions */}
-                                    {isLast && !loading && (
-                                        <div className="p-4 border-t border-emerald-500/20 bg-slate-950/50">
-                                            <button onClick={handleDownloadPlaceholder} className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-900/20">
-                                                <Layers size={16} /> Download Artifact (.zip)
-                                            </button>
-                                        </div>
-                                    )}
                                 </div>
                             );
                         }
