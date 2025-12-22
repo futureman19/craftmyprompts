@@ -21,31 +21,35 @@ const HivemindFeed = ({ history, loading, statusMessage, actions, currentPhase }
         if (!visionaryMsg) return null;
         let data = null;
         let parseError = null;
+        const rawText = typeof visionaryMsg.text === 'string' ? visionaryMsg.text : JSON.stringify(visionaryMsg.text);
 
         try {
-            // Attempt to parse
-            const raw = typeof visionaryMsg.text === 'string' ? visionaryMsg.text : JSON.stringify(visionaryMsg.text);
+            // 1. SURGICAL EXTRACTION
+            // Find the absolute first '{' and the absolute last '}'
+            const start = rawText.indexOf('{');
+            const end = rawText.lastIndexOf('}');
 
-            // Check for Agent Error String first
-            if (raw.includes("Agent Offline") || raw.includes("Error")) {
-                throw new Error(raw);
+            if (start === -1 || end === -1) {
+                throw new Error("No JSON object found in response (Missing curly braces).");
             }
 
-            const clean = raw.replace(/```json|```/g, '').trim();
-            // Find the first { and last } to isolate JSON from any conversational intro/outro
-            const jsonStart = clean.indexOf('{');
-            const jsonEnd = clean.lastIndexOf('}');
-            if (jsonStart !== -1 && jsonEnd !== -1) {
-                data = JSON.parse(clean.substring(jsonStart, jsonEnd + 1));
-            } else {
-                throw new Error("No JSON object found in response.");
+            // Extract the clean JSON block
+            const jsonBlock = rawText.substring(start, end + 1);
+
+            // 2. PARSE
+            data = JSON.parse(jsonBlock);
+
+            // 3. VALIDATE STRUCTURE
+            if (!data.strategy_options || !Array.isArray(data.strategy_options)) {
+                throw new Error("JSON parsed, but missing 'strategy_options' array.");
             }
 
         } catch (e) {
             parseError = e.message;
+            console.error("Visionary Parse Failure:", e);
         }
 
-        // If parsing failed or API returned an error string, show the Error Card
+        // ERROR STATE (With Debug View)
         if (!data || parseError) {
             return (
                 <div className="w-full max-w-2xl mx-auto mt-10 p-6 bg-slate-900 border border-red-500/50 rounded-2xl shadow-2xl animate-in zoom-in-95">
@@ -54,14 +58,14 @@ const HivemindFeed = ({ history, loading, statusMessage, actions, currentPhase }
                         <h3 className="text-lg font-bold">Signal Interrupted</h3>
                     </div>
                     <p className="text-slate-400 text-sm mb-4">
-                        The Visionary could not generate a strategy. This usually means the AI model failed or returned invalid data.
+                        The Visionary returned invalid data. See raw output below:
                     </p>
-                    <div className="bg-black/50 p-4 rounded-lg font-mono text-xs text-red-300 overflow-auto max-h-40 mb-6 border border-red-900/30">
-                        {visionaryMsg.text || parseError}
+                    {/* RAW OUTPUT VIEWER */}
+                    <div className="bg-black/50 p-4 rounded-lg font-mono text-xs text-green-400 overflow-auto max-h-64 mb-6 border border-slate-800 whitespace-pre-wrap">
+                        {rawText}
                     </div>
 
                     <div className="flex justify-end gap-3">
-                        {/* Fallback button to skip Visionary if it keeps failing */}
                         <button
                             onClick={() => actions.submitChoices({ strategy: "Manual Override" })}
                             className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm font-medium transition-colors"
@@ -73,7 +77,7 @@ const HivemindFeed = ({ history, loading, statusMessage, actions, currentPhase }
             );
         }
 
-        // Success Case
+        // SUCCESS STATE
         return (
             <VisionaryDeck
                 data={data}
