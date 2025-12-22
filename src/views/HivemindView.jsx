@@ -109,7 +109,8 @@ const HivemindView = ({ user, globalApiKey, globalOpenAIKey }) => {
                                 defaultOpenAIKey={globalOpenAIKey}
                                 isSocialMode={false}
                                 activeCategory="code"
-                                autoRun={true} // New Prop to trigger immediate run
+                                autoRun={true}
+                                initialProvider="swarm" // <--- CRITICAL FIX: Forces Swarm Mode
                             />
                         </div>
                     </div>

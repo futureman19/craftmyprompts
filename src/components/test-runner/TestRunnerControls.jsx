@@ -1,3 +1,4 @@
+import React from 'react';
 import {
     Key, Zap, Bot, Sparkles, Swords, Layers, MonitorPlay,
     ShieldCheck, Users, Activity, Brain, Lock,
@@ -8,10 +9,10 @@ const TestRunnerControls = ({
     // State
     viewMode, provider,
     geminiKey, openaiKey, groqKey, anthropicKey,
-    // Safety Defaults to prevent White Screen of Death
+    // Safety Defaults
     keys = {}, setters = {},
     swarmConfig = { agents: [] }, battleConfig = {},
-    selectedModel, availableModels = [], // Ensure availableModels is not undefined
+    selectedModel, availableModels = [],
     isUsingGlobalGemini, isUsingGlobalOpenAI, isLoggedIn,
     // Router State
     routerReasoning,
@@ -55,14 +56,13 @@ const TestRunnerControls = ({
         { id: 'standard', label: 'Standard', icon: <Bot size={14} />, color: 'text-indigo-500' },
         { id: 'chain', label: 'Smart', icon: <Sparkles size={14} />, color: 'text-amber-500', premium: true },
         { id: 'arena', label: 'Arena', icon: <Swords size={14} />, color: 'text-rose-500', premium: true },
-        // Swarm removed from tabs - moved to dedicated launcher
     ];
 
     return (
         <div className="space-y-4">
             {/* UNIFIED MODE SELECTOR (Standard Tabs) */}
             <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl overflow-x-auto no-scrollbar gap-1">
-                {MODES.map(mode => {
+                {MODES.map((mode) => {
                     const isActive = activeTab === mode.id;
                     const isLocked = mode.premium && !isLoggedIn;
 
@@ -101,8 +101,13 @@ const TestRunnerControls = ({
                 {/* DEDICATED HIVEMIND LAUNCHER - ISOLATED CONTAINER */}
                 <div className="border-t border-slate-100 dark:border-slate-800 w-full pt-2">
                     <button
-                        type="button" // Explicit type
-                        onClick={onLaunchHivemind}
+                        type="button"
+                        onClick={(e) => {
+                            // Ensure no bubbling
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (onLaunchHivemind) onLaunchHivemind(e);
+                        }}
                         className="w-full py-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white rounded-lg text-xs font-bold uppercase tracking-wide transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-95"
                     >
                         <Users size={14} />
@@ -116,7 +121,6 @@ const TestRunnerControls = ({
 
             {/* CONTROLS AREA */}
             <div className="animate-in fade-in slide-in-from-top-1 duration-300">
-
                 {/* 1. TEST WITH AI (Standard) */}
                 {activeTab === 'standard' && (
                     <div className="space-y-2">
@@ -179,13 +183,10 @@ const TestRunnerControls = ({
                                 </select>
                             </div>
                         </div>
-                        <p className="text-[10px] text-slate-400 text-center">
-                            Compare output quality side-by-side.
-                        </p>
                     </div>
                 )}
 
-                {/* 4. HIVEMIND (Swarm) - AUTO MODE */}
+                {/* 4. HIVEMIND INFO (ReadOnly) */}
                 {activeTab === 'swarm' && (
                     <div className="p-3 bg-violet-50 dark:bg-violet-900/10 rounded-lg border border-violet-200 dark:border-violet-800/50 flex items-start gap-3">
                         <div className="p-1.5 bg-violet-100 dark:bg-violet-800 rounded-md text-violet-600 dark:text-violet-300">
@@ -199,7 +200,6 @@ const TestRunnerControls = ({
                         </div>
                     </div>
                 )}
-
             </div>
 
             {/* 3. API KEY MANAGEMENT (Compact) */}

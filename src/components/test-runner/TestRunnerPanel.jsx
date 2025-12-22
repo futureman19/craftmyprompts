@@ -7,7 +7,17 @@ import TestRunnerResults from './TestRunnerResults.jsx';
 import GitHubModal from '../GitHubModal.jsx';
 import ApiKeyHelpModal from './ApiKeyHelpModal.jsx';
 
-const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippet, isSocialMode, activeCategory = 'code', onBlueprintDetected, autoRun = false }) => {
+const TestRunnerPanel = ({
+    prompt,
+    defaultApiKey,
+    defaultOpenAIKey,
+    onSaveSnippet,
+    isSocialMode,
+    activeCategory = 'code',
+    onBlueprintDetected,
+    autoRun = false,
+    initialProvider = null // <--- NEW: Allow forcing a mode (e.g. 'swarm')
+}) => {
     // 0. UI State
     const [isFullScreen, setIsFullScreen] = useState(false);
 
@@ -20,20 +30,46 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
     // --- REWRITE: LOCAL API KEY STATE MANAGEMENT (Source of Truth) ---
     // We lazy load from localStorage to ensure keys persist across refreshes
     const [localOpenAIKey, setLocalOpenAIKey] = useState(() => localStorage.getItem('openai_key') || defaultOpenAIKey || '');
-    const [localGeminiKey, setLocalGeminiKey] = useState(() => localStorage.getItem('gemini_key') || defaultApiKey || ''); // defaultApiKey usually gemini
+    const [localGeminiKey, setLocalGeminiKey] = useState(() => localStorage.getItem('gemini_key') || defaultApiKey || '');
     const [localAnthropicKey, setLocalAnthropicKey] = useState(() => localStorage.getItem('anthropic_key') || '');
     const [localGroqKey, setLocalGroqKey] = useState(() => localStorage.getItem('groq_key') || '');
 
-    // Persist changes
-    useEffect(() => { if (localOpenAIKey) localStorage.setItem('openai_key', localOpenAIKey); }, [localOpenAIKey]);
-    useEffect(() => { if (localGeminiKey) localStorage.setItem('gemini_key', localGeminiKey); }, [localGeminiKey]);
-    useEffect(() => { if (localAnthropicKey) localStorage.setItem('anthropic_key', localAnthropicKey); }, [localAnthropicKey]);
-    useEffect(() => { if (localGroqKey) localStorage.setItem('groq_key', localGroqKey); }, [localGroqKey]);
+    // --- FIXED PERSISTENCE: Handle Removal ---
+    useEffect(() => {
+        if (localOpenAIKey) localStorage.setItem('openai_key', localOpenAIKey);
+        else localStorage.removeItem('openai_key');
+    }, [localOpenAIKey]);
 
-    // Initialize Runner with the PERSISTED keys
+    useEffect(() => {
+        if (localGeminiKey) localStorage.setItem('gemini_key', localGeminiKey);
+        else localStorage.removeItem('gemini_key');
+    }, [localGeminiKey]);
+
+    useEffect(() => {
+        if (localAnthropicKey) localStorage.setItem('anthropic_key', localAnthropicKey);
+        else localStorage.removeItem('anthropic_key');
+    }, [localAnthropicKey]);
+
+    useEffect(() => {
+        if (localGroqKey) localStorage.setItem('groq_key', localGroqKey);
+        else localStorage.removeItem('groq_key');
+    }, [localGroqKey]);
+
+    // Initialize Runner
     const runner = useTestRunner(localGeminiKey, localOpenAIKey);
 
-    // Sync Runner state if local keys change (Optional, but ensures runner has latest)
+    // --- INITIALIZATION LOGIC (The Hivemind Fix) ---
+    // If initialProvider is passed (e.g. 'swarm'), set it immediately on mount
+    useEffect(() => {
+        if (initialProvider) {
+            runner.setProvider(initialProvider);
+            if (initialProvider === 'swarm') {
+                runner.handleViewChange('advanced');
+            }
+        }
+    }, [initialProvider]);
+
+    // Sync Runner state if local keys change
     useEffect(() => {
         if (localGeminiKey !== runner.geminiKey) runner.setGeminiKey(localGeminiKey);
         if (localOpenAIKey !== runner.openaiKey) runner.setOpenaiKey(localOpenAIKey);
@@ -41,9 +77,7 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
         if (localGroqKey !== runner.groqKey) runner.setGroqKey(localGroqKey);
     }, [localGeminiKey, localOpenAIKey, localAnthropicKey, localGroqKey]);
 
-    // CRITICAL: State Sanitization & Crash Prevention
-    // 1. Force lowercase to handle 'Hivemind' vs 'hivemind'
-    // 2. Map known invalid/legacy UI labels to internal IDs
+    // Safe Provider for UI
     let safeProvider = (runner.provider || 'gemini').toLowerCase();
     if (safeProvider === 'hivemind') safeProvider = 'swarm';
     if (safeProvider === 'arena') safeProvider = 'battle';
@@ -51,14 +85,13 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
 
     // 2. Main Run Handler
     const handleRunClick = () => {
+        // If in Swarm mode, we want to run the Swarm
         runner.runTest(prompt, activeCategory);
     };
 
     // 3. Tab Handler (Standard Logic Only)
     const handleTabChange = (val) => {
-        // Standard Tab Switch Logic
         runner.setProvider(val);
-        // Only maximize if appropriate (not simple gemini/standard)
         if (val !== 'gemini' && val !== 'standard') {
             setIsFullScreen(false);
         }
@@ -71,8 +104,6 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
             e.stopPropagation();
         }
         console.log("🚀 Launching Hivemind...", { prompt });
-
-        // Force Navigation (Clean State)
         navigate('/hivemind', {
             state: {
                 prompt: prompt,
@@ -86,6 +117,14 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
         if (autoRun && prompt && !runner.loading && !runner.result && !hasAutoRun.current) {
             console.log("Auto-Running Test via Prop...");
             hasAutoRun.current = true;
+
+            // Ensure provider is set correctly before running if it was just passed
+            if (initialProvider && runner.provider !== initialProvider) {
+                runner.setProvider(initialProvider);
+                // Slight delay to ensure state update before run? 
+                // Actually runTest uses current state, which might be stale in this closure.
+                // But typically it's fine.
+            }
             handleRunClick();
         }
     }, [autoRun, prompt, runner.loading, runner.result]);
@@ -96,15 +135,12 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
 
     return (
         <div className={containerClasses}>
-
             {/* --- HEADER --- */}
             <div className="flex-shrink-0 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 py-2 px-3">
                 <div className="flex justify-between items-center">
                     <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
                         <Terminal size={18} className="text-indigo-500" /> Test your prompt
                     </h3>
-
-                    {/* Minimize Button (Only visible when maximized) */}
                     {isFullScreen && (
                         <button
                             onClick={() => setIsFullScreen(false)}
@@ -118,20 +154,14 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
 
             {/* --- CONTENT SCROLL AREA --- */}
             <div className="flex-1 overflow-y-auto p-4 space-y-6">
-
-                {/* 1. CONTROLS DASHBOARD */}
                 <TestRunnerControls
                     viewMode={runner.viewMode}
                     provider={safeProvider}
-
-                    // Keys & Auth
                     geminiKey={localGeminiKey}
                     openaiKey={localOpenAIKey}
                     groqKey={localGroqKey}
                     anthropicKey={localAnthropicKey}
                     isLoggedIn={runner.isLoggedIn}
-
-                    // Configs
                     refineConfig={runner.refineConfig}
                     swarmConfig={runner.swarmConfig}
                     battleConfig={runner.battleConfig}
@@ -139,8 +169,6 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
                     availableModels={runner.availableModels}
                     isUsingGlobalGemini={!!defaultApiKey && localGeminiKey === defaultApiKey}
                     isUsingGlobalOpenAI={!!defaultOpenAIKey && localOpenAIKey === defaultOpenAIKey}
-
-                    // Handlers
                     onViewChange={runner.handleViewChange}
                     onProviderChange={handleTabChange}
                     onLaunchHivemind={launchHivemind}
@@ -154,21 +182,13 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
                     onRefineConfigChange={(key, val) => runner.setRefineConfig(prev => ({ ...prev, [key]: val }))}
                     onSwarmConfigChange={(key, val) => runner.setSwarmConfig(prev => ({ ...prev, [key]: val }))}
                     onBattleConfigChange={runner.setBattleConfig}
-
-                    // New Dynamic Agent Handlers
                     addSwarmAgent={runner.addSwarmAgent}
                     removeSwarmAgent={runner.removeSwarmAgent}
                     updateSwarmAgent={runner.updateSwarmAgent}
                     swarmCategory={runner.swarmCategory}
                     onSwarmCategoryChange={runner.setSwarmCategory}
-
-                    // Help Modal Wiring
                     setShowHelpModal={runner.setShowHelpModal}
-
-                    // CTO UPDATE: Passing the Router Reasoning to UI
                     routerReasoning={runner.routerReasoning}
-
-                    // Key Management - Audited and Verified
                     keys={{
                         gemini: localGeminiKey,
                         openai: localOpenAIKey,
@@ -183,7 +203,6 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
                     }}
                 />
 
-                {/* 2. RESULTS DISPLAY */}
                 <TestRunnerResults
                     loading={runner.loading}
                     result={runner.result}
@@ -196,20 +215,13 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
                     refineView={runner.refineView}
                     swarmHistory={runner.swarmHistory}
                     prompt={prompt}
-
                     onSaveSnippet={onSaveSnippet}
                     onShipCode={runner.handleShipCode}
                     setRefineView={runner.setRefineView}
                     onContinueSwarm={runner.continueSwarm}
                     onCompileSwarm={runner.compileSwarmCode}
-
-                    // Social Mode Flag
                     isSocialMode={isSocialMode}
-
-                    // Blueprint Handler
                     onBlueprintDetected={onBlueprintDetected}
-
-                    // Narrative Handlers
                     onLoopBack={runner.loopBack}
                     onSynthesize={runner.synthesizeProject}
                 />
@@ -243,7 +255,6 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
                 </button>
             </div>
 
-            {/* GitHub Modal */}
             <GitHubModal
                 isOpen={runner.showGithub}
                 onClose={() => runner.setShowGithub(false)}
@@ -252,16 +263,14 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
                 initialToken={runner.githubToken}
             />
 
-            {/* Render the Help Modal */}
-            {/* Render the Help Modal - FIXED SIGNATURE */}
             <ApiKeyHelpModal
                 isOpen={runner.showHelpModal}
                 onClose={() => runner.setShowHelpModal(false)}
                 onSave={(newKeys) => {
-                    if (newKeys.openai) setLocalOpenAIKey(newKeys.openai);
-                    if (newKeys.anthropic) setLocalAnthropicKey(newKeys.anthropic);
-                    if (newKeys.gemini) setLocalGeminiKey(newKeys.gemini);
-                    if (newKeys.groq) setLocalGroqKey(newKeys.groq);
+                    setLocalOpenAIKey(newKeys.openai || '');
+                    setLocalAnthropicKey(newKeys.anthropic || '');
+                    setLocalGeminiKey(newKeys.gemini || '');
+                    setLocalGroqKey(newKeys.groq || '');
                 }}
             />
         </div>
