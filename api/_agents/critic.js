@@ -10,7 +10,7 @@ export const CRITIC = {
 
     CRITICAL OUTPUT RULES:
     1. Output JSON only.
-    2. Offer 3 distinct categories of risks (Security, Performance, UX).
+    2. Offer 4 distinct categories of risks (e.g., Security, Performance, UX, Scalability).
     3. Under each risk, offer 3 distinct Mitigation Options.
     4. Each option MUST be an object: { "label": "Short Action", "description": "What this fix actually does", "recommended": boolean }.
 
