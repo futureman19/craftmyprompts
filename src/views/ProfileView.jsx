@@ -1,10 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import { UserCircle2, Sun, Moon, Key, CreditCard, ShieldCheck, Zap } from 'lucide-react';
+import { UserCircle2, Sun, Moon, Key, CreditCard, ShieldCheck, Zap, Github, CheckCircle, AlertTriangle, ExternalLink } from 'lucide-react';
 import ApiKeyHelpModal from '../components/test-runner/ApiKeyHelpModal.jsx';
 
 const ProfileView = ({ user, darkMode, toggleDarkMode }) => {
     const [showKeyModal, setShowKeyModal] = useState(false);
     const [keys, setKeys] = useState({});
+
+    // --- GITHUB INTEGRATION STATE ---
+    const [githubToken, setGithubToken] = useState('');
+    const [showTokenHelp, setShowTokenHelp] = useState(false);
+
+    useEffect(() => {
+        // Sync with local storage on load
+        const stored = localStorage.getItem('github_token');
+        if (stored) setGithubToken(stored);
+    }, []);
+
+    const handleSaveToken = (token) => {
+        localStorage.setItem('github_token', token);
+        setGithubToken(token);
+        alert("GitHub Connected Successfully!");
+    };
+
+    const handleDisconnect = () => {
+        localStorage.removeItem('github_token');
+        setGithubToken('');
+    };
 
     // Load keys for status display - ROBUST CHECK
     useEffect(() => {
@@ -66,12 +87,6 @@ const ProfileView = ({ user, darkMode, toggleDarkMode }) => {
                                     <label className="text-xs font-bold uppercase text-slate-400 block mb-1">Email Address</label>
                                     <div className="text-sm font-medium text-slate-700 dark:text-slate-200">
                                         {user?.email || 'Not signed in'}
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="text-xs font-bold uppercase text-slate-400 block mb-1">GitHub Connection</label>
-                                    <div className="text-sm font-medium text-slate-400 italic flex items-center gap-2">
-                                        Not Connected <button className="text-indigo-500 hover:underline text-xs not-italic font-bold">Connect</button>
                                     </div>
                                 </div>
                             </div>
@@ -140,7 +155,7 @@ const ProfileView = ({ user, darkMode, toggleDarkMode }) => {
                         </div>
                     </div>
 
-                    {/* CARD 3: SUBSCRIPTION (Moved up since Appearance is gone) */}
+                    {/* CARD 3: SUBSCRIPTION */}
                     <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
                         <div className="flex items-center gap-4 mb-6">
                             <div className="p-3 bg-violet-100 dark:bg-violet-900/30 rounded-xl text-violet-600 dark:text-violet-400">
@@ -168,6 +183,87 @@ const ProfileView = ({ user, darkMode, toggleDarkMode }) => {
                         </div>
                     </div>
 
+                    {/* --- GITHUB INTEGRATION CARD --- */}
+                    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 md:col-span-2 lg:col-span-1">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                                <div className="p-3 bg-slate-800 rounded-xl text-white">
+                                    <Github size={24} />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-white">GitHub</h3>
+                                    <p className="text-sm text-slate-400">Deploy apps directly to repositories and Gists.</p>
+                                </div>
+                            </div>
+                            {githubToken && (
+                                <span className="px-3 py-1 bg-emerald-500/10 text-emerald-400 text-xs font-bold rounded-full flex items-center gap-1">
+                                    <CheckCircle size={12} /> Connected
+                                </span>
+                            )}
+                        </div>
+
+                        {!githubToken ? (
+                            <div className="mt-4 animate-in slide-in-from-top-2">
+                                <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">
+                                    Personal Access Token (PAT)
+                                </label>
+                                <div className="flex gap-2 mb-3">
+                                    <input
+                                        type="password"
+                                        placeholder="ghp_..."
+                                        className="flex-1 bg-black/50 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500 transition-colors"
+                                        id="github-token-input"
+                                    />
+                                    <button
+                                        onClick={() => {
+                                            const val = document.getElementById('github-token-input').value;
+                                            if (val) handleSaveToken(val);
+                                        }}
+                                        className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-colors"
+                                    >
+                                        Connect
+                                    </button>
+                                </div>
+
+                                {/* HELPER SECTION */}
+                                <div className="bg-slate-950/50 p-3 rounded-lg border border-slate-800/50">
+                                    <button
+                                        onClick={() => setShowTokenHelp(!showTokenHelp)}
+                                        className="text-xs text-indigo-400 font-bold hover:underline flex items-center gap-1"
+                                    >
+                                        <AlertTriangle size={12} /> How do I get a token?
+                                    </button>
+
+                                    {showTokenHelp && (
+                                        <div className="mt-3 text-xs text-slate-400 space-y-2">
+                                            <p>1. Log in to GitHub.</p>
+                                            <p>2. Create a <b>Classic Token</b> with <code>repo</code> and <code>gist</code> scopes.</p>
+                                            <a
+                                                href="https://github.com/settings/tokens/new?scopes=repo,gist&description=CraftMyPrompt+App"
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="block text-center mt-2 bg-slate-800 text-white py-2 rounded hover:bg-slate-700 transition-colors font-bold"
+                                            >
+                                                Generate Token Automatically <ExternalLink size={12} className="inline ml-1" />
+                                            </a>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="mt-4 flex items-center gap-4">
+                                <div className="flex-1 p-3 bg-emerald-900/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-sm font-mono truncate">
+                                    ••••••••••••••••••••••••••••
+                                </div>
+                                <button
+                                    onClick={handleDisconnect}
+                                    className="px-4 py-3 bg-slate-800 hover:bg-red-900/20 hover:text-red-400 text-slate-400 font-bold rounded-xl transition-colors text-sm"
+                                >
+                                    Disconnect
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 
