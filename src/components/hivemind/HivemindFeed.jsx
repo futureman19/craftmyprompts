@@ -5,9 +5,10 @@ import ProjectBlueprint from '../agent/ProjectBlueprint.jsx';
 import FileDeck from '../agent/FileDeck.jsx';
 import SpecsDeck from '../agent/SpecsDeck.jsx';
 import CriticDeck from '../agent/CriticDeck.jsx';
+import DeploymentDeck from '../agent/DeploymentDeck.jsx';
 import { generateProjectZip } from '../../utils/artifactEngine.js'; // Ensure path is correct
 
-const HivemindFeed = ({ history, loading, statusMessage, actions, currentPhase }) => {
+const HivemindFeed = ({ history, loading, statusMessage, actions, currentPhase, githubToken }) => {
 
     // --- 1. FIND LATEST AGENT OUTPUTS ---
     // We scan history to find the latest data for each role
@@ -214,31 +215,26 @@ const HivemindFeed = ({ history, loading, statusMessage, actions, currentPhase }
     const renderFinal = () => {
         if (!executiveMsg) return null;
         let projectData = {};
+
+        // Robust JSON Extraction
+        const rawText = typeof executiveMsg.text === 'string' ? executiveMsg.text : JSON.stringify(executiveMsg.text);
         try {
-            const raw = executiveMsg.text.replace(/```json|```/g, '').trim();
-            projectData = JSON.parse(raw);
-        } catch (e) { console.error("Final Parse Error", e); }
+            const start = rawText.indexOf('{');
+            const end = rawText.lastIndexOf('}');
+            if (start !== -1 && end !== -1) {
+                projectData = JSON.parse(rawText.substring(start, end + 1));
+            }
+        } catch (e) { console.error("Executive Parse Error", e); }
+
+        if (!projectData.files) return <div className="text-red-500">Build data corrupted.</div>;
 
         return (
-            <div className="w-full max-w-md mx-auto mt-10 animate-in zoom-in-95">
-                <div className="bg-slate-900 border border-emerald-500/50 rounded-2xl p-8 text-center shadow-2xl relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-teal-500" />
-
-                    <div className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-6 text-emerald-400 border border-emerald-500/20">
-                        <Package size={40} />
-                    </div>
-
-                    <h2 className="text-2xl font-bold text-white mb-2">{projectData.project_name || "Build Complete"}</h2>
-                    <p className="text-slate-400 mb-8">{projectData.description || "Ready for deployment."}</p>
-
-                    <button
-                        onClick={() => generateProjectZip(projectData)}
-                        className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold shadow-lg shadow-emerald-900/30 flex items-center justify-center gap-2 transition-all transform hover:scale-105 active:scale-95"
-                    >
-                        <Download size={20} /> Download Source Code (.zip)
-                    </button>
-                </div>
-            </div>
+            <DeploymentDeck
+                projectData={projectData}
+                githubToken={githubToken}
+                onSaveToken={actions.saveGithubToken}
+                onDeploy={actions.deployToGithub}
+            />
         );
     };
 

@@ -92,11 +92,14 @@ const HivemindView = ({ user, globalApiKey, globalOpenAIKey }) => {
                             loading={hivemind.loading}
                             statusMessage={hivemind.statusMessage}
                             currentPhase={hivemind.currentPhase} // Pass phase!
+                            githubToken={hivemind.githubToken} // <--- PASS TOKEN
                             actions={{
                                 submitChoices: hivemind.submitChoices,
                                 submitSpecs: hivemind.submitSpecs,
                                 sendToAudit: hivemind.sendToAudit,
-                                compileBuild: hivemind.compileBuild
+                                compileBuild: hivemind.compileBuild,
+                                saveGithubToken: hivemind.saveGithubToken, // <--- PASS SAVE
+                                deployToGithub: hivemind.deployToGithub  // <--- PASS DEPLOY
                             }}
                         />
                     </div>
