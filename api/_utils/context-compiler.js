@@ -1,37 +1,39 @@
-import { getProviderGuide } from './doc-reader.js';
+import fs from 'fs';
+import path from 'path';
 
+// 1. Doc Reader Helper
+const getProviderGuide = (provider) => {
+    try {
+        if (!provider) return null;
+        // Normalize names: 'claude-3-opus' -> 'anthropic'
+        let filename = provider.toLowerCase();
+        if (filename.includes('claude') || filename.includes('anthropic')) filename = 'anthropic';
+        else if (filename.includes('gpt') || filename.includes('openai')) filename = 'openai';
+        else if (filename.includes('gemini') || filename.includes('google')) filename = 'google';
+        else return null; // Unknown provider
+
+        const filePath = path.join(process.cwd(), 'src', 'data', 'docs', `${filename}.md`);
+        if (fs.existsSync(filePath)) return fs.readFileSync(filePath, 'utf8');
+    } catch (e) { console.error("Doc read error:", e); }
+    return null;
+};
+
+// 2. The Compiler Function
 export const compileContext = async (rawPrompt, provider) => {
-    console.log(`⚙️ Compiling context for provider: ${provider}`);
-
-    // 1. Fetch the Knowledge Base
+    // If no provider or guide found, return raw (Pass-through)
     const guide = getProviderGuide(provider);
-    if (!guide || guide.startsWith("No specific")) {
-        console.log("No specific guide found, passing raw prompt.");
-        return rawPrompt;
-    }
+    if (!guide) return rawPrompt;
 
-    // 2. The Compiler System Prompt (The Polyglot Logic)
-    const compilerSystemPrompt = `
-    IDENTITY: You are a Context Compiler. 
-    GOAL: Rewrite the USER PROMPT to strictly follow the PROVIDER GUIDELINES.
-    
-    PROVIDER GUIDELINES:
-    ${guide}
-    
-    RULES:
-    1. Do not change the user's intent.
-    2. Apply the formatting (XML, Markdown, etc) strictly as defined in the guidelines.
-    3. Output ONLY the optimized prompt. No chat.
-    `;
+    console.log(`⚙️ Compiling context for ${provider}...`);
 
     try {
         const apiKey = process.env.OPENAI_API_KEY;
         if (!apiKey) {
-            console.warn("Missing OpenAI Key for compilation, skipping.");
+            console.warn("Context Compiler: Missing OpenAI Key.");
             return rawPrompt;
         }
 
-        // 3. Run the Compilation (Fast Model) using Fetch to avoid dependencies
+        // Use fetch instead of 'openai' package to keep dependencies clean
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -39,9 +41,21 @@ export const compileContext = async (rawPrompt, provider) => {
                 'Authorization': `Bearer ${apiKey}`
             },
             body: JSON.stringify({
-                model: "gpt-4o-mini",
+                model: "gpt-4o-mini", // Fast, cheap, smart enough for this
                 messages: [
-                    { role: "system", content: compilerSystemPrompt },
+                    {
+                        role: "system",
+                        content: `IDENTITY: You are a Context Compiler. 
+                        GOAL: Rewrite the USER PROMPT to strictly follow the PROVIDER GUIDELINES.
+                        
+                        GUIDELINES:
+                        ${guide}
+                        
+                        RULES:
+                        1. Preserve user intent 100%. Do not add new ideas.
+                        2. Apply structure/tags from guidelines.
+                        3. Output ONLY the optimized prompt.`
+                    },
                     { role: "user", content: rawPrompt }
                 ],
                 temperature: 0.3
@@ -57,13 +71,10 @@ export const compileContext = async (rawPrompt, provider) => {
         const data = await response.json();
         const optimized = data.choices[0]?.message?.content;
 
-        if (!optimized) return rawPrompt;
-
-        console.log("✅ Context Compiled.");
-        return optimized;
+        return optimized || rawPrompt;
 
     } catch (error) {
-        console.error("Context Compilation Failed:", error);
-        return rawPrompt; // Fail safe: return original
+        console.error("Compilation failed:", error);
+        return rawPrompt; // Fail safe
     }
 };

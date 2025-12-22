@@ -7,7 +7,6 @@
 4. **Reference**: Explicitly tell the model "Use the provided text...".
 
 ## Structure Template
-```markdown
 # Identity
 You are an expert...
 
@@ -23,4 +22,3 @@ You are an expert...
 """
 {{context_data}}
 """
-```
