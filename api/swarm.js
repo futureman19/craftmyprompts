@@ -3,10 +3,10 @@ import { getProviderGuide } from './_utils/doc-reader.js';
 import { compileContext } from './_utils/context-compiler.js';
 
 export const config = {
-    maxDuration: 60, // Allow up to 60 seconds for sequential processing
+    maxDuration: 60,
 };
 
-// --- 1. MODEL REGISTRY (Dec 2025 Standard) ---
+// --- 1. MODEL REGISTRY ---
 const MODELS = {
     gemini: 'gemini-2.5-flash-lite',
     claude: 'claude-haiku-4-5',
@@ -14,140 +14,119 @@ const MODELS = {
     groq: 'llama-3.1-8b-instant'
 };
 
-// --- 2. AGENT DEFINITIONS (Inlined for Stability) ---
+// --- 2. STRICT AGENT DEFINITIONS ---
 
 // Tech Squad
 const VISIONARY = {
     id: 'visionary', name: 'The Visionary', role: 'Product Strategy', provider: 'openai',
-    systemPrompt: `IDENTITY: You are The Visionary. Goal: Maximize Product-Market Fit.
-    COGNITIVE PROTOCOL: 1. Generate 3 divergent strategic angles. 2. Focus on psychological impact.
-    OUTPUT: North Star, Viral Loop, User Psychology.`
-};
-const ARCHITECT = {
-    id: 'architect', name: 'The Architect', role: 'Tech Implementation', provider: 'claude',
-    systemPrompt: `IDENTITY: You are The Architect. Priority: Clean Code & Modularity.
-    COGNITIVE PROTOCOL: 1. Generate structural Skeleton first. 2. Enforce Separation of Concerns.
-    OUTPUT: Tech Stack, Database Schema, API Specs.`
-};
-const CRITIC = {
-    id: 'critic',
-    name: 'The Critic',
-    role: 'Risk Audit', // Shortened role
-    provider: 'gemini',
-    systemPrompt: `IDENTITY: You are The Critic. You are a cold, efficient auditor.
-    STYLE: Blunt. Direct. Simple English. No fluff. No polite intros.
+    systemPrompt: `You are a JSON Generator. You do NOT write text. You ONLY output JSON.
     
-    YOUR JOB:
-    1. Read the Blueprint.
-    2. Identify 3 critical flaws (Security, Logic, or UX).
-    3. Ask 1-2 clarifying questions to fix them.
+    TASK: Receive a user idea and convert it into a structured strategy deck.
+    
+    INPUT: "Build a snake game"
+    
+    REQUIRED OUTPUT FORMAT (Exact JSON):
+    {
+      "analysis": "A classic arcade game requiring a game loop, grid rendering, and input handling.",
+      "strategy_options": [
+        {
+          "category": "Platform",
+          "question": "Where should this run?",
+          "options": ["Web (React)", "Desktop (Python)", "Mobile (React Native)"]
+        },
+        {
+          "category": "Visual Style",
+          "question": "Choose the aesthetic:",
+          "options": ["Retro Pixel Art", "Modern Minimalist", "Neon Cyberpunk"]
+        }
+      ]
+    }
+    
+    CRITICAL: Do NOT output markdown code fences. Start with { and end with }.`
+};
 
-    OUTPUT FORMAT:
-    - 🔴 **Risk:** [Brief description]
-    - 🔴 **Risk:** [Brief description]
-    - ❓ **Question:** [Direct question to user]
-    
-    Stop there. Do not summarize. Do not encourage.`
+const ARCHITECT = {
+    id: 'architect', name: 'The Architect', role: 'Tech Implementation', provider: 'openai',
+    systemPrompt: `You are a Filesystem Generator. You do not speak. You only output JSON.
+
+    TASK: Generate a complete file structure based on the strategy.
+
+    REQUIRED OUTPUT FORMAT (Exact JSON):
+    {
+      "blueprint_summary": "React app with Canvas API...",
+      "structure": [
+        { "path": "package.json", "type": "file" },
+        { "path": "src/App.jsx", "type": "file" }
+      ],
+      "modules": [
+        {
+          "path": "package.json",
+          "language": "json",
+          "code": "{\n  \"name\": \"app\",\n  \"version\": \"1.0.0\"\n}"
+        },
+        {
+          "path": "src/App.jsx",
+          "language": "javascript",
+          "code": "import React from 'react';\\n\\nexport default function App() {\\n  return <h1>Hello</h1>;\\n}"
+        }
+      ]
+    }
+
+    CRITICAL: Do NOT output markdown. Return raw JSON.`
+};
+
+const CRITIC = {
+    id: 'critic', name: 'The Critic', role: 'Risk Audit', provider: 'openai',
+    systemPrompt: `You are a Code Review Bot.
+    TASK: Analyze the provided code for bugs and risks.
+    OUTPUT: Return a plain text list of issues (Red Flags 🔴 and Questions ❓). Be blunt.`
 };
 
 // Creative Squad
 const MUSE = {
     id: 'muse', name: 'The Muse', role: 'Creative Director', provider: 'openai',
-    systemPrompt: `IDENTITY: You are The Muse. Goal: Radical Originality.
-    OUTPUT: Metaphorical Concept, Sensory Palette, Emotional Resonance.`
+    systemPrompt: `IDENTITY: You are The Muse. Output JSON concepts. FORMAT: { "concepts": ["Concept A", "Concept B"] }`
 };
 const EDITOR = {
     id: 'editor', name: 'The Editor', role: 'Structural Editor', provider: 'claude',
-    systemPrompt: `IDENTITY: You are The Editor. Goal: Structure & Economy.
-    OUTPUT: Structural Analysis, Pacing Check, Rewritten Excerpts.`
+    systemPrompt: `IDENTITY: You are The Editor. Refine text for clarity.`
 };
 const PUBLISHER = {
     id: 'publisher', name: 'The Publisher', role: 'Audience Advocate', provider: 'gemini',
-    systemPrompt: `IDENTITY: You are The Publisher. Bias: Commercial Viability.
-    OUTPUT: Viral Hook Options, SEO Keywords, Readability Score.`
+    systemPrompt: `IDENTITY: You are The Publisher. Optimize for viral reach.`
 };
 
 // Data Squad
 const ANALYST = {
     id: 'analyst', name: 'The Analyst', role: 'Insight Generator', provider: 'openai',
-    systemPrompt: `IDENTITY: You are The Analyst. Transform noise into strategy.
-    OUTPUT: The Insight Narrative, Strategic Drivers, Prescription.`
+    systemPrompt: `IDENTITY: You are The Analyst. Extract insights from data.`
 };
 const QUANT = {
     id: 'quant', name: 'The Quant', role: 'Methodology Engineer', provider: 'claude',
-    systemPrompt: `IDENTITY: You are The Quant. You speak in Python/Pandas.
-    OUTPUT: Executable Python Code Block.`
+    systemPrompt: `IDENTITY: You are The Quant. Generate Python analysis code.`
 };
 const SKEPTIC = {
     id: 'skeptic', name: 'The Skeptic', role: 'Statistical Auditor', provider: 'gemini',
-    systemPrompt: `IDENTITY: You are The Skeptic. Bias: Statistical Pessimism.
-    OUTPUT: Confidence Score, Critical Failures, Warnings.`
+    systemPrompt: `IDENTITY: You are The Skeptic. Find flaws in data logic.`
 };
 
 // Executive
-// Executive
-// Executive
 const MANAGER_AGENT = {
-    id: 'executive',
-    name: 'The Executive',
-    role: 'Build Master',
-    provider: 'openai', // Maps to gpt-4o
-    systemPrompt: `IDENTITY: You are The Executive (Build Master).
-    YOUR GOAL: Synthesize the Vision, Blueprint, and Critique into a FINAL DEPLOYABLE CODEBASE.
-
-    INPUT CONTEXT:
-    You will be provided with a history of the project planning (Vision, Architecture, Critique, User Feedback).
-    
-    STRICT OUTPUT FORMAT:
-    You must output ONLY a valid JSON object containing the full project file structure.
-    Do not write conversational text (no "Here is your code", etc).
-    
-    JSON SCHEMA:
+    id: 'executive', name: 'The Executive', role: 'Build Master', provider: 'openai',
+    systemPrompt: `You are the Build Master.
+    TASK: Combine all previous outputs into a final project manifest.
+    REQUIRED OUTPUT FORMAT (JSON):
     {
-      "project_name": "string (slug-friendly)",
-      "description": "string (short summary)",
-      "files": [
-        {
-          "path": "package.json",
-          "content": "string (raw file content)"
-        },
-        {
-          "path": "src/App.jsx",
-          "content": "string (raw file content)"
-        }
-        // ... include ALL necessary files for a working MVP
-      ],
-      "github_readme": "string (markdown content for README.md)"
+      "project_name": "project-alpha",
+      "description": "A generated project.",
+      "files": [ { "path": "README.md", "content": "# Project" } ]
     }
-    
-    RULES:
-    1. COMPLETENESS: Include every file needed to run the app (e.g., index.html, vite.config.js, .gitignore).
-    2. QUALITY: Ensure code is production-ready, clean, and commented.
-    3. INSTRUCTIONS: The 'github_readme' must include setup instructions (npm install, npm run dev).
-    4. FORMAT: Output RAW JSON only. Do not wrap in markdown code fences if possible, or use standard \`\`\`json blocks if necessary.`
+    CRITICAL: Return JSON only. No markdown.`
 };
 
 const TRANSLATOR = {
-    id: 'translator',
-    name: 'The Polyglot',
-    role: 'Model Optimization',
-    provider: 'openai', // Uses GPT-4o to do the thinking
-    systemPrompt: `IDENTITY: You are a Prompt Optimization Specialist (The Rosetta).
-    
-    YOUR GOAL: Transform the user's prompt to work optimally with a specific AI provider (OpenAI, Claude, etc).
-    
-    CRITICAL RULES:
-    1. OUTPUT THE COMPLETE PROMPT: Do not truncate. No placeholders.
-    2. PRESERVE CONTENT: Keep all original instructions, only change structure/format.
-    3. APPLY GUIDELINES: You will be given specific documentation. Follow it.
-    
-    OUTPUT FORMAT (JSON):
-    {
-        "optimized_prompt": "FULL_PROMPT_HERE",
-        "changes": [
-            { "category": "structure|formatting", "description": "Changed X to Y because..." }
-        ]
-    }`
+    id: 'translator', name: 'The Polyglot', role: 'Model Optimization', provider: 'openai',
+    systemPrompt: `Optimize the prompt. Return JSON: { "optimized_prompt": "..." }`
 };
 
 // Squad Mapping
@@ -160,51 +139,26 @@ const AGENT_SQUADS = {
 
 // --- 3. MAIN HANDLER ---
 export default async function handler(req, res) {
-    // A. Rate Limit
     const limitStatus = checkRateLimit(req);
     if (!limitStatus.success) return res.status(429).json({ error: limitStatus.error });
 
-    // B. Method Check
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
     const { prompt: rawPrompt, mode, category, keys = {}, targetAgentId, targetProvider: reqProvider, context } = req.body;
     const { openai: openAIKey, anthropic: anthropicKey, gemini: geminiKey, groq: groqKey } = keys;
 
-    // CONTEXT OS INTERCEPTOR 🛡️
-    // If this is a fresh start (no existing context history), we compile the prompt.
-    // We default to 'anthropic' if no provider is specified, as it's our "Visionary" default.
     let prompt = rawPrompt;
-
-    if (prompt && (!context || context.length === 0)) {
-        const targetProvider = reqProvider || 'anthropic';
-        console.log(`🧠 Context OS: Optimizing for ${targetProvider}...`);
-
-        try {
-            // Run the compiler middleware
-            const optimizedPrompt = await compileContext(prompt, targetProvider);
-
-            // If optimization changed anything, use it
-            if (optimizedPrompt && optimizedPrompt !== prompt) {
-                prompt = optimizedPrompt;
-                console.log("✅ Prompt optimized successfully.");
-            }
-        } catch (err) {
-            console.error("⚠️ Optimization skipped due to error:", err);
-            // We fail gracefully and proceed with the raw prompt
-        }
-    }
 
     // Helper: Run Single Agent
     const runAgent = async (agent, context = "") => {
         try {
             const strictModel = MODELS[agent.provider || 'gemini'] || MODELS.gemini;
             const fullSystemPrompt = context
-                ? `${agent.systemPrompt}\n\n### PREVIOUS CONTEXT (AUDIT MATERIAL):\n${context}`
+                ? `${agent.systemPrompt}\n\n### PREVIOUS CONTEXT:\n${context}`
                 : agent.systemPrompt;
 
             let content = "";
 
-            // Provider Switch
             if (agent.provider === 'openai') {
                 if (!openAIKey) throw new Error("Missing OpenAI Key");
                 const r = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -213,7 +167,8 @@ export default async function handler(req, res) {
                     body: JSON.stringify({
                         model: strictModel,
                         messages: [{ role: "system", content: fullSystemPrompt }, { role: "user", content: prompt }],
-                        temperature: 0.7
+                        temperature: 0.7,
+                        response_format: { type: "json_object" } // Force JSON mode for OpenAI
                     })
                 });
                 const d = await r.json();
@@ -227,7 +182,7 @@ export default async function handler(req, res) {
                     headers: { 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
                     body: JSON.stringify({
                         model: strictModel,
-                        max_tokens: 1024,
+                        max_tokens: 4096,
                         system: fullSystemPrompt,
                         messages: [{ role: "user", content: prompt }]
                     })
@@ -255,7 +210,8 @@ export default async function handler(req, res) {
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${groqKey}` },
                     body: JSON.stringify({
                         model: strictModel,
-                        messages: [{ role: "system", content: fullSystemPrompt }, { role: "user", content: prompt }]
+                        messages: [{ role: "system", content: fullSystemPrompt }, { role: "user", content: prompt }],
+                        response_format: { type: "json_object" }
                     })
                 });
                 const d = await r.json();
@@ -288,53 +244,21 @@ export default async function handler(req, res) {
         let results = [];
 
         if (targetAgentId) {
-            // MODE A: SINGLE AGENT (Narrative Step)
-            // Flatten all squads to find the target agent
-            const allAgents = [
-                ...AGENT_SQUADS.code,
-                ...AGENT_SQUADS.text,
-                ...AGENT_SQUADS.data,
-                MANAGER_AGENT,
-                TRANSLATOR // Add Translator to lookup
-            ];
-
+            const allAgents = [...AGENT_SQUADS.code, ...AGENT_SQUADS.text, ...AGENT_SQUADS.data, MANAGER_AGENT, TRANSLATOR];
             const targetAgent = allAgents.find(a => a.id === targetAgentId);
+            if (!targetAgent) throw new Error(`Agent ID '${targetAgentId}' not found.`);
 
-            if (!targetAgent) {
-                // Determine which squad the ID might belong to for a fallback, or just error
-                throw new Error(`Agent ID '${targetAgentId}' not found in any squad.`);
-            }
-
-            // SPECIAL LOGIC: The Translator (Rosetta)
-            let dynamicContext = "";
-            if (targetAgent.id === 'translator' && targetProvider) {
-                // Read the specific docs for the target provider
-                const docs = getProviderGuide(targetProvider);
-                dynamicContext = `\n\n### DOCUMENTATION FOR TARGET PROVIDER (${targetProvider.toUpperCase()}):\n${docs}`;
-            }
-
-            // Run just this agent
-            // We append dynamicContext (docs) to the prompt if it's the translator, or context if it exists
-            const result = await runAgent(targetAgent, dynamicContext);
+            const result = await runAgent(targetAgent, context); // Pass context properly
             results.push(result);
-
         } else if (mode === 'synthesize') {
-            const execResult = await runAgent(MANAGER_AGENT);
+            const execResult = await runAgent(MANAGER_AGENT, context);
             results = [execResult];
         } else {
-            // MODE C: FULL SQUAD (Legacy Waterfall)
+            // Default Mode: Visionary Only (Step 1)
             const squad = AGENT_SQUADS[category] || AGENT_SQUADS.default;
-
-            // 1. Creators (Parallel)
-            const creators = squad.filter(a => a.id !== 'critic');
-            const step1 = await Promise.all(creators.map(a => runAgent(a)));
-            results.push(...step1);
-
-            // 2. Critic (Sequential)
-            const critic = squad.find(a => a.id === 'critic') || CRITIC;
-            const context = step1.map(r => `[${r.role}]: ${r.content}`).join('\n\n');
-            const step2 = await runAgent(critic, context);
-            results.push(step2);
+            const visionary = squad[0];
+            const res = await runAgent(visionary, context);
+            results.push(res);
         }
 
         return res.status(200).json({ swarm: results, timestamp: new Date().toISOString() });
