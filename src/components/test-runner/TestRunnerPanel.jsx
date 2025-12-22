@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Terminal, Maximize2, Minimize2 } from 'lucide-react';
 import { useTestRunner } from '../../hooks/useTestRunner.js';
@@ -7,9 +7,12 @@ import TestRunnerResults from './TestRunnerResults.jsx';
 import GitHubModal from '../GitHubModal.jsx';
 import ApiKeyHelpModal from './ApiKeyHelpModal.jsx';
 
-const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippet, isSocialMode, activeCategory = 'code', onBlueprintDetected }) => {
+const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippet, isSocialMode, activeCategory = 'code', onBlueprintDetected, autoRun = false }) => {
     // 0. UI State
     const [isFullScreen, setIsFullScreen] = useState(false);
+
+    // Auto-Run Ref to prevent double-firing
+    const hasAutoRun = useRef(false);
 
     // 1. Initialize the "Brain"
     const navigate = useNavigate();
@@ -27,6 +30,15 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
     const handleRunClick = () => {
         runner.runTest(prompt, activeCategory);
     };
+
+    // --- AUTO-RUN LOGIC ---
+    useEffect(() => {
+        if (autoRun && prompt && !runner.loading && !runner.result && !hasAutoRun.current) {
+            console.log("Auto-Running Test via Prop...");
+            hasAutoRun.current = true;
+            handleRunClick();
+        }
+    }, [autoRun, prompt, runner.loading, runner.result]);
 
     const containerClasses = isFullScreen
         ? 'fixed top-0 right-0 bottom-0 left-0 md:left-20 z-[100] bg-slate-950 flex flex-col p-6 animate-in zoom-in-95 duration-200 shadow-2xl'
