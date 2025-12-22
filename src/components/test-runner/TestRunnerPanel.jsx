@@ -31,6 +31,27 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
         runner.runTest(prompt, activeCategory);
     };
 
+    // 3. Tab Handler (Standard Logic Only)
+    const handleTabChange = (val) => {
+        // Standard Tab Switch Logic
+        runner.setProvider(val);
+        // Only maximize if appropriate (not simple gemini/standard)
+        if (val !== 'gemini' && val !== 'standard') {
+            setIsFullScreen(false);
+        }
+    };
+
+    // 4. Explicit Hivemind Launcher (Decoupled)
+    const launchHivemind = () => {
+        console.log("🚀 Launching Hivemind with prompt:", prompt);
+        navigate('/hivemind', {
+            state: {
+                prompt: prompt,
+                timestamp: Date.now()
+            }
+        });
+    };
+
     // --- AUTO-RUN LOGIC ---
     useEffect(() => {
         if (autoRun && prompt && !runner.loading && !runner.result && !hasAutoRun.current) {
@@ -92,16 +113,8 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
 
                     // Handlers
                     onViewChange={runner.handleViewChange}
-                    onProviderChange={(val) => {
-                        if (val === 'swarm') {
-                            // REDIRECT TO HIVEMIND VIEW
-                            navigate('/hivemind', { state: { prompt: prompt } });
-                        } else {
-                            // STANDARD TABS -> MAXIMIZE (Command Center Mode)
-                            runner.setProvider(val);
-                            setIsFullScreen(true);
-                        }
-                    }}
+                    onProviderChange={handleTabChange}
+                    onLaunchHivemind={launchHivemind} // <--- New Prop
                     onGeminiKeyChange={runner.setGeminiKey}
                     onOpenaiKeyChange={runner.setOpenaiKey}
                     onGroqKeyChange={runner.setGroqKey}

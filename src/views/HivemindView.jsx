@@ -8,11 +8,23 @@ const HivemindView = ({ user, globalApiKey, globalOpenAIKey }) => {
     const navigate = useNavigate();
 
     // 1. Auto-Load Prompt from Navigation State
-    const passedPrompt = location.state?.prompt || '';
+    const incomingPrompt = location.state?.prompt || '';
 
-    const [mission, setMission] = useState(passedPrompt);
-    // If we have a passed prompt, start immediately. Otherwise wait for input.
-    const [isStarted, setIsStarted] = useState(!!passedPrompt);
+    // 2. State Initialization
+    const [mission, setMission] = useState(incomingPrompt);
+
+    // 3. Auto-Start Logic: Only if actual content exists
+    const [isStarted, setIsStarted] = useState(() => {
+        return incomingPrompt.length > 0;
+    });
+
+    // 4. Safety Effect (for re-navigation or delay)
+    useEffect(() => {
+        if (incomingPrompt && mission !== incomingPrompt) {
+            setMission(incomingPrompt);
+            setIsStarted(true);
+        }
+    }, [incomingPrompt]);
 
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-900 overflow-hidden">

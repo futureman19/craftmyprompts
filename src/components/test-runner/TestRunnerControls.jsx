@@ -23,7 +23,9 @@ const TestRunnerControls = ({
     // Handlers
     addSwarmAgent, removeSwarmAgent, updateSwarmAgent, setShowHelpModal,
     // HiveContext
-    swarmCategory, onSwarmCategoryChange
+    swarmCategory, onSwarmCategoryChange,
+    // Navigation
+    onLaunchHivemind
 }) => {
 
     // Determine active tab based on viewMode and provider
@@ -53,7 +55,7 @@ const TestRunnerControls = ({
         { id: 'standard', label: 'Standard', icon: <Bot size={14} />, color: 'text-indigo-500' },
         { id: 'chain', label: 'Smart', icon: <Sparkles size={14} />, color: 'text-amber-500', premium: true },
         { id: 'arena', label: 'Arena', icon: <Swords size={14} />, color: 'text-rose-500', premium: true },
-        { id: 'swarm', label: 'Hivemind', icon: <Users size={14} />, color: 'text-violet-500', premium: true },
+        // Swarm removed from tabs - moved to dedicated launcher
     ];
 
     return (
@@ -92,6 +94,15 @@ const TestRunnerControls = ({
                         </button>
                     );
                 })}
+
+                {/* DEDICATED HIVEMIND LAUNCHER */}
+                <button
+                    onClick={onLaunchHivemind}
+                    className="flex-1 min-w-[80px] py-1.5 px-2 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all flex items-center justify-center gap-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-700/50"
+                >
+                    <span className="text-violet-500"><Users size={14} /></span>
+                    <span>Hivemind</span>
+                </button>
             </div>
 
             {/* CONTROLS AREA */}
