@@ -7,20 +7,22 @@ const HivemindView = ({ user, globalApiKey, globalOpenAIKey }) => {
     const location = useLocation();
     const navigate = useNavigate();
 
+    // 0. Debugging
+    console.log("Hivemind received state:", location.state);
+
     // 1. Auto-Load Prompt from Navigation State
     const incomingPrompt = location.state?.prompt || '';
 
-    // 2. State Initialization
-    const [mission, setMission] = useState(incomingPrompt);
+    // 2. State Initialization (Robust Lazy Loader)
+    const [mission, setMission] = useState(() => incomingPrompt);
 
     // 3. Auto-Start Logic: Only if actual content exists
-    const [isStarted, setIsStarted] = useState(() => {
-        return incomingPrompt.length > 0;
-    });
+    const [isStarted, setIsStarted] = useState(() => !!incomingPrompt);
 
     // 4. Safety Effect (for re-navigation or delay)
     useEffect(() => {
         if (incomingPrompt && mission !== incomingPrompt) {
+            console.log("♻️ State re-syncing from navigation...");
             setMission(incomingPrompt);
             setIsStarted(true);
         }

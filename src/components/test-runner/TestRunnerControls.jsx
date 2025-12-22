@@ -92,17 +92,25 @@ const TestRunnerControls = ({
                             <span className={isActive ? mode.color : ''}>{mode.icon}</span>
                             <span>{mode.label}</span>
                         </button>
-                    );
                 })}
+            </div>
 
-                {/* DEDICATED HIVEMIND LAUNCHER */}
-                <button
-                    onClick={onLaunchHivemind}
-                    className="flex-1 min-w-[80px] py-1.5 px-2 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all flex items-center justify-center gap-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-700/50"
-                >
-                    <span className="text-violet-500"><Users size={14} /></span>
-                    <span>Hivemind</span>
-                </button>
+            {/* HEADER AREA: Explicit Separation */}
+            <div className="flex justify-end pt-2">
+                {/* DEDICATED HIVEMIND LAUNCHER - ISOLATED CONTAINER */}
+                <div className="border-t border-slate-100 dark:border-slate-800 w-full pt-2">
+                    <button
+                        type="button" // Explicit type
+                        onClick={onLaunchHivemind}
+                        className="w-full py-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white rounded-lg text-xs font-bold uppercase tracking-wide transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-95"
+                    >
+                        <Users size={14} />
+                        <span>Launch Hivemind</span>
+                    </button>
+                    <div className="text-[9px] text-center text-slate-400 mt-1">
+                        Full-Screen Collaborative Agent Workspace
+                    </div>
+                </div>
             </div>
 
             {/* CONTROLS AREA */}

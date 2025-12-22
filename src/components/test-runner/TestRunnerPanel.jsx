@@ -16,7 +16,30 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
 
     // 1. Initialize the "Brain"
     const navigate = useNavigate();
-    const runner = useTestRunner(defaultApiKey, defaultOpenAIKey);
+
+    // --- REWRITE: LOCAL API KEY STATE MANAGEMENT (Source of Truth) ---
+    // We lazy load from localStorage to ensure keys persist across refreshes
+    const [localOpenAIKey, setLocalOpenAIKey] = useState(() => localStorage.getItem('openai_key') || defaultOpenAIKey || '');
+    const [localGeminiKey, setLocalGeminiKey] = useState(() => localStorage.getItem('gemini_key') || defaultApiKey || ''); // defaultApiKey usually gemini
+    const [localAnthropicKey, setLocalAnthropicKey] = useState(() => localStorage.getItem('anthropic_key') || '');
+    const [localGroqKey, setLocalGroqKey] = useState(() => localStorage.getItem('groq_key') || '');
+
+    // Persist changes
+    useEffect(() => { if (localOpenAIKey) localStorage.setItem('openai_key', localOpenAIKey); }, [localOpenAIKey]);
+    useEffect(() => { if (localGeminiKey) localStorage.setItem('gemini_key', localGeminiKey); }, [localGeminiKey]);
+    useEffect(() => { if (localAnthropicKey) localStorage.setItem('anthropic_key', localAnthropicKey); }, [localAnthropicKey]);
+    useEffect(() => { if (localGroqKey) localStorage.setItem('groq_key', localGroqKey); }, [localGroqKey]);
+
+    // Initialize Runner with the PERSISTED keys
+    const runner = useTestRunner(localGeminiKey, localOpenAIKey);
+
+    // Sync Runner state if local keys change (Optional, but ensures runner has latest)
+    useEffect(() => {
+        if (localGeminiKey !== runner.geminiKey) runner.setGeminiKey(localGeminiKey);
+        if (localOpenAIKey !== runner.openaiKey) runner.setOpenaiKey(localOpenAIKey);
+        if (localAnthropicKey !== runner.anthropicKey) runner.setAnthropicKey(localAnthropicKey);
+        if (localGroqKey !== runner.groqKey) runner.setGroqKey(localGroqKey);
+    }, [localGeminiKey, localOpenAIKey, localAnthropicKey, localGroqKey]);
 
     // CRITICAL: State Sanitization & Crash Prevention
     // 1. Force lowercase to handle 'Hivemind' vs 'hivemind'
@@ -41,9 +64,15 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
         }
     };
 
-    // 4. Explicit Hivemind Launcher (Decoupled)
-    const launchHivemind = () => {
-        console.log("🚀 Launching Hivemind with prompt:", prompt);
+    // 4. Explicit Hivemind Launcher (Decoupled & Safe)
+    const launchHivemind = (e) => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        console.log("🚀 Launching Hivemind...", { prompt });
+
+        // Force Navigation (Clean State)
         navigate('/hivemind', {
             state: {
                 prompt: prompt,
@@ -96,10 +125,10 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
                     provider={safeProvider}
 
                     // Keys & Auth
-                    geminiKey={runner.geminiKey}
-                    openaiKey={runner.openaiKey}
-                    groqKey={runner.groqKey}
-                    anthropicKey={runner.anthropicKey}
+                    geminiKey={localGeminiKey}
+                    openaiKey={localOpenAIKey}
+                    groqKey={localGroqKey}
+                    anthropicKey={localAnthropicKey}
                     isLoggedIn={runner.isLoggedIn}
 
                     // Configs
@@ -108,17 +137,17 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
                     battleConfig={runner.battleConfig}
                     selectedModel={runner.selectedModel}
                     availableModels={runner.availableModels}
-                    isUsingGlobalGemini={!!defaultApiKey && runner.geminiKey === defaultApiKey}
-                    isUsingGlobalOpenAI={!!defaultOpenAIKey && runner.openaiKey === defaultOpenAIKey}
+                    isUsingGlobalGemini={!!defaultApiKey && localGeminiKey === defaultApiKey}
+                    isUsingGlobalOpenAI={!!defaultOpenAIKey && localOpenAIKey === defaultOpenAIKey}
 
                     // Handlers
                     onViewChange={runner.handleViewChange}
                     onProviderChange={handleTabChange}
-                    onLaunchHivemind={launchHivemind} // <--- New Prop
-                    onGeminiKeyChange={runner.setGeminiKey}
-                    onOpenaiKeyChange={runner.setOpenaiKey}
-                    onGroqKeyChange={runner.setGroqKey}
-                    onAnthropicKeyChange={runner.setAnthropicKey}
+                    onLaunchHivemind={launchHivemind}
+                    onGeminiKeyChange={setLocalGeminiKey}
+                    onOpenaiKeyChange={setLocalOpenAIKey}
+                    onGroqKeyChange={setLocalGroqKey}
+                    onAnthropicKeyChange={setLocalAnthropicKey}
                     onClearKey={runner.clearKey}
                     onFetchModels={runner.fetchModels}
                     onModelChange={runner.setSelectedModel}
@@ -141,16 +170,16 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
 
                     // Key Management - Audited and Verified
                     keys={{
-                        gemini: runner.geminiKey,
-                        openai: runner.openaiKey,
-                        groq: runner.groqKey,
-                        anthropic: runner.anthropicKey
+                        gemini: localGeminiKey,
+                        openai: localOpenAIKey,
+                        groq: localGroqKey,
+                        anthropic: localAnthropicKey
                     }}
                     setters={{
-                        gemini: runner.setGeminiKey,
-                        openai: runner.setOpenaiKey,
-                        groq: runner.setGroqKey,
-                        anthropic: runner.setAnthropicKey
+                        gemini: setLocalGeminiKey,
+                        openai: setLocalOpenAIKey,
+                        groq: setLocalGroqKey,
+                        anthropic: setLocalAnthropicKey
                     }}
                 />
 
@@ -229,9 +258,10 @@ const TestRunnerPanel = ({ prompt, defaultApiKey, defaultOpenAIKey, onSaveSnippe
                 isOpen={runner.showHelpModal}
                 onClose={() => runner.setShowHelpModal(false)}
                 onSave={(newKeys) => {
-                    if (newKeys.openai) runner.setOpenaiKey(newKeys.openai);
-                    if (newKeys.anthropic) runner.setAnthropicKey(newKeys.anthropic);
-                    if (newKeys.gemini) runner.setGeminiKey(newKeys.gemini);
+                    if (newKeys.openai) setLocalOpenAIKey(newKeys.openai);
+                    if (newKeys.anthropic) setLocalAnthropicKey(newKeys.anthropic);
+                    if (newKeys.gemini) setLocalGeminiKey(newKeys.gemini);
+                    if (newKeys.groq) setLocalGroqKey(newKeys.groq);
                 }}
             />
         </div>
