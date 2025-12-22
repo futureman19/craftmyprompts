@@ -12,6 +12,7 @@ const DeploymentDeck = ({ projectData, githubToken, onSaveToken, onDeploy }) => 
 
     // NEW: Local state for renaming
     const [projectName, setProjectName] = useState(projectData.project_name || 'hivemind-build');
+    const [isEditingName, setIsEditingName] = useState(false);
 
     const handleAction = async (actionType) => {
         // Create a payload with the UPDATED name
@@ -60,19 +61,35 @@ const DeploymentDeck = ({ projectData, githubToken, onSaveToken, onDeploy }) => 
                     <Package size={32} />
                 </div>
 
-                {/* EDITABLE NAME FIELD */}
-                <div className="group relative inline-block w-full max-w-md">
-                    <input
-                        type="text"
-                        value={projectName}
-                        onChange={(e) => setProjectName(e.target.value.replace(/\s+/g, '-'))} // Force slug-friendly
-                        className="text-2xl font-bold text-white bg-transparent border-b border-transparent hover:border-slate-600 focus:border-emerald-500 text-center outline-none transition-all w-full pb-1"
-                    />
-                    <Edit3 size={14} className="absolute right-0 top-2 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                {/* EDITABLE NAME FIELD (Toggle Mode) */}
+                <div className="flex justify-center mb-2">
+                    {isEditingName ? (
+                        <input
+                            autoFocus
+                            type="text"
+                            value={projectName}
+                            onChange={(e) => setProjectName(e.target.value.replace(/\s+/g, '-'))}
+                            onBlur={() => setIsEditingName(false)} // Save on click away
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') setIsEditingName(false); // Save on Enter
+                            }}
+                            className="text-2xl font-bold text-white bg-slate-950/50 border border-emerald-500 rounded px-4 py-1 text-center outline-none w-full max-w-md shadow-[0_0_15px_rgba(16,185,129,0.3)]"
+                        />
+                    ) : (
+                        <button
+                            onClick={() => setIsEditingName(true)}
+                            className="group flex items-center gap-3 px-4 py-1 rounded-lg hover:bg-slate-800/50 transition-all border border-transparent hover:border-slate-700"
+                        >
+                            <h2 className="text-2xl font-bold text-white group-hover:text-emerald-400 transition-colors">
+                                {projectName}
+                            </h2>
+                            <Edit3 size={16} className="text-slate-500 group-hover:text-emerald-500 transition-colors" />
+                        </button>
+                    )}
                 </div>
-                <p className="text-slate-500 mb-8 text-xs mt-1">
+
+                <p className="text-slate-500 mb-8 text-xs">
                     {projectData.description || "Ready for deployment."}
-                    <span className="ml-2 text-slate-600">(Rename project above to avoid conflicts)</span>
                 </p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
