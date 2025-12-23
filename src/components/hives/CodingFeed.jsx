@@ -10,9 +10,8 @@ import CriticDeck from '../agent/CriticDeck.jsx';
 import DeploymentDeck from '../agent/DeploymentDeck.jsx';
 
 // --- IMPORT FEEDBACK BAR (Restored) ---
-// Assuming ManagerFeedback is in the sibling folder 'hivemind' or similar. 
-// If your folder structure is different, please adjust this path.
-import ManagerFeedback from '../hivemind/ManagerFeedback.jsx';
+// Loading ManagerDrawer acting as Feedback Bar
+import ManagerFeedback from '../hivemind/ManagerDrawer.jsx';
 
 const CodingFeed = ({
     history,
