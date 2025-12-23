@@ -11,6 +11,7 @@ export const useHivemind = (initialKeys = {}) => {
     const [githubToken, setGithubToken] = useState(localStorage.getItem('github_token') || ''); // <--- NEW TOKEN STATE
     const [managerMessages, setManagerMessages] = useState([]);
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+    const [mode, setMode] = useState('coding'); // 'coding' | 'art'
 
     // --- KEY MANAGEMENT (Self-Healing) ---
     // User Manual Input (localStorage) > Environment Variables (initialKeys)
@@ -63,29 +64,40 @@ export const useHivemind = (initialKeys = {}) => {
     };
 
     // --- STEP 1: VISION (Start) ---
-    const startMission = async (userPrompt) => {
+    // --- STEP 1: VISION (Start) ---
+    const startMission = async (userPrompt, selectedMode = 'coding') => {
         setLoading(true);
         setHistory([]);
+        setMode(selectedMode); // Set the mode for the session
         setCurrentPhase('vision');
-        setStatusMessage('The Visionary is analyzing your request...');
-        setContextData({ originalPrompt: userPrompt });
+
+        const agent = selectedMode === 'art' ? 'muse' : 'visionary';
+        const roleName = selectedMode === 'art' ? 'The Muse' : 'The Visionary';
+
+        setStatusMessage(`${roleName} is analyzing your request...`);
+        setContextData({ originalPrompt: userPrompt, mode: selectedMode });
 
         try {
-            // Call Visionary Only
-            const data = await callAgent('visionary', userPrompt);
+            // Call Visionary or Muse
+            const data = await callAgent(agent, userPrompt);
             const msg = data.swarm[0];
 
             // Add to history
-            setHistory([{ ...msg, text: msg.content, role: 'The Visionary', type: 'vision_options' }]);
+            setHistory([{ ...msg, text: msg.content, role: roleName, type: 'vision_options' }]);
         } catch (e) { console.error(e); setStatusMessage("Error: " + e.message); }
         finally { setLoading(false); }
     };
 
     // --- STEP 2: SPECS (Tech Lead) ---
+    // --- STEP 2: SPECS (Tech Lead) ---
     const submitChoices = async (choices) => {
         setLoading(true);
         setCurrentPhase('specs'); // <--- NEW PHASE
-        setStatusMessage('The Tech Lead is defining specifications...');
+
+        const agent = mode === 'art' ? 'cinematographer' : 'tech_lead';
+        const roleName = mode === 'art' ? 'The Cinematographer' : 'The Tech Lead';
+
+        setStatusMessage(`${roleName} is defining specifications...`);
 
         // Save strategy choices
         const newContext = { ...contextData, strategy: choices }; // Store explicitly as strategy
@@ -97,8 +109,8 @@ export const useHivemind = (initialKeys = {}) => {
         `;
 
         try {
-            // CALL TECH LEAD
-            const data = await callAgent('tech_lead',
+            // CALL TECH LEAD OR CINEMATOGRAPHER
+            const data = await callAgent(agent,
                 "Define technical specs based on this strategy.",
                 contextString
             );
@@ -106,7 +118,7 @@ export const useHivemind = (initialKeys = {}) => {
             setHistory(prev => [...prev, {
                 ...msg,
                 text: msg.content,
-                role: 'The Tech Lead',
+                role: roleName,
                 type: 'spec_options' // <--- NEW TYPE
             }]);
         } catch (e) { console.error(e); }
@@ -114,10 +126,15 @@ export const useHivemind = (initialKeys = {}) => {
     };
 
     // --- STEP 3: BLUEPRINT (Architect) ---
+    // --- STEP 3: BLUEPRINT (Architect) ---
     const submitSpecs = async (specs) => {
         setLoading(true);
         setCurrentPhase('blueprint');
-        setStatusMessage('The Architect is drafting the blueprint...');
+
+        const agent = mode === 'art' ? 'stylist' : 'architect';
+        const roleName = mode === 'art' ? 'The Stylist' : 'The Architect';
+
+        setStatusMessage(`${roleName} is drafting the logic...`);
 
         // Save spec choices
         const newContext = { ...contextData, specs };
@@ -130,16 +147,16 @@ export const useHivemind = (initialKeys = {}) => {
         `;
 
         try {
-            // CALL ARCHITECT
-            const data = await callAgent('architect',
-                "Generate the File Structure and Core Code based on these specs.",
+            // CALL ARCHITECT OR STYLIST
+            const data = await callAgent(agent,
+                "Generate the detailed plan based on these specs.",
                 contextString
             );
             const msg = data.swarm[0];
             setHistory(prev => [...prev, {
                 ...msg,
                 text: msg.content,
-                role: 'The Architect',
+                role: roleName,
                 type: 'blueprint'
             }]);
         } catch (e) { console.error(e); }
@@ -309,6 +326,8 @@ export const useHivemind = (initialKeys = {}) => {
         managerMessages,
         isDrawerOpen,
         setIsDrawerOpen,
-        handleManagerFeedback
+        handleManagerFeedback,
+        mode // <--- Expose Mode
     };
+};
 };
