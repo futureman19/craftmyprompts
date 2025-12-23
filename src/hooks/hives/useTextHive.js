@@ -151,11 +151,24 @@ export const useTextHive = (initialKeys = {}) => {
     // --- STEP 5: FINAL (Instant Publish) ---
     const compileBuild = async () => {
         setLoading(true);
-        setCurrentPhase('done');
-        setStatusMessage('Finalizing content... Ready to copy.');
+        setStatusMessage('Finalizing content...');
 
-        // No Executive call needed for text. We just mark as done.
-        setLoading(false);
+        // 1. Create a "Final" history artifact
+        // This ensures the Feed has a definite 'stop' point to render the final card.
+        const finalEntry = {
+            role: 'The Publisher',
+            content: 'Content finalized and ready for distribution.',
+            text: 'Content finalized.',
+            type: 'final',
+            timestamp: Date.now()
+        };
+
+        // 2. Update State with delay for UX
+        setTimeout(() => {
+            setHistory(prev => [...prev, finalEntry]);
+            setCurrentPhase('done');
+            setLoading(false);
+        }, 800);
     };
 
     // --- SWARM OPS: MANAGER FEEDBACK ---
