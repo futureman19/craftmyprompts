@@ -19,24 +19,29 @@ export const generateFinalOutput = (mode, history) => {
         const modules = draft?.modules || [];
 
         // Helper to find text in "options" array OR "value" string
-        const getText = (keys) => {
+        const getText = (keys, preferDescription = false) => {
             const module = modules.find(m => keys.includes(m.category) || keys.includes(m.question));
             if (!module) return null;
 
-            // Case A: It's a string value (Coding style)
             if (module.value) return module.value;
 
-            // Case B: It's an options array (Text style)
             if (module.options && Array.isArray(module.options)) {
-                // Return the recommended one, or the first one, or join them
-                const rec = module.options.find(o => o.recommended);
-                return rec ? (rec.label || rec.name || rec) : module.options.map(o => o.label || o).join('\n\n');
+                const rec = module.options.find(o => o.recommended) || module.options[0];
+                if (!rec) return null;
+
+                // IF preferDescription is TRUE, return the description (The Email Body)
+                if (preferDescription && rec.description) return rec.description;
+
+                // ELSE return the label (The Headline)
+                return rec.label || rec.name || rec;
             }
             return null;
         };
 
-        const headline = getText(['Headline', 'Title', 'Hook']) || "Pending Title";
-        const body = getText(['Body', 'Content', 'Key Points', 'Draft']) || "Pending Content";
+        const headline = getText(['Headline', 'Title', 'Hook'], false) || "Pending Title";
+
+        // HERE: We pass 'true' to get the full text body
+        const body = getText(['Body', 'Content', 'Key Points', 'Draft'], true) || "Pending Content";
 
         return `
 # ${headline}
@@ -56,3 +61,5 @@ ${critique?.risk_options?.map(r => `- [${r.severity}] ${r.category}`).join('\n')
     // 3. ART/VIDEO/CODING Fallback
     return JSON.stringify({ strategy, specs, draft }, null, 2);
 };
+
+// Helper (Unused but kept for potential future use if needed, matching previous file structure or removing if not needed - user replaced the whole function but I am writing the whole file. The user code didn't show formatModules so I will remove it to be clean as it was unused in the provided snippet).
