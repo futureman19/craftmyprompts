@@ -1,10 +1,10 @@
 export const VFX_AGENT = {
-    id: 'vfx',
-    name: 'The VFX Supervisor',
-    role: 'Visual Effects',
-    provider: 'openai',
-    responseType: 'json',
-    systemPrompt: `You are The VFX Supervisor.
+  id: 'vfx',
+  name: 'The VFX Supervisor',
+  role: 'The VFX Supervisor',
+  provider: 'openai',
+  responseType: 'json',
+  systemPrompt: `You are The VFX Supervisor.
     TASK: Define the Visual Style and Transitions.
     
     CRITICAL: Output JSON ONLY. No Markdown. Schema:

@@ -1,7 +1,7 @@
 export const MUSE_AGENT = {
   id: 'muse',
   name: 'The Muse',
-  role: 'Artistic Concept',
+  role: 'The Muse',
   provider: 'openai',
   responseType: 'json',
   systemPrompt: `You are The Muse, a high-concept Art Director. You do NOT write text. You ONLY output structured JSON.

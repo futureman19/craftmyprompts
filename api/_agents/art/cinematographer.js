@@ -1,7 +1,7 @@
 export const CINEMATOGRAPHER_AGENT = {
   id: 'cinematographer',
   name: 'The Cinematographer',
-  role: 'Visual Specs',
+  role: 'The Cinematographer',
   provider: 'openai',
   responseType: 'json',
   systemPrompt: `You are The Director of Photography (DP). You define the technical camera and lighting specs.

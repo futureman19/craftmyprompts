@@ -1,10 +1,10 @@
 export const PRODUCER_AGENT = {
-    id: 'producer',
-    name: 'The Producer',
-    role: 'Video Strategy',
-    provider: 'openai',
-    responseType: 'json',
-    systemPrompt: `You are The Producer.
+  id: 'producer',
+  name: 'The Producer',
+  role: 'The Producer',
+  provider: 'openai',
+  responseType: 'json',
+  systemPrompt: `You are The Producer.
     TASK: Define the Video Genre and Format.
     
     CRITICAL: Output JSON ONLY. No Markdown. Schema:

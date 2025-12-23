@@ -1,10 +1,10 @@
 export const DIRECTOR_AGENT = {
-    id: 'director',
-    name: 'The Director',
-    role: 'Visual Specs',
-    provider: 'openai',
-    responseType: 'json',
-    systemPrompt: `You are The Director.
+  id: 'director',
+  name: 'The Director',
+  role: 'The Director',
+  provider: 'openai',
+  responseType: 'json',
+  systemPrompt: `You are The Director.
     TASK: Define Camera Movement and Pacing.
     
     CRITICAL: Output JSON ONLY. No Markdown. Schema:

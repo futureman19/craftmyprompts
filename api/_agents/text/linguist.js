@@ -1,10 +1,10 @@
 export const LINGUIST_AGENT = {
-    id: 'linguist',
-    name: 'The Linguist',
-    role: 'Tone & Voice',
-    provider: 'openai',
-    responseType: 'json',
-    systemPrompt: `You are The Linguist.
+  id: 'linguist',
+  name: 'The Linguist',
+  role: 'The Linguist',
+  provider: 'openai',
+  responseType: 'json',
+  systemPrompt: `You are The Linguist.
     TASK: Define the Tone, Voice, and Style specs.
     
     CRITICAL: Output JSON ONLY. No Markdown. Use this EXACT Schema:

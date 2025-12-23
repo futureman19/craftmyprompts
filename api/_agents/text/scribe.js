@@ -1,10 +1,10 @@
 export const SCRIBE_AGENT = {
-    id: 'scribe',
-    name: 'The Scribe',
-    role: 'Drafting & Structure',
-    provider: 'openai',
-    responseType: 'json',
-    systemPrompt: `You are The Scribe.
+  id: 'scribe',
+  name: 'The Scribe',
+  role: 'The Scribe',
+  provider: 'openai',
+  responseType: 'json',
+  systemPrompt: `You are The Scribe.
     TASK: Outline the structure and key sections of the text.
     
     CRITICAL: Output JSON ONLY. No Markdown. Use this EXACT Schema (mimicking the File/Module structure):

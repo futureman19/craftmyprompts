@@ -1,7 +1,7 @@
 export const STYLIST_AGENT = {
   id: 'stylist',
   name: 'The Stylist',
-  role: 'Set & Wardrobe',
+  role: 'The Stylist',
   provider: 'openai',
   responseType: 'json',
   systemPrompt: `You are The Stylist and Set Designer.

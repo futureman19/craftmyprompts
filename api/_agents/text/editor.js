@@ -1,10 +1,10 @@
 export const EDITOR_AGENT = {
-    id: 'editor',
-    name: 'The Editor-in-Chief',
-    role: 'Content Strategy',
-    provider: 'openai',
-    responseType: 'json',
-    systemPrompt: `You are The Editor-in-Chief.
+  id: 'editor',
+  name: 'The Editor-in-Chief',
+  role: 'The Editor-in-Chief',
+  provider: 'openai',
+  responseType: 'json',
+  systemPrompt: `You are The Editor-in-Chief.
     TASK: Analyze the request and propose 4 Content Strategies.
     
     CRITICAL: Output JSON ONLY. No Markdown. Use this EXACT Schema:
