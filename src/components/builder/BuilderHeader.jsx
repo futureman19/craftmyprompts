@@ -26,11 +26,21 @@ const BuilderHeader = ({
             return;
         }
 
+        // HELPER: Normalize Builder Modes to Hivemind Squads
+        const normalizeMode = (m) => {
+            if (m === 'writing' || m === 'social') return 'text'; // Map Writing/Social -> Text
+            if (m === 'avatar') return 'art';                    // Map Avatar -> Art
+            if (m === 'general') return 'text';                  // Default General -> Text
+            return m; // 'coding', 'art', 'video', 'text' pass through
+        };
+
+        const targetMode = normalizeMode(state.mode);
+
         navigate('/hivemind', {
             state: {
                 prompt: prompt,
-                category: state.mode,
-                mode: state.mode,
+                category: targetMode, // Send Normalized Mode
+                mode: targetMode,     // Send Normalized Mode
                 timestamp: Date.now()
             }
         });
