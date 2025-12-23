@@ -330,4 +330,3 @@ export const useHivemind = (initialKeys = {}) => {
         mode // <--- Expose Mode
     };
 };
-};
