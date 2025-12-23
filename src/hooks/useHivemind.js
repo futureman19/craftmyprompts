@@ -19,6 +19,31 @@ export const useHivemind = (initialKeys = {}) => {
         return text.replace(/```json/g, '').replace(/```/g, '').trim();
     };
 
+    // --- HELPER: GET AGENT BY PHASE & MODE ---
+    const getAgentForPhase = (phase, currentMode) => {
+        const map = {
+            vision: {
+                coding: { id: 'visionary', role: 'The Visionary' },
+                art: { id: 'muse', role: 'The Muse' },
+                text: { id: 'editor', role: 'The Editor-in-Chief' },
+                video: { id: 'producer', role: 'The Producer' }
+            },
+            specs: {
+                coding: { id: 'tech_lead', role: 'The Tech Lead' },
+                art: { id: 'cinematographer', role: 'The Cinematographer' },
+                text: { id: 'linguist', role: 'The Linguist' },
+                video: { id: 'director', role: 'The Director' }
+            },
+            blueprint: {
+                coding: { id: 'architect', role: 'The Architect' },
+                art: { id: 'stylist', role: 'The Stylist' },
+                text: { id: 'scribe', role: 'The Scribe' },
+                video: { id: 'vfx', role: 'The VFX Supervisor' }
+            }
+        };
+        return map[phase]?.[currentMode] || map[phase]?.['coding'];
+    };
+
     // --- KEY MANAGEMENT (Self-Healing) ---
     // User Manual Input (localStorage) > Environment Variables (initialKeys)
     const getEffectiveKeys = () => ({
@@ -71,28 +96,25 @@ export const useHivemind = (initialKeys = {}) => {
 
     // --- STEP 1: VISION (Start) ---
     // --- STEP 1: VISION (Start) ---
-    const startMission = async (userPrompt, selectedMode = 'coding') => {
+    const startMission = async (userPrompt, selectedMode) => {
+        const targetMode = selectedMode || mode || 'coding';
+        console.log("🚀 Starting Mission:", { prompt: userPrompt, mode: targetMode });
+
         setLoading(true);
         setHistory([]);
-        setMode(selectedMode); // Set the mode for the session
+        setMode(targetMode);
         setCurrentPhase('vision');
 
-        const agent = selectedMode === 'art' ? 'muse' : 'visionary';
-        const roleName = selectedMode === 'art' ? 'The Muse' : 'The Visionary';
+        const { id, role } = getAgentForPhase('vision', targetMode); // <--- USE HELPER
 
-        setStatusMessage(`${roleName} is analyzing your request...`);
-        setContextData({ originalPrompt: userPrompt, mode: selectedMode });
+        setStatusMessage(`${role} is analyzing your request...`);
+        setContextData({ originalPrompt: userPrompt, mode: targetMode });
 
         try {
-            // Call Visionary or Muse
-            const data = await callAgent(agent, userPrompt);
+            const data = await callAgent(id, userPrompt);
             const rawMsg = data.swarm[0];
-
-            // CLEAN IT
             const cleanContent = cleanJson(rawMsg.content);
-
-            // Add to history
-            setHistory([{ ...rawMsg, content: cleanContent, text: cleanContent, role: roleName, type: 'vision_options' }]);
+            setHistory([{ ...rawMsg, content: cleanContent, text: cleanContent, role: role, type: 'vision_options' }]);
         } catch (e) { console.error(e); setStatusMessage("Error: " + e.message); }
         finally { setLoading(false); }
     };
@@ -101,40 +123,20 @@ export const useHivemind = (initialKeys = {}) => {
     // --- STEP 2: SPECS (Tech Lead) ---
     const submitChoices = async (choices) => {
         setLoading(true);
-        setCurrentPhase('specs'); // <--- NEW PHASE
+        setCurrentPhase('specs');
 
-        const agent = mode === 'art' ? 'cinematographer' : 'tech_lead';
-        const roleName = mode === 'art' ? 'The Cinematographer' : 'The Tech Lead';
+        const { id, role } = getAgentForPhase('specs', mode); // <--- USE HELPER
 
-        setStatusMessage(`${roleName} is defining specifications...`);
-
-        // Save strategy choices
-        const newContext = { ...contextData, strategy: choices }; // Store explicitly as strategy
+        setStatusMessage(`${role} is defining specifications...`);
+        const newContext = { ...contextData, strategy: choices };
         setContextData(newContext);
-
-        const contextString = `
-        ORIGINAL PROMPT: "${newContext.originalPrompt}"
-        STRATEGY CHOICES: ${JSON.stringify(choices)}
-        `;
+        const contextString = `ORIGINAL PROMPT: "${newContext.originalPrompt}"\nSTRATEGY CHOICES: ${JSON.stringify(choices)}`;
 
         try {
-            // CALL TECH LEAD OR CINEMATOGRAPHER
-            const data = await callAgent(agent,
-                "Define technical specs based on this strategy.",
-                contextString
-            );
+            const data = await callAgent(id, "Define technical specs based on this strategy.", contextString);
             const rawMsg = data.swarm[0];
-
-            // CLEAN IT
             const cleanContent = cleanJson(rawMsg.content);
-
-            setHistory(prev => [...prev, {
-                ...rawMsg,
-                content: cleanContent,
-                text: cleanContent,
-                role: roleName,
-                type: 'spec_options' // <--- NEW TYPE
-            }]);
+            setHistory(prev => [...prev, { ...rawMsg, content: cleanContent, text: cleanContent, role: role, type: 'spec_options' }]);
         } catch (e) { console.error(e); }
         finally { setLoading(false); }
     };
@@ -145,12 +147,10 @@ export const useHivemind = (initialKeys = {}) => {
         setLoading(true);
         setCurrentPhase('blueprint');
 
-        const agent = mode === 'art' ? 'stylist' : 'architect';
-        const roleName = mode === 'art' ? 'The Stylist' : 'The Architect';
+        const { id, role } = getAgentForPhase('blueprint', mode); // <--- USE HELPER
 
-        setStatusMessage(`${roleName} is drafting the logic...`);
+        setStatusMessage(`${role} is drafting the blueprint...`);
 
-        // Save spec choices
         const newContext = { ...contextData, specs };
         setContextData(newContext);
 
@@ -161,23 +161,10 @@ export const useHivemind = (initialKeys = {}) => {
         `;
 
         try {
-            // CALL ARCHITECT OR STYLIST
-            const data = await callAgent(agent,
-                "Generate the detailed plan based on these specs.",
-                contextString
-            );
+            const data = await callAgent(id, "Generate detailed plan based on these specs.", contextString);
             const rawMsg = data.swarm[0];
-
-            // CLEAN IT
             const cleanContent = cleanJson(rawMsg.content);
-
-            setHistory(prev => [...prev, {
-                ...rawMsg,
-                content: cleanContent,
-                text: cleanContent,
-                role: roleName,
-                type: 'blueprint'
-            }]);
+            setHistory(prev => [...prev, { ...rawMsg, content: cleanContent, text: cleanContent, role: role, type: 'blueprint' }]);
         } catch (e) { console.error(e); }
         finally { setLoading(false); }
     };

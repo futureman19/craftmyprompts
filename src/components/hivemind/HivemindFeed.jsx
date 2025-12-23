@@ -13,17 +13,20 @@ import DeploymentDeck from '../agent/DeploymentDeck.jsx'; // Phase 5 (Final)
 const HivemindFeed = ({ history, loading, statusMessage, actions, currentPhase, githubToken, mode = 'coding' }) => {
 
     // --- 1. FIND LATEST AGENT OUTPUTS (Dynamic based on Mode) ---
-    
-    // Phase 1: Strategy
-    const strategyRole = mode === 'art' ? 'The Muse' : 'The Visionary';
+    const getRoles = (m) => {
+        const roles = {
+            coding: { strategy: 'The Visionary', specs: 'The Tech Lead', build: 'The Architect' },
+            art: { strategy: 'The Muse', specs: 'The Cinematographer', build: 'The Stylist' },
+            text: { strategy: 'The Editor-in-Chief', specs: 'The Linguist', build: 'The Scribe' },
+            video: { strategy: 'The Producer', specs: 'The Director', build: 'The VFX Supervisor' }
+        };
+        return roles[m] || roles.coding;
+    };
+
+    const { strategy: strategyRole, specs: specsRole, build: buildRole } = getRoles(mode);
+
     const strategyMsg = history.findLast(m => m.role === strategyRole);
-
-    // Phase 2: Specs
-    const specsRole = mode === 'art' ? 'The Cinematographer' : 'The Tech Lead';
     const specsMsg = history.findLast(m => m.role === specsRole);
-
-    // Phase 3: Build
-    const buildRole = mode === 'art' ? 'The Stylist' : 'The Architect';
     const buildMsg = history.findLast(m => m.role === buildRole);
 
     // Phase 4 & 5: Audit & Executive (Shared Roles for now, or customize if needed)
@@ -69,9 +72,11 @@ const HivemindFeed = ({ history, loading, statusMessage, actions, currentPhase, 
         const data = parseAgentJson(buildMsg, buildRole);
 
         // --- ART MODE DIVERGENCE ---
-        if (mode === 'art') {
-             if (!data) return <div className="text-red-400 p-4">Waiting for {buildRole}...</div>;
-             return <StylistDeck data={data} onConfirm={actions.sendToAudit} />;
+        // --- CREATIVE MODES (Art, Text, Video) ---
+        // They all use the "Modules" schema, so they share the StylistDeck
+        if (mode === 'art' || mode === 'text' || mode === 'video') {
+            if (!data) return <div className="text-red-400 p-4">Waiting for {buildRole}...</div>;
+            return <StylistDeck data={data} onConfirm={actions.sendToAudit} />;
         }
 
         // --- CODING MODE (Default) ---
@@ -123,16 +128,16 @@ const HivemindFeed = ({ history, loading, statusMessage, actions, currentPhase, 
 
     // PHASE 5: LAUNCHPAD (Executive)
     const renderFinal = () => {
-        // For Art Mode, "Final" might just be the prompt string
-        // For now, we reuse the deployment deck or show a simple success message
-        if (mode === 'art') {
-             return (
-                 <div className="max-w-4xl mx-auto p-6 bg-slate-900 border border-fuchsia-500 rounded-xl text-center">
-                     <h2 className="text-2xl font-bold text-fuchsia-400 mb-2">Masterpiece Defined</h2>
-                     <p className="text-slate-400">Your prompt has been audited and finalized.</p>
-                     {/* We can add the prompt string display here later */}
-                 </div>
-             );
+        // Creative Modes: Show Success Message
+        if (mode === 'art' || mode === 'text' || mode === 'video') {
+            return (
+                <div className="max-w-4xl mx-auto p-6 bg-slate-900 border border-fuchsia-500 rounded-xl text-center">
+                    <h2 className="text-2xl font-bold text-fuchsia-400 mb-2">
+                        {mode === 'art' ? 'Masterpiece Defined' : (mode === 'text' ? 'Content Strategy Ready' : 'Production Bible Ready')}
+                    </h2>
+                    <p className="text-slate-400">Your plan has been audited and finalized.</p>
+                </div>
+            );
         }
 
         const projectData = parseAgentJson(executiveMsg, 'Executive');
@@ -147,9 +152,9 @@ const HivemindFeed = ({ history, loading, statusMessage, actions, currentPhase, 
         }
 
         return (
-            <DeploymentDeck 
-                projectData={projectData} 
-                githubToken={githubToken} 
+            <DeploymentDeck
+                projectData={projectData}
+                githubToken={githubToken}
                 onSaveToken={actions.saveGithubToken}
                 onDeploy={actions.deployToGithub}
             />

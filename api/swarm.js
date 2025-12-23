@@ -11,6 +11,17 @@ import { ART_DIRECTOR } from './_agents/art_director.js';
 import { MUSE_AGENT } from './_agents/art/muse.js';
 import { CINEMATOGRAPHER_AGENT } from './_agents/art/cinematographer.js';
 import { STYLIST_AGENT } from './_agents/art/stylist.js';
+import { EXECUTIVE_AGENT } from './_agents/executive.js';
+
+// TEXT AGENTS
+import { EDITOR_AGENT } from './_agents/text/editor.js';
+import { LINGUIST_AGENT } from './_agents/text/linguist.js';
+import { SCRIBE_AGENT } from './_agents/text/scribe.js';
+
+// VIDEO AGENTS
+import { PRODUCER_AGENT } from './_agents/video/producer.js';
+import { DIRECTOR_AGENT } from './_agents/video/director.js';
+import { VFX_AGENT } from './_agents/video/vfx.js';
 
 export const config = {
     maxDuration: 60,
@@ -116,7 +127,16 @@ export default async function handler(req, res) {
         // 1. TARGETED RUN (Specific Agent requested by Frontend)
         if (targetAgentId) {
             // Add MANAGER_AGENT to the roster
-            const allAgents = [VISIONARY, ARCHITECT, CRITIC, TECH_LEAD, MANAGER_AGENT, ART_DIRECTOR, MUSE_AGENT, CINEMATOGRAPHER_AGENT, STYLIST_AGENT];
+            const allAgents = [
+                // Coding
+                VISIONARY, TECH_LEAD, ARCHITECT, CRITIC, MANAGER_AGENT, EXECUTIVE_AGENT,
+                // Art
+                MUSE_AGENT, CINEMATOGRAPHER_AGENT, STYLIST_AGENT,
+                // Text
+                EDITOR_AGENT, LINGUIST_AGENT, SCRIBE_AGENT,
+                // Video
+                PRODUCER_AGENT, DIRECTOR_AGENT, VFX_AGENT
+            ];
             const targetAgent = allAgents.find(a => a.id === targetAgentId);
 
             if (!targetAgent) throw new Error(`Agent ID '${targetAgentId}' not found.`);
