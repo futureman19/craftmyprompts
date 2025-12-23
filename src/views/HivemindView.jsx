@@ -11,6 +11,17 @@ const HivemindView = ({ user, globalApiKey, globalOpenAIKey }) => {
     const navigate = useNavigate();
     const incomingPrompt = location.state?.prompt || '';
 
+    // Helper for Mode Labels
+    const getModeLabel = (m) => {
+        const labels = {
+            coding: 'Coding Squad',
+            art: 'Art Studio',
+            text: 'Editorial Room',
+            video: 'Production Set'
+        };
+        return labels[m] || 'Coding Squad';
+    };
+
     // 1. Initialize the DEDICATED Hivemind Brain
     const hivemind = useHivemind({
         openai: globalOpenAIKey,
@@ -60,7 +71,7 @@ const HivemindView = ({ user, globalApiKey, globalOpenAIKey }) => {
                             Hivemind Command Center
                         </h1>
                         <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">
-                            Operational Mode: Coding Squad
+                            Operational Mode: {getModeLabel(hivemind.mode)}
                         </p>
                     </div>
                 </div>
@@ -122,6 +133,38 @@ const HivemindView = ({ user, globalApiKey, globalOpenAIKey }) => {
                                 </div>
                                 <h3 className="text-2xl font-bold text-white mb-2">Art Director</h3>
                                 <p className="text-slate-400 text-sm">Craft ultra-photorealistic prompts. The Hivemind defines lighting, camera, and style.</p>
+                            </button>
+
+                            {/* TEXT MISSION */}
+                            <button
+                                onClick={() => {
+                                    const prompt = window.prompt("What content do you need to write?");
+                                    if (prompt) hivemind.startMission(prompt, 'text');
+                                }}
+                                className="group relative p-8 bg-slate-900 border border-emerald-500/30 rounded-2xl hover:border-emerald-500 transition-all hover:shadow-2xl hover:shadow-emerald-500/20 text-left overflow-hidden"
+                            >
+                                <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500 group-hover:h-2 transition-all" />
+                                <div className="mb-4 p-4 bg-emerald-500/10 rounded-full w-fit text-emerald-400 group-hover:scale-110 transition-transform">
+                                    <Edit3 size={32} />
+                                </div>
+                                <h3 className="text-2xl font-bold text-white mb-2">Editor-in-Chief</h3>
+                                <p className="text-slate-400 text-sm">Draft blogs, social threads, and copy. The Hivemind defines tone, voice, and structure.</p>
+                            </button>
+
+                            {/* VIDEO MISSION */}
+                            <button
+                                onClick={() => {
+                                    const prompt = window.prompt("What video idea do you have?");
+                                    if (prompt) hivemind.startMission(prompt, 'video');
+                                }}
+                                className="group relative p-8 bg-slate-900 border border-amber-500/30 rounded-2xl hover:border-amber-500 transition-all hover:shadow-2xl hover:shadow-amber-500/20 text-left overflow-hidden"
+                            >
+                                <div className="absolute top-0 left-0 w-full h-1 bg-amber-500 group-hover:h-2 transition-all" />
+                                <div className="mb-4 p-4 bg-amber-500/10 rounded-full w-fit text-amber-400 group-hover:scale-110 transition-transform">
+                                    <Zap size={32} />
+                                </div>
+                                <h3 className="text-2xl font-bold text-white mb-2">Video Producer</h3>
+                                <p className="text-slate-400 text-sm">Plan scripts and shot lists. The Hivemind directs camera angles, VFX, and pacing.</p>
                             </button>
                         </div>
                     </div>
