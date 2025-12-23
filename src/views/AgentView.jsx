@@ -7,8 +7,9 @@ import {
 import ChatInterface from '../components/ChatInterface.jsx';
 import MemoryManager from '../components/MemoryManager.jsx';
 
-// Import the Hivemind Squads
-import { TECH_SQUAD, CREATIVE_SQUAD, DATA_SQUAD } from '../lib/swarm-agents.js';
+// NOTE: swarm-agents.js was deleted, so we removed the import.
+// If you need to re-enable manual chatting with specific agents, 
+// we can re-define the roster locally later.
 
 const AgentView = ({ user, globalApiKey, orchestrator, onUpdateBuilder }) => {
     const location = useLocation();
@@ -18,14 +19,12 @@ const AgentView = ({ user, globalApiKey, orchestrator, onUpdateBuilder }) => {
     const [activeTab, setActiveTab] = useState('chat'); // Mobile: 'roster' | 'chat' | 'memory'
     const [activeAgent, setActiveAgent] = useState(null); // The selected persona
 
-
-
     // Group Squads for rendering
-    // SAFETY: Use empty array fallback if import is undefined to prevent crash
+    // Agents set to empty [] for now to prevent build errors
     const SQUADS = [
-        { id: 'tech', name: 'Tech Squad', icon: Code, color: 'text-emerald-500', bg: 'bg-emerald-100 dark:bg-emerald-900/30', agents: TECH_SQUAD || [] },
-        { id: 'creative', name: 'Creative Squad', icon: Feather, color: 'text-pink-500', bg: 'bg-pink-100 dark:bg-pink-900/30', agents: CREATIVE_SQUAD || [] },
-        { id: 'data', name: 'Data Squad', icon: BarChart, color: 'text-amber-500', bg: 'bg-amber-100 dark:bg-amber-900/30', agents: DATA_SQUAD || [] },
+        { id: 'tech', name: 'Tech Squad', icon: Code, color: 'text-emerald-500', bg: 'bg-emerald-100 dark:bg-emerald-900/30', agents: [] },
+        { id: 'creative', name: 'Creative Squad', icon: Feather, color: 'text-pink-500', bg: 'bg-pink-100 dark:bg-pink-900/30', agents: [] },
+        { id: 'data', name: 'Data Squad', icon: BarChart, color: 'text-amber-500', bg: 'bg-amber-100 dark:bg-amber-900/30', agents: [] },
     ];
 
     // Auth Guard
@@ -121,7 +120,7 @@ const AgentView = ({ user, globalApiKey, orchestrator, onUpdateBuilder }) => {
                                             </button>
                                         );
                                     }) : (
-                                        <div className="p-2 text-[10px] text-red-400">Error: Agents not loaded</div>
+                                        <div className="p-2 text-[10px] text-slate-400 italic pl-8">No agents available</div>
                                     )}
                                 </div>
                             </div>
