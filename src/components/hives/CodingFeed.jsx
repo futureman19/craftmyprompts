@@ -50,7 +50,6 @@ const CodingFeed = ({ history, loading, statusMessage, actions, currentPhase, gi
             if (strategyMsg) return <div className="text-red-100 p-6 border-2 border-red-500 rounded-lg bg-red-900/30 font-mono text-sm whitespace-pre-wrap shadow-lg"><div className="text-red-400 font-bold mb-2">🚨 {strategyRole} FAILED</div>{strategyMsg.text}</div>;
             return <div className="text-red-400 p-4 font-mono text-sm border border-red-900/50 rounded bg-red-900/10">Waiting for {strategyRole}...</div>;
         }
-        // Force Coding Mode
         return <VisionaryDeck data={data} mode="coding" onConfirm={actions.submitChoices} />;
     };
 
@@ -61,7 +60,6 @@ const CodingFeed = ({ history, loading, statusMessage, actions, currentPhase, gi
             if (specsMsg) return <div className="text-red-100 p-6 border-2 border-red-500 rounded-lg bg-red-900/30 font-mono text-sm whitespace-pre-wrap shadow-lg"><div className="text-red-400 font-bold mb-2">🚨 {specsRole} FAILED</div>{specsMsg.text}</div>;
             return <div className="text-red-400 p-4 font-mono text-sm border border-red-900/50 rounded bg-red-900/10">Waiting for {specsRole}...</div>;
         }
-        // Force Coding Mode
         return <SpecsDeck data={data} mode="coding" onConfirm={actions.submitSpecs} />;
     };
 
@@ -71,7 +69,6 @@ const CodingFeed = ({ history, loading, statusMessage, actions, currentPhase, gi
 
         if (!data) {
             if (buildMsg) return <div className="text-red-100 p-6 border-2 border-red-500 rounded-lg bg-red-900/30 font-mono text-sm whitespace-pre-wrap shadow-lg"><div className="text-red-400 font-bold mb-2">🚨 {buildRole} FAILED</div>{buildMsg.text}</div>;
-            // Don't default to StylistDeck. Coding uses ProjectBlueprint + FileDeck.
             return <div className="text-red-400 p-4 font-mono text-sm border border-red-900/50 rounded bg-red-900/10">Waiting for {buildRole}...</div>;
         }
 
@@ -122,6 +119,7 @@ const CodingFeed = ({ history, loading, statusMessage, actions, currentPhase, gi
                 )}
 
                 {/* 3. EXECUTIVE OVERRIDE BUTTON (The Fix) */}
+                {/* This button appears unconditionally, ensuring you are never stuck. */}
                 <div className="flex flex-col items-center justify-center pt-8 border-t border-cyan-900/30">
                     <p className="text-cyan-500/70 text-xs mb-3 uppercase tracking-widest font-bold">
                         Ready to Compile?
