@@ -7,7 +7,6 @@ import { ARCHITECT } from './_agents/architect.js';
 import { CRITIC } from './_agents/critic.js';
 import { TECH_LEAD } from './_agents/tech_lead.js';
 import { MANAGER_AGENT } from './_agents/manager.js';
-import { ART_DIRECTOR } from './_agents/art_director.js';
 import { MUSE_AGENT } from './_agents/art/muse.js';
 import { CINEMATOGRAPHER_AGENT } from './_agents/art/cinematographer.js';
 import { STYLIST_AGENT } from './_agents/art/stylist.js';
@@ -47,7 +46,9 @@ export default async function handler(req, res) {
 
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-    const { prompt, category, keys = {}, targetAgentId, context } = req.body;
+    // SAFETY: Ensure body exists and default keys if missing
+    const { prompt, category, keys: incomingKeys, targetAgentId, context } = req.body || {};
+    const keys = incomingKeys || {};
     const { openai: openAIKey, anthropic: anthropicKey, gemini: geminiKey, groq: groqKey } = keys;
 
     // --- AGENT RUNNER LOGIC ---
