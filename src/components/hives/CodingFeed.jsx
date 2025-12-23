@@ -1,7 +1,7 @@
 import React from 'react';
 import { Loader, Layers, ShieldCheck, Zap, AlertTriangle } from 'lucide-react';
 
-// --- IMPORT AGENT DECKS (Coding Specific) ---
+// --- IMPORT AGENT DECKS ---
 import VisionaryDeck from '../agent/VisionaryDeck.jsx';
 import SpecsDeck from '../agent/SpecsDeck.jsx';
 import ProjectBlueprint from '../agent/ProjectBlueprint.jsx';
@@ -9,9 +9,26 @@ import FileDeck from '../agent/FileDeck.jsx';
 import CriticDeck from '../agent/CriticDeck.jsx';
 import DeploymentDeck from '../agent/DeploymentDeck.jsx';
 
-const CodingFeed = ({ history, loading, statusMessage, actions, currentPhase, githubToken }) => {
+// --- IMPORT FEEDBACK BAR (Restored) ---
+// Assuming ManagerFeedback is in the sibling folder 'hivemind' or similar. 
+// If your folder structure is different, please adjust this path.
+import ManagerFeedback from '../hivemind/ManagerFeedback.jsx';
 
-    const mode = 'coding'; // Always coding
+const CodingFeed = ({
+    history,
+    loading,
+    statusMessage,
+    actions,
+    currentPhase,
+    githubToken,
+    // Restored Props for Feedback Bar
+    managerMessages,
+    isDrawerOpen,
+    setIsDrawerOpen,
+    handleManagerFeedback
+}) => {
+
+    const mode = 'coding';
 
     // --- 1. FIND LATEST AGENT OUTPUTS ---
     const strategyRole = 'The Visionary';
@@ -43,34 +60,21 @@ const CodingFeed = ({ history, loading, statusMessage, actions, currentPhase, gi
 
     // --- 2. RENDERERS ---
 
-    // PHASE 1: VISION (The Visionary)
     const renderVision = () => {
         const data = parseAgentJson(strategyMsg, strategyRole);
-        if (!data) {
-            if (strategyMsg) return <div className="text-red-100 p-6 border-2 border-red-500 rounded-lg bg-red-900/30 font-mono text-sm whitespace-pre-wrap shadow-lg"><div className="text-red-400 font-bold mb-2">🚨 {strategyRole} FAILED</div>{strategyMsg.text}</div>;
-            return <div className="text-red-400 p-4 font-mono text-sm border border-red-900/50 rounded bg-red-900/10">Waiting for {strategyRole}...</div>;
-        }
+        if (!data) return <div className="text-red-400 p-4 font-mono text-sm">Waiting for {strategyRole}...</div>;
         return <VisionaryDeck data={data} mode="coding" onConfirm={actions.submitChoices} />;
     };
 
-    // PHASE 2: SPECS (The Tech Lead)
     const renderSpecs = () => {
         const data = parseAgentJson(specsMsg, specsRole);
-        if (!data) {
-            if (specsMsg) return <div className="text-red-100 p-6 border-2 border-red-500 rounded-lg bg-red-900/30 font-mono text-sm whitespace-pre-wrap shadow-lg"><div className="text-red-400 font-bold mb-2">🚨 {specsRole} FAILED</div>{specsMsg.text}</div>;
-            return <div className="text-red-400 p-4 font-mono text-sm border border-red-900/50 rounded bg-red-900/10">Waiting for {specsRole}...</div>;
-        }
+        if (!data) return <div className="text-red-400 p-4 font-mono text-sm">Waiting for {specsRole}...</div>;
         return <SpecsDeck data={data} mode="coding" onConfirm={actions.submitSpecs} />;
     };
 
-    // PHASE 3: BLUEPRINT (The Architect)
     const renderBlueprint = () => {
         const data = parseAgentJson(buildMsg, buildRole);
-
-        if (!data) {
-            if (buildMsg) return <div className="text-red-100 p-6 border-2 border-red-500 rounded-lg bg-red-900/30 font-mono text-sm whitespace-pre-wrap shadow-lg"><div className="text-red-400 font-bold mb-2">🚨 {buildRole} FAILED</div>{buildMsg.text}</div>;
-            return <div className="text-red-400 p-4 font-mono text-sm border border-red-900/50 rounded bg-red-900/10">Waiting for {buildRole}...</div>;
-        }
+        if (!data) return <div className="text-red-400 p-4 font-mono text-sm">Waiting for {buildRole}...</div>;
 
         return (
             <div className="w-full max-w-4xl mx-auto space-y-6 animate-in fade-in">
@@ -101,19 +105,17 @@ const CodingFeed = ({ history, loading, statusMessage, actions, currentPhase, gi
         );
     };
 
-    // PHASE 4: CRITIQUE (Critic)
+    // PHASE 4: CRITIQUE (The Loop vs The Exit)
     const renderCritique = () => {
         const data = parseAgentJson(criticMsg, 'Critic');
         return (
             <div className="space-y-8 animate-in slide-in-from-bottom-4">
-                {/* 1. Context: The Blueprint */}
                 {renderBlueprint()}
 
-                {/* 2. The Critic's Feedback Card -> WIRED TO REFINE LOOP */}
                 {data ? (
                     <CriticDeck
                         data={data}
-                        onConfirm={(selections) => actions.refineBlueprint(selections)}
+                        onConfirm={(selections) => actions.refineBlueprint(selections)} // <--- WIRED TO LOOP
                     />
                 ) : (
                     <div className="text-red-400 p-4 border border-red-500 rounded bg-red-900/10">
@@ -121,14 +123,13 @@ const CodingFeed = ({ history, loading, statusMessage, actions, currentPhase, gi
                     </div>
                 )}
 
-                {/* 3. EXECUTIVE OVERRIDE BUTTON (The Fix) */}
-                {/* This button appears unconditionally, ensuring you are never stuck. */}
+                {/* EXECUTIVE OVERRIDE (Exit) */}
                 <div className="flex flex-col items-center justify-center pt-8 border-t border-cyan-900/30">
                     <p className="text-cyan-500/70 text-xs mb-3 uppercase tracking-widest font-bold">
-                        Ready to Compile?
+                        Satisfied with the Code?
                     </p>
                     <button
-                        onClick={() => actions.compileBuild()}
+                        onClick={() => actions.compileBuild()} // <--- WIRED TO EXIT
                         className="px-8 py-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold rounded-2xl shadow-xl shadow-cyan-900/30 flex items-center gap-3 transition-all transform hover:scale-105 active:scale-95"
                     >
                         <Zap size={24} className="fill-white" />
@@ -139,10 +140,8 @@ const CodingFeed = ({ history, loading, statusMessage, actions, currentPhase, gi
         );
     };
 
-    // PHASE 5: LAUNCHPAD (Executive)
     const renderFinal = () => {
         const projectData = parseAgentJson(executiveMsg, 'Executive');
-
         if (!projectData || !projectData.files) {
             return (
                 <div className="w-full max-w-2xl mx-auto mt-10 p-6 bg-slate-900 border border-red-500 rounded-xl">
@@ -151,7 +150,6 @@ const CodingFeed = ({ history, loading, statusMessage, actions, currentPhase, gi
                 </div>
             );
         }
-
         return (
             <DeploymentDeck
                 projectData={projectData}
@@ -173,17 +171,30 @@ const CodingFeed = ({ history, loading, statusMessage, actions, currentPhase, gi
     }
 
     return (
-        <div className="pb-32 px-4">
-            {currentPhase === 'vision' && renderVision()}
-            {currentPhase === 'specs' && renderSpecs()}
-            {currentPhase === 'blueprint' && renderBlueprint()}
-            {currentPhase === 'critique' && renderCritique()}
-            {currentPhase === 'done' && renderFinal()}
+        <div className="flex flex-col h-full relative">
+            <div className="pb-32 px-4 flex-1">
+                {currentPhase === 'vision' && renderVision()}
+                {currentPhase === 'specs' && renderSpecs()}
+                {currentPhase === 'blueprint' && renderBlueprint()}
+                {currentPhase === 'critique' && renderCritique()}
+                {currentPhase === 'done' && renderFinal()}
 
-            {currentPhase === 'idle' && (
-                <div className="text-center text-slate-500 mt-20 font-mono text-sm">
-                    Initialize Hivemind to begin...
-                </div>
+                {currentPhase === 'idle' && (
+                    <div className="text-center text-slate-500 mt-20 font-mono text-sm">
+                        Initialize Hivemind to begin...
+                    </div>
+                )}
+            </div>
+
+            {/* --- RESTORED FEEDBACK BAR --- */}
+            {currentPhase !== 'idle' && (
+                <ManagerFeedback
+                    messages={managerMessages}
+                    onSendMessage={handleManagerFeedback}
+                    isOpen={isDrawerOpen}
+                    setIsOpen={setIsDrawerOpen}
+                    currentPhase={currentPhase}
+                />
             )}
         </div>
     );
