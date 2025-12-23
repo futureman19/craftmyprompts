@@ -1,5 +1,5 @@
 import React from 'react';
-import { Loader, Layers, ShieldCheck, Zap, Package, AlertTriangle } from 'lucide-react';
+import { Loader, Layers, ShieldCheck, Zap, Package, AlertTriangle, Copy, Check } from 'lucide-react';
 
 // --- IMPORT ALL AGENT DECKS ---
 import VisionaryDeck from '../agent/VisionaryDeck.jsx';
@@ -9,6 +9,8 @@ import FileDeck from '../agent/FileDeck.jsx';         // Phase 3 (Files)
 import StylistDeck from '../agent/StylistDeck.jsx';   // Phase 3 (Art)
 import CriticDeck from '../agent/CriticDeck.jsx';     // Phase 4
 import DeploymentDeck from '../agent/DeploymentDeck.jsx'; // Phase 5 (Final)
+
+import { generateFinalOutput } from '../../utils/formatters.js';
 
 const HivemindFeed = ({ history, loading, statusMessage, actions, currentPhase, githubToken, mode = 'coding' }) => {
 
@@ -130,12 +132,34 @@ const HivemindFeed = ({ history, loading, statusMessage, actions, currentPhase, 
     const renderFinal = () => {
         // Creative Modes: Show Success Message
         if (mode === 'art' || mode === 'text' || mode === 'video') {
+            const finalOutput = generateFinalOutput(mode, history);
+
             return (
-                <div className="max-w-4xl mx-auto p-6 bg-slate-900 border border-fuchsia-500 rounded-xl text-center">
-                    <h2 className="text-2xl font-bold text-fuchsia-400 mb-2">
-                        {mode === 'art' ? 'Masterpiece Defined' : (mode === 'text' ? 'Content Strategy Ready' : 'Production Bible Ready')}
-                    </h2>
-                    <p className="text-slate-400">Your plan has been audited and finalized.</p>
+                <div className="max-w-4xl mx-auto space-y-4 animate-in slide-in-from-bottom-4">
+
+                    <div className="p-6 bg-slate-900 border border-fuchsia-500 rounded-xl text-center">
+                        <h2 className="text-2xl font-bold text-fuchsia-400 mb-2">
+                            {mode === 'art' ? 'Masterpiece Defined' : (mode === 'text' ? 'Content Strategy Ready' : 'Production Bible Ready')}
+                        </h2>
+                        <p className="text-slate-400">Your plan has been audited and finalized.</p>
+                    </div>
+
+                    {/* OUTPUT CARD */}
+                    <div className="bg-black/40 border border-slate-800 rounded-xl p-6 relative group">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="text-xs font-bold text-slate-500 uppercase">Final Output Manifest</div>
+                            <button
+                                onClick={() => navigator.clipboard.writeText(finalOutput)}
+                                className="text-xs flex items-center gap-1 text-fuchsia-400 hover:text-fuchsia-300 transition-colors"
+                            >
+                                <Copy size={12} /> Copy All
+                            </button>
+                        </div>
+
+                        <pre className="font-mono text-sm text-slate-300 whitespace-pre-wrap bg-slate-950/50 p-4 rounded-lg border border-slate-800/50">
+                            {finalOutput}
+                        </pre>
+                    </div>
                 </div>
             );
         }
