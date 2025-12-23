@@ -1,23 +1,22 @@
 import { checkRateLimit } from './_utils/rate-limiter.js';
-import { getProviderGuide } from './_utils/doc-reader.js';
 
-// IMPORT AGENTS
+// --- AGENT IMPORTS ---
+// We import these safely. If a file is missing/broken during dev, we catch it later.
 import { VISIONARY } from './_agents/visionary.js';
 import { ARCHITECT } from './_agents/architect.js';
 import { CRITIC } from './_agents/critic.js';
 import { TECH_LEAD } from './_agents/tech_lead.js';
 import { MANAGER_AGENT } from './_agents/manager.js';
+import { EXECUTIVE_AGENT } from './_agents/executive.js';
+
 import { MUSE_AGENT } from './_agents/art/muse.js';
 import { CINEMATOGRAPHER_AGENT } from './_agents/art/cinematographer.js';
 import { STYLIST_AGENT } from './_agents/art/stylist.js';
-import { EXECUTIVE_AGENT } from './_agents/executive.js';
 
-// TEXT AGENTS
 import { EDITOR_AGENT } from './_agents/text/editor.js';
 import { LINGUIST_AGENT } from './_agents/text/linguist.js';
 import { SCRIBE_AGENT } from './_agents/text/scribe.js';
 
-// VIDEO AGENTS
 import { PRODUCER_AGENT } from './_agents/video/producer.js';
 import { DIRECTOR_AGENT } from './_agents/video/director.js';
 import { VFX_AGENT } from './_agents/video/vfx.js';
@@ -34,29 +33,55 @@ const MODELS = {
     groq: 'llama-3.1-8b-instant'
 };
 
-// --- SQUAD MAPPING ---
-const AGENT_SQUADS = {
-    code: [VISIONARY, ARCHITECT, CRITIC],
-    default: [VISIONARY, ARCHITECT, CRITIC]
-};
-
 export default async function handler(req, res) {
+    // 1. Rate Limit Check
     const limitStatus = checkRateLimit(req);
     if (!limitStatus.success) return res.status(429).json({ error: limitStatus.error });
 
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-    // SAFETY: Ensure body exists and default keys if missing
-    const { prompt, category, keys: incomingKeys, targetAgentId, context } = req.body || {};
-    const keys = incomingKeys || {};
-    const { openai: openAIKey, anthropic: anthropicKey, gemini: geminiKey, groq: groqKey } = keys;
+    try {
+        const { prompt, category, keys = {}, targetAgentId, context } = req.body;
+        const { openai: openAIKey, anthropic: anthropicKey, gemini: geminiKey, groq: groqKey } = keys;
 
-    // --- AGENT RUNNER LOGIC ---
-    // --- AGENT RUNNER LOGIC ---
-    const runAgent = async (agent, inputContext = "") => {
-        try {
-            // 1. DETERMINE EFFECTIVE PROVIDER
-            // Priority: Agent's Choice (if key exists) -> OpenAI (if key exists) -> Gemini (if key exists)
+        // 2. DEFINE SQUADS (Mapping Categories to Start Agents)
+        // This ensures 'text' mode wakes up the Editor, not the Visionary.
+        const SQUADS = {
+            coding: VISIONARY,
+            art: MUSE_AGENT,
+            text: EDITOR_AGENT,
+            video: PRODUCER_AGENT
+        };
+
+        // 3. DEFINE ROSTER (All Agents for Lookup)
+        const ROSTER = [
+            VISIONARY, ARCHITECT, CRITIC, TECH_LEAD, MANAGER_AGENT, EXECUTIVE_AGENT,
+            MUSE_AGENT, CINEMATOGRAPHER_AGENT, STYLIST_AGENT,
+            EDITOR_AGENT, LINGUIST_AGENT, SCRIBE_AGENT,
+            PRODUCER_AGENT, DIRECTOR_AGENT, VFX_AGENT
+        ].filter(Boolean); // Safety filter for broken imports
+
+        // 4. DETERMINE TARGET AGENT
+        let agentToRun = null;
+
+        if (targetAgentId) {
+            // Case A: Specific Agent Requested (e.g. Phase 2/3)
+            agentToRun = ROSTER.find(a => a.id === targetAgentId);
+            if (!agentToRun) throw new Error(`Agent '${targetAgentId}' not found in roster.`);
+        } else if (req.body.mode === 'synthesize') {
+            // Case B: Manager Synthesis
+            agentToRun = MANAGER_AGENT;
+        } else {
+            // Case C: Start of Mission (Use Category)
+            // Default to 'coding' (Visionary) if category is unknown
+            agentToRun = SQUADS[category] || SQUADS.coding;
+        }
+
+        if (!agentToRun) throw new Error("Could not determine which agent to run.");
+
+        // 5. RUN AGENT LOGIC (With Smart Fallback)
+        const runAgent = async (agent, inputContext = "") => {
+            // Provider Fallback Logic
             let provider = agent.provider;
             let apiKey = keys[provider];
 
@@ -64,26 +89,21 @@ export default async function handler(req, res) {
                 if (openAIKey) { provider = 'openai'; apiKey = openAIKey; }
                 else if (geminiKey) { provider = 'gemini'; apiKey = geminiKey; }
                 else if (groqKey) { provider = 'groq'; apiKey = groqKey; }
-                else if (anthropicKey) { provider = 'anthropic'; apiKey = anthropicKey; }
-                else { throw new Error("No valid API Key found for any provider."); }
+                else { throw new Error(`No API Key found. (Agent wanted ${agent.provider})`); }
             }
 
             const strictModel = MODELS[provider] || MODELS.gemini;
-
             const fullSystemPrompt = inputContext
                 ? `${agent.systemPrompt}\n\n### PREVIOUS CONTEXT:\n${inputContext}`
                 : agent.systemPrompt;
 
             let content = "";
 
-            // --- OPENAI HANDLER ---
+            // Call Provider API
             if (provider === 'openai') {
                 const body = {
                     model: strictModel,
-                    messages: [
-                        { role: "system", content: fullSystemPrompt },
-                        { role: "user", content: prompt }
-                    ],
+                    messages: [{ role: "system", content: fullSystemPrompt }, { role: "user", content: prompt }],
                     temperature: 0.7
                 };
                 if (agent.responseType === 'json') body.response_format = { type: "json_object" };
@@ -97,7 +117,6 @@ export default async function handler(req, res) {
                 if (!r.ok) throw new Error(d.error?.message || "OpenAI Error");
                 content = d.choices[0].message.content;
             }
-            // --- GEMINI HANDLER ---
             else if (provider === 'gemini') {
                 const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${strictModel}:generateContent?key=${apiKey}`, {
                     method: 'POST',
@@ -108,15 +127,10 @@ export default async function handler(req, res) {
                 if (!r.ok) throw new Error(d.error?.message || "Gemini Error");
                 content = d.candidates?.[0]?.content?.parts?.[0]?.text;
             }
-            // --- GROQ HANDLER (Add if needed, or fallback to Gemini logic if similar) ---
             else if (provider === 'groq') {
-                // Reuse OpenAI-compatible endpoint structure usually supported by Groq
                 const body = {
                     model: strictModel,
-                    messages: [
-                        { role: "system", content: fullSystemPrompt },
-                        { role: "user", content: prompt }
-                    ]
+                    messages: [{ role: "system", content: fullSystemPrompt }, { role: "user", content: prompt }]
                 };
                 if (agent.responseType === 'json') body.response_format = { type: "json_object" };
 
@@ -130,10 +144,8 @@ export default async function handler(req, res) {
                 content = d.choices[0].message.content;
             }
 
-            // CLEANUP: Ensure no markdown fences (Second layer of defense)
-            if (content) {
-                content = content.replace(/```json/g, '').replace(/```/g, '').trim();
-            }
+            // Cleanup
+            if (content) content = content.replace(/```json/g, '').replace(/```/g, '').trim();
 
             return {
                 id: agent.id,
@@ -142,69 +154,14 @@ export default async function handler(req, res) {
                 content: content,
                 meta: { model: strictModel, provider: provider, status: 'success' }
             };
+        };
 
-        } catch (error) {
-            console.error(`Agent Failed (${agent.name}):`, error.message);
-            return {
-                id: agent.id,
-                name: agent.name,
-                role: agent.role,
-                content: `⚠️ Agent Offline: ${error.message}`, // This text causes the JSON parse error in UI
-                error: true,
-                meta: { status: 'failed' }
-            };
-        }
-    };
-
-    try {
-        let results = [];
-
-        // 1. TARGETED RUN (Specific Agent requested by Frontend)
-        // 1. TARGETED RUN (Specific Agent requested by Frontend)
-        if (targetAgentId) {
-            // Add MANAGER_AGENT to the roster
-            // SAFETY: Filter out any undefined agents (prevents crashes if an import fails)
-            const allAgents = [
-                // Coding
-                VISIONARY, TECH_LEAD, ARCHITECT, CRITIC, MANAGER_AGENT, EXECUTIVE_AGENT,
-                // Art
-                MUSE_AGENT, CINEMATOGRAPHER_AGENT, STYLIST_AGENT,
-                // Text
-                EDITOR_AGENT, LINGUIST_AGENT, SCRIBE_AGENT,
-                // Video
-                PRODUCER_AGENT, DIRECTOR_AGENT, VFX_AGENT
-            ].filter(Boolean); // <--- CRITICAL FIX: Removes undefined entries
-
-            const targetAgent = allAgents.find(a => a.id === targetAgentId);
-
-            if (!targetAgent) {
-                // Return a clear 404 instead of crashing
-                return res.status(404).json({ error: `Agent ID '${targetAgentId}' not found in roster.` });
-            }
-
-            const result = await runAgent(targetAgent, context);
-            results.push(result);
-        }
-        // 2. SYNTHESIS RUN (Manager)
-        else if (req.body.mode === 'synthesize') {
-            const execResult = await runAgent(MANAGER_AGENT, context);
-            results = [execResult];
-        }
-        // 3. BROADCAST RUN (Default / Fallback)
-        else {
-            // Default to Visionary if no target specified (Start of flow)
-            const res = await runAgent(VISIONARY, context);
-            results.push(res);
-        }
-
-        return res.status(200).json({ swarm: results, timestamp: new Date().toISOString() });
+        // Execute
+        const result = await runAgent(agentToRun, context);
+        return res.status(200).json({ swarm: [result], timestamp: new Date().toISOString() });
 
     } catch (globalError) {
         console.error("Swarm Fatal Error:", globalError);
-        // RETURN REAL ERROR MESSAGE FOR DEBUGGING
-        return res.status(500).json({
-            error: `Hivemind Crash: ${globalError.message}`,
-            details: globalError.toString()
-        });
+        return res.status(500).json({ error: `Hivemind Crash: ${globalError.message}`, details: globalError.toString() });
     }
 }
