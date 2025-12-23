@@ -34,6 +34,7 @@ const CodingEngine = ({ prompt, apiKey }) => {
                 submitSpecs: hive.submitSpecs,
                 sendToAudit: hive.sendToAudit,
                 compileBuild: hive.compileBuild,
+                refineBlueprint: hive.refineBlueprint,
                 saveGithubToken: hive.saveGithubToken,
                 deployToGithub: hive.deployToGithub
             }}

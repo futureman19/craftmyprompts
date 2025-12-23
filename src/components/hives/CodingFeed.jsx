@@ -109,9 +109,12 @@ const CodingFeed = ({ history, loading, statusMessage, actions, currentPhase, gi
                 {/* 1. Context: The Blueprint */}
                 {renderBlueprint()}
 
-                {/* 2. The Critic's Feedback Card */}
+                {/* 2. The Critic's Feedback Card -> WIRED TO REFINE LOOP */}
                 {data ? (
-                    <CriticDeck data={data} onConfirm={(selections) => actions.compileBuild(selections)} />
+                    <CriticDeck
+                        data={data}
+                        onConfirm={(selections) => actions.refineBlueprint(selections)}
+                    />
                 ) : (
                     <div className="text-red-400 p-4 border border-red-500 rounded bg-red-900/10">
                         Critic Output Invalid.

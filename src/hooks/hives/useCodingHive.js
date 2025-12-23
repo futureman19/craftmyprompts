@@ -211,6 +211,45 @@ export const useCodingHive = (initialKeys = {}) => {
         }
     };
 
+    // --- ACTION: REFINE (Loop back to Architect) ---
+    const refineBlueprint = async (critiqueSelections) => {
+        setLoading(true);
+        // 1. Set phase back to Blueprint so we can see the changes happening
+        setCurrentPhase('blueprint');
+        setStatusMessage('The Architect is refining the code based on your feedback...');
+
+        // 2. Prepare Context
+        const feedbackList = Object.entries(critiqueSelections)
+            .map(([cat, val]) => `- ${cat}: ${val}`)
+            .join('\n');
+
+        const contextString = `
+        CRITICAL FEEDBACK FROM USER:
+        ${feedbackList}
+        
+        TASK: Refine the previous blueprint to address these issues. 
+        Return the fully updated structure and modules.
+        `;
+
+        const role = 'The Architect';
+        const id = 'architect';
+
+        try {
+            // 3. Call Architect (Not Executive)
+            const data = await callAgent(id, "Refine the blueprint based on this critique.", contextString);
+            const rawMsg = data.swarm[0];
+            const cleanContent = cleanJson(rawMsg.content);
+
+            // 4. Add new Blueprint to history (This pushes the new code to the top of the stack)
+            setHistory(prev => [...prev, { ...rawMsg, content: cleanContent, text: cleanContent, role: role, type: 'blueprint' }]);
+        } catch (e) {
+            console.error(e);
+            setStatusMessage("Refinement Failed: " + e.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     // --- ACTION: DEPLOY (GitHub) ---
     const deployToGithub = async (type, projectData) => {
         if (!githubToken) throw new Error("No GitHub Token provided.");
@@ -280,6 +319,7 @@ export const useCodingHive = (initialKeys = {}) => {
         isDrawerOpen,
         setIsDrawerOpen,
         handleManagerFeedback,
+        refineBlueprint,
         mode
     };
 };
