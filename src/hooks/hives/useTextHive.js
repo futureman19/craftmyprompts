@@ -153,22 +153,18 @@ export const useTextHive = (initialKeys = {}) => {
         setLoading(true);
         setStatusMessage('Finalizing content...');
 
-        // 1. Create a "Final" history artifact
-        // This ensures the Feed has a definite 'stop' point to render the final card.
         const finalEntry = {
             role: 'The Publisher',
-            content: 'Content finalized and ready for distribution.',
+            content: 'Content finalized.',
             text: 'Content finalized.',
             type: 'final',
             timestamp: Date.now()
         };
 
-        // 2. Update State with delay for UX
-        setTimeout(() => {
-            setHistory(prev => [...prev, finalEntry]);
-            setCurrentPhase('done');
-            setLoading(false);
-        }, 800);
+        // NO TIMEOUT. Update History AND Phase in the same cycle.
+        setHistory(prev => [...prev, finalEntry]);
+        setCurrentPhase('done');
+        setLoading(false);
     };
 
     // --- SWARM OPS: MANAGER FEEDBACK ---
