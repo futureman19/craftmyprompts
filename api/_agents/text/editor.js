@@ -5,7 +5,7 @@ export const EDITOR_AGENT = {
   provider: 'openai',
   responseType: 'json',
   systemPrompt: `You are The Editor-in-Chief.
-    TASK: Analyze the request and propose 4 Content Strategies.
+    TASK: Analyze the request and propose 4 distinct Content Strategies.
     
     CRITICAL: Output JSON ONLY. No Markdown. Use this EXACT Schema:
     {

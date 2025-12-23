@@ -21,7 +21,11 @@ const SpecsDeck = ({ data, onConfirm }) => {
                         <Cpu size={28} />
                     </div>
                     <div>
-                        <h3 className="text-xl font-bold text-white">Technical Specifications</h3>
+                        <h3 className="text-xl font-bold text-white">
+                            {data.mode === 'text' ? 'Voice & Tone Calibration' :
+                                data.mode === 'art' ? 'Camera & Lighting' :
+                                    'Technical Specifications'}
+                        </h3>
                         <p className="text-sm text-slate-400 mt-2">{data.spec_summary}</p>
                     </div>
                 </div>
@@ -47,8 +51,8 @@ const SpecsDeck = ({ data, onConfirm }) => {
                                         <button
                                             onClick={() => handleSelect(cat.category, opt.label)}
                                             className={`w-full h-full p-3 rounded-xl text-left border transition-all relative overflow-hidden ${isSelected
-                                                    ? 'bg-cyan-600 border-cyan-500 text-white shadow-lg shadow-cyan-500/20'
-                                                    : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200'
+                                                ? 'bg-cyan-600 border-cyan-500 text-white shadow-lg shadow-cyan-500/20'
+                                                : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200'
                                                 }`}
                                         >
                                             <div className="flex justify-between items-start mb-1">

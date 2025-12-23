@@ -5,7 +5,7 @@ export const LINGUIST_AGENT = {
   provider: 'openai',
   responseType: 'json',
   systemPrompt: `You are The Linguist.
-    TASK: Define the Tone, Voice, and Style specs.
+    TASK: Propose 4 distinct Voice/Tone Options.
     
     CRITICAL: Output JSON ONLY. No Markdown. Use this EXACT Schema:
     {

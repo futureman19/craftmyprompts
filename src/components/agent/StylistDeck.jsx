@@ -4,6 +4,13 @@ import { Palette, CheckCircle, Star, Shirt } from 'lucide-react';
 const StylistDeck = ({ data, onConfirm }) => {
     const [selections, setSelections] = useState({});
 
+    const getTitle = (mode) => {
+        if (mode === 'text') return "Content Outline";
+        if (mode === 'video') return "Production Board";
+        if (mode === 'coding') return "File Architecture";
+        return "Set & Wardrobe"; // Default (Art)
+    };
+
     // The Stylist returns 'modules' as its main content array
     if (!data || !data.modules) return null;
 
@@ -22,7 +29,7 @@ const StylistDeck = ({ data, onConfirm }) => {
                         <Shirt size={28} />
                     </div>
                     <div>
-                        <h3 className="text-xl font-bold text-white">Set & Wardrobe</h3>
+                        <h3 className="text-xl font-bold text-white">{getTitle(data.mode || 'art')}</h3>
                         <p className="text-sm text-slate-400 mt-2">{data.blueprint_summary}</p>
                     </div>
                 </div>
@@ -54,8 +61,8 @@ const StylistDeck = ({ data, onConfirm }) => {
                                         <button
                                             onClick={() => handleSelect(cat.category, label)}
                                             className={`w-full h-full p-3 rounded-xl text-left border transition-all relative overflow-hidden flex flex-col justify-between min-h-[80px] ${isSelected
-                                                    ? 'bg-fuchsia-600 border-fuchsia-500 text-white shadow-lg shadow-fuchsia-500/20'
-                                                    : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200'
+                                                ? 'bg-fuchsia-600 border-fuchsia-500 text-white shadow-lg shadow-fuchsia-500/20'
+                                                : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200'
                                                 }`}
                                         >
                                             <div className="flex justify-between items-start w-full mb-1">

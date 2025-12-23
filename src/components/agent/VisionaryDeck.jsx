@@ -21,7 +21,11 @@ const VisionaryDeck = ({ data, onConfirm }) => {
                         <Lightbulb size={28} />
                     </div>
                     <div>
-                        <h3 className="text-xl font-bold text-white">Strategy Deck</h3>
+                        <h3 className="text-xl font-bold text-white">
+                            {data.mode === 'text' ? 'Editorial Board' :
+                                data.mode === 'art' ? 'Creative Brief' :
+                                    'Mission Strategy'}
+                        </h3>
                         <p className="text-sm text-slate-400 mt-2">{data.strategy_summary}</p>
                     </div>
                 </div>
@@ -55,8 +59,8 @@ const VisionaryDeck = ({ data, onConfirm }) => {
                                         <button
                                             onClick={() => handleSelect(cat.category, label)}
                                             className={`w-full h-full p-3 rounded-xl text-left border transition-all relative overflow-hidden flex flex-col justify-between min-h-[80px] ${isSelected
-                                                    ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-900/20'
-                                                    : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200'
+                                                ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-900/20'
+                                                : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200'
                                                 }`}
                                         >
                                             <div className="flex justify-between items-start w-full mb-1">

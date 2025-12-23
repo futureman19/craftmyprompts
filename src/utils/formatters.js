@@ -1,41 +1,48 @@
 import { flattenPrompt } from './promptEngine.js'; // Reuse existing Art engine
 
 export const generateFinalOutput = (mode, history) => {
-    // 1. Find the final "Build" message based on mode
-    const roles = {
-        art: 'The Stylist',
-        text: 'The Scribe',
-        video: 'The VFX Supervisor'
+    // 1. EXTRACT DECISIONS (Parse JSON from content strings)
+    const parseContent = (msg) => {
+        if (!msg || !msg.content) return null;
+        try {
+            return typeof msg.content === 'string' ? JSON.parse(msg.content) : msg.content;
+        } catch (e) {
+            return null;
+        }
     };
 
-    const role = roles[mode];
-    const msg = history.findLast(m => m.role === role);
+    const strategy = parseContent(history.find(m => m.type === 'vision_options' || m.type === 'visionary_options'));
+    const specs = parseContent(history.find(m => m.type === 'spec_options'));
+    const draft = parseContent(history.find(m => m.type === 'blueprint'));
+    const critique = parseContent(history.find(m => m.type === 'critique'));
 
-    if (!msg) return "Error: Could not retrieve final data.";
+    // 2. TEXT MODE GENERATOR
+    if (mode === 'text') {
+        const headline = draft?.modules?.find(m => m.id === 'headline' || m.label === 'Headline')?.value || "Pending Title";
+        const body = draft?.modules?.find(m => m.id === 'body' || m.label === 'Key Points')?.value || "Pending Content";
 
-    // 2. Parse the JSON
-    let data;
-    try {
-        const raw = typeof msg.text === 'string' ? msg.text : JSON.stringify(msg.text);
-        const start = raw.indexOf('{');
-        const end = raw.lastIndexOf('}');
-        data = JSON.parse(raw.substring(start, end + 1));
-    } catch (e) { return "Error: Data corruption."; }
+        return `
+# ${headline}
 
-    // 3. Format based on Mode
-    if (mode === 'art') {
-        // We might need to merge previous steps for Art, 
-        // but for now, let's assume the Stylist output contains the structure 
-        // OR we just format the modules nicely.
-        // Ideally, we'd grab the Muse/Cine data too, but let's start by listing the choices.
-        return formatModules(data.modules);
+## Strategy
+* **Format:** ${strategy?.selected_option || 'N/A'}
+* **Audience:** ${strategy?.target_audience || 'General'}
+* **Tone:** ${specs?.selected_tone || 'Neutral'}
+
+## Content Draft
+${body}
+
+## Critique Notes
+${critique?.risks?.map(r => `- [${r.severity}] ${r.message}`).join('\n') || 'No major risks found.'}
+        `.trim();
     }
 
-    if (mode === 'text' || mode === 'video') {
-        return formatModules(data.modules);
+    // 3. ART/VIDEO MODE (Keep existing logic or add placeholders)
+    if (mode === 'art' || mode === 'video') {
+        return JSON.stringify({ strategy, specs, draft }, null, 2);
     }
 
-    return "Process Complete.";
+    return "Output Generation Pending for this mode.";
 };
 
 // Helper to turn the "Modules" array into a string
