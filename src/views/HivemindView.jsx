@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Users, Zap, Edit3, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Users, Zap, Edit3, MessageSquare, Code2, Palette } from 'lucide-react';
 import { useHivemind } from '../hooks/useHivemind.js'; // <--- IMPORTING THE NEW BRAIN
 import ApiKeyHelpModal from '../components/test-runner/ApiKeyHelpModal.jsx';
 import HivemindFeed from '../components/hivemind/HivemindFeed.jsx';
@@ -78,33 +78,74 @@ const HivemindView = ({ user, globalApiKey, globalOpenAIKey }) => {
 
             {/* --- MAIN FEED (The Storyline) --- */}
             <div className="flex-1 overflow-y-auto p-8 relative">
-                <div className="max-w-4xl mx-auto space-y-8 pb-32">
+                {hivemind.currentPhase === 'idle' ? (
+                    <div className="flex flex-col items-center justify-center min-h-[60vh] animate-in fade-in zoom-in-95">
+                        <h1 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400 mb-8 text-center">
+                            Select Your Mission
+                        </h1>
 
-                    {/* Mission Card */}
-                    <div className="p-6 bg-slate-900 rounded-2xl border border-slate-800 shadow-xl">
-                        <h3 className="text-xs font-bold text-slate-500 uppercase mb-2">Current Mission</h3>
-                        <p className="text-lg text-slate-100 font-medium italic">"{incomingPrompt}"</p>
-                    </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl px-4">
+                            {/* CODING MISSION */}
+                            <button
+                                onClick={() => {
+                                    const prompt = window.prompt("What app would you like to build?");
+                                    if (prompt) hivemind.startMission(prompt, 'coding');
+                                }}
+                                className="group relative p-8 bg-slate-900 border border-indigo-500/30 rounded-2xl hover:border-indigo-500 transition-all hover:shadow-2xl hover:shadow-indigo-500/20 text-left overflow-hidden"
+                            >
+                                <div className="absolute top-0 left-0 w-full h-1 bg-indigo-500 group-hover:h-2 transition-all" />
+                                <div className="mb-4 p-4 bg-indigo-500/10 rounded-full w-fit text-indigo-400 group-hover:scale-110 transition-transform">
+                                    <Code2 size={32} />
+                                </div>
+                                <h3 className="text-2xl font-bold text-white mb-2">Software Engineer</h3>
+                                <p className="text-slate-400 text-sm">Build React apps, tools, and utilities. The Hivemind generates full file structures and code.</p>
+                            </button>
 
-                    {/* MAIN CONTENT AREA */}
-                    <div className="relative">
-                        <HivemindFeed
-                            history={hivemind.history}
-                            loading={hivemind.loading}
-                            statusMessage={hivemind.statusMessage}
-                            currentPhase={hivemind.currentPhase} // Pass phase!
-                            githubToken={hivemind.githubToken} // <--- PASS TOKEN
-                            actions={{
-                                submitChoices: hivemind.submitChoices,
-                                submitSpecs: hivemind.submitSpecs,
-                                sendToAudit: hivemind.sendToAudit,
-                                compileBuild: hivemind.compileBuild,
-                                saveGithubToken: hivemind.saveGithubToken, // <--- PASS SAVE
-                                deployToGithub: hivemind.deployToGithub  // <--- PASS DEPLOY
-                            }}
-                        />
+                            {/* ART MISSION */}
+                            <button
+                                onClick={() => {
+                                    const prompt = window.prompt("What image do you want to create?");
+                                    if (prompt) hivemind.startMission(prompt, 'art');
+                                }}
+                                className="group relative p-8 bg-slate-900 border border-fuchsia-500/30 rounded-2xl hover:border-fuchsia-500 transition-all hover:shadow-2xl hover:shadow-fuchsia-500/20 text-left overflow-hidden"
+                            >
+                                <div className="absolute top-0 left-0 w-full h-1 bg-fuchsia-500 group-hover:h-2 transition-all" />
+                                <div className="mb-4 p-4 bg-fuchsia-500/10 rounded-full w-fit text-fuchsia-400 group-hover:scale-110 transition-transform">
+                                    <Palette size={32} />
+                                </div>
+                                <h3 className="text-2xl font-bold text-white mb-2">Art Director</h3>
+                                <p className="text-slate-400 text-sm">Craft ultra-photorealistic prompts. The Hivemind defines lighting, camera, and style.</p>
+                            </button>
+                        </div>
                     </div>
-                </div>
+                ) : (
+                    <div className="max-w-4xl mx-auto space-y-8 pb-32">
+                        {/* Mission Card */}
+                        <div className="p-6 bg-slate-900 rounded-2xl border border-slate-800 shadow-xl">
+                            <h3 className="text-xs font-bold text-slate-500 uppercase mb-2">Current Mission</h3>
+                            <p className="text-lg text-slate-100 font-medium italic">"{incomingPrompt || hivemind.contextData?.originalPrompt}"</p>
+                        </div>
+
+                        {/* MAIN CONTENT AREA */}
+                        <div className="relative">
+                            <HivemindFeed
+                                history={hivemind.history}
+                                loading={hivemind.loading}
+                                statusMessage={hivemind.statusMessage}
+                                currentPhase={hivemind.currentPhase} // Pass phase!
+                                githubToken={hivemind.githubToken} // <--- PASS TOKEN
+                                actions={{
+                                    submitChoices: hivemind.submitChoices,
+                                    submitSpecs: hivemind.submitSpecs,
+                                    sendToAudit: hivemind.sendToAudit,
+                                    compileBuild: hivemind.compileBuild,
+                                    saveGithubToken: hivemind.saveGithubToken, // <--- PASS SAVE
+                                    deployToGithub: hivemind.deployToGithub  // <--- PASS DEPLOY
+                                }}
+                            />
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* --- COMMAND DECK (Footer) --- */}
