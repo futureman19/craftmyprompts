@@ -51,9 +51,24 @@ export default async function handler(req, res) {
     const { openai: openAIKey, anthropic: anthropicKey, gemini: geminiKey, groq: groqKey } = keys;
 
     // --- AGENT RUNNER LOGIC ---
+    // --- AGENT RUNNER LOGIC ---
     const runAgent = async (agent, inputContext = "") => {
         try {
-            const strictModel = MODELS[agent.provider || 'gemini'] || MODELS.gemini;
+            // 1. DETERMINE EFFECTIVE PROVIDER
+            // Priority: Agent's Choice (if key exists) -> OpenAI (if key exists) -> Gemini (if key exists)
+            let provider = agent.provider;
+            let apiKey = keys[provider];
+
+            if (!apiKey) {
+                if (openAIKey) { provider = 'openai'; apiKey = openAIKey; }
+                else if (geminiKey) { provider = 'gemini'; apiKey = geminiKey; }
+                else if (groqKey) { provider = 'groq'; apiKey = groqKey; }
+                else if (anthropicKey) { provider = 'anthropic'; apiKey = anthropicKey; }
+                else { throw new Error("No valid API Key found for any provider."); }
+            }
+
+            const strictModel = MODELS[provider] || MODELS.gemini;
+
             const fullSystemPrompt = inputContext
                 ? `${agent.systemPrompt}\n\n### PREVIOUS CONTEXT:\n${inputContext}`
                 : agent.systemPrompt;
@@ -61,9 +76,7 @@ export default async function handler(req, res) {
             let content = "";
 
             // --- OPENAI HANDLER ---
-            if (agent.provider === 'openai') {
-                if (!openAIKey) throw new Error("Missing OpenAI Key");
-
+            if (provider === 'openai') {
                 const body = {
                     model: strictModel,
                     messages: [
@@ -72,14 +85,11 @@ export default async function handler(req, res) {
                     ],
                     temperature: 0.7
                 };
-
-                if (agent.responseType === 'json') {
-                    body.response_format = { type: "json_object" };
-                }
+                if (agent.responseType === 'json') body.response_format = { type: "json_object" };
 
                 const r = await fetch('https://api.openai.com/v1/chat/completions', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openAIKey}` },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
                     body: JSON.stringify(body)
                 });
                 const d = await r.json();
@@ -87,9 +97,8 @@ export default async function handler(req, res) {
                 content = d.choices[0].message.content;
             }
             // --- GEMINI HANDLER ---
-            else if (agent.provider === 'gemini') {
-                if (!geminiKey) throw new Error("Missing Gemini Key");
-                const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODELS.gemini}:generateContent?key=${geminiKey}`, {
+            else if (provider === 'gemini') {
+                const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${strictModel}:generateContent?key=${apiKey}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: `${fullSystemPrompt}\n\nUser Query: ${prompt}` }] }] })
@@ -98,13 +107,39 @@ export default async function handler(req, res) {
                 if (!r.ok) throw new Error(d.error?.message || "Gemini Error");
                 content = d.candidates?.[0]?.content?.parts?.[0]?.text;
             }
+            // --- GROQ HANDLER (Add if needed, or fallback to Gemini logic if similar) ---
+            else if (provider === 'groq') {
+                // Reuse OpenAI-compatible endpoint structure usually supported by Groq
+                const body = {
+                    model: strictModel,
+                    messages: [
+                        { role: "system", content: fullSystemPrompt },
+                        { role: "user", content: prompt }
+                    ]
+                };
+                if (agent.responseType === 'json') body.response_format = { type: "json_object" };
+
+                const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+                    body: JSON.stringify(body)
+                });
+                const d = await r.json();
+                if (!r.ok) throw new Error(d.error?.message || "Groq Error");
+                content = d.choices[0].message.content;
+            }
+
+            // CLEANUP: Ensure no markdown fences (Second layer of defense)
+            if (content) {
+                content = content.replace(/```json/g, '').replace(/```/g, '').trim();
+            }
 
             return {
                 id: agent.id,
                 name: agent.name,
                 role: agent.role,
                 content: content,
-                meta: { model: strictModel, status: 'success' }
+                meta: { model: strictModel, provider: provider, status: 'success' }
             };
 
         } catch (error) {
@@ -113,9 +148,9 @@ export default async function handler(req, res) {
                 id: agent.id,
                 name: agent.name,
                 role: agent.role,
-                content: `⚠️ Agent Offline: ${error.message}`,
+                content: `⚠️ Agent Offline: ${error.message}`, // This text causes the JSON parse error in UI
                 error: true,
-                meta: { model: agent.provider, status: 'failed' }
+                meta: { status: 'failed' }
             };
         }
     };
