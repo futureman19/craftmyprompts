@@ -124,16 +124,30 @@ const HivemindView = ({ user, globalApiKey, globalOpenAIKey }) => {
                 </div>
             )}
 
-            {/* SWARM OPS TRIGGER */}
-            <button
-                onClick={() => hivemind.setIsDrawerOpen(true)}
-                className="fixed bottom-6 right-6 p-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full shadow-2xl shadow-indigo-900/50 hover:scale-105 transition-all z-40 group flex items-center gap-0 hover:gap-2 overflow-hidden"
-            >
-                <MessageSquare size={24} />
-                <span className="max-w-0 group-hover:max-w-xs transition-all duration-300 opacity-0 group-hover:opacity-100 whitespace-nowrap font-bold text-sm">
-                    Swarm Manager
-                </span>
-            </button>
+            {/* MISSION CONTROL BAR */}
+            {/* Only show if Drawer is CLOSED */}
+            {!hivemind.isDrawerOpen && (
+                <div className="fixed bottom-6 left-0 right-0 flex justify-center z-40 animate-in slide-in-from-bottom-10">
+                    <button
+                        onClick={() => hivemind.setIsDrawerOpen(true)}
+                        className="bg-slate-900/90 backdrop-blur-md border border-indigo-500/30 text-slate-300 hover:text-white px-6 py-3 rounded-full shadow-2xl shadow-black/50 hover:shadow-indigo-500/20 hover:border-indigo-500/60 transition-all group flex items-center gap-3 active:scale-95"
+                    >
+                        {/* Pulse Indicator */}
+                        <div className="relative">
+                            <div className="w-2 h-2 bg-indigo-500 rounded-full animate-ping absolute opacity-75"></div>
+                            <div className="w-2 h-2 bg-indigo-500 rounded-full relative"></div>
+                        </div>
+
+                        <span className="text-sm font-medium tracking-wide">
+                            Swarm Command
+                        </span>
+
+                        <span className="text-xs text-slate-500 border-l border-slate-700 pl-3 group-hover:text-indigo-300 transition-colors">
+                            Type to interrupt...
+                        </span>
+                    </button>
+                </div>
+            )}
 
             {/* --- MANAGER DRAWER --- */}
             <ManagerDrawer
