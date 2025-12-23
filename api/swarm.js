@@ -8,6 +8,8 @@ import { CRITIC } from './_agents/critic.js';
 import { TECH_LEAD } from './_agents/tech_lead.js';
 import { MANAGER_AGENT } from './_agents/manager.js';
 import { ART_DIRECTOR } from './_agents/art_director.js';
+import { MUSE_AGENT } from './_agents/art/muse.js';
+import { CINEMATOGRAPHER_AGENT } from './_agents/art/cinematographer.js';
 
 export const config = {
     maxDuration: 60,
@@ -112,7 +114,7 @@ export default async function handler(req, res) {
         // 1. TARGETED RUN (Specific Agent requested by Frontend)
         if (targetAgentId) {
             // Add MANAGER_AGENT to the roster
-            const allAgents = [VISIONARY, ARCHITECT, CRITIC, TECH_LEAD, MANAGER_AGENT, ART_DIRECTOR];
+            const allAgents = [VISIONARY, ARCHITECT, CRITIC, TECH_LEAD, MANAGER_AGENT, ART_DIRECTOR, MUSE_AGENT, CINEMATOGRAPHER_AGENT];
             const targetAgent = allAgents.find(a => a.id === targetAgentId);
 
             if (!targetAgent) throw new Error(`Agent ID '${targetAgentId}' not found.`);
