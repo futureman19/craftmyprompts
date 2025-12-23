@@ -2,12 +2,12 @@ import React from 'react';
 import { Loader, Layers, ShieldCheck, Zap, AlertTriangle } from 'lucide-react';
 
 // --- IMPORT AGENT DECKS (Coding Specific) ---
-import VisionaryDeck from '../../agent/VisionaryDeck.jsx';
-import SpecsDeck from '../../agent/SpecsDeck.jsx';
-import ProjectBlueprint from '../../agent/ProjectBlueprint.jsx';
-import FileDeck from '../../agent/FileDeck.jsx';
-import CriticDeck from '../../agent/CriticDeck.jsx';
-import DeploymentDeck from '../../agent/DeploymentDeck.jsx';
+import VisionaryDeck from '../agent/VisionaryDeck.jsx';
+import SpecsDeck from '../agent/SpecsDeck.jsx';
+import ProjectBlueprint from '../agent/ProjectBlueprint.jsx';
+import FileDeck from '../agent/FileDeck.jsx';
+import CriticDeck from '../agent/CriticDeck.jsx';
+import DeploymentDeck from '../agent/DeploymentDeck.jsx';
 
 const CodingFeed = ({ history, loading, statusMessage, actions, currentPhase, githubToken }) => {
 

@@ -2,10 +2,10 @@ import React from 'react';
 import { Loader, Copy, CheckCircle } from 'lucide-react';
 
 // --- IMPORT AGENT DECKS (Text Specific) ---
-import VisionaryDeck from '../../agent/VisionaryDeck.jsx'; // Will render "Editorial Board"
-import SpecsDeck from '../../agent/SpecsDeck.jsx';         // Will render "Tone Calibration"
-import StylistDeck from '../../agent/StylistDeck.jsx';     // Will render "Content Outline"
-import CriticDeck from '../../agent/CriticDeck.jsx';
+import VisionaryDeck from '../agent/VisionaryDeck.jsx'; // Will render "Editorial Board"
+import SpecsDeck from '../agent/SpecsDeck.jsx';         // Will render "Tone Calibration"
+import StylistDeck from '../agent/StylistDeck.jsx';     // Will render "Content Outline"
+import CriticDeck from '../agent/CriticDeck.jsx';
 
 import { generateFinalOutput } from '../../utils/formatters.js';
 
