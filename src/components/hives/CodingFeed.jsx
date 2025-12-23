@@ -108,16 +108,33 @@ const CodingFeed = ({ history, loading, statusMessage, actions, currentPhase, gi
     const renderCritique = () => {
         const data = parseAgentJson(criticMsg, 'Critic');
         return (
-            <>
-                {renderBlueprint()} {/* Show the work being critiqued */}
+            <div className="space-y-8 animate-in slide-in-from-bottom-4">
+                {/* 1. Context: The Blueprint */}
+                {renderBlueprint()}
+
+                {/* 2. The Critic's Feedback Card */}
                 {data ? (
                     <CriticDeck data={data} onConfirm={(selections) => actions.compileBuild(selections)} />
                 ) : (
-                    <div className="text-red-400 p-4 border border-red-500 mt-4 rounded">
-                        Critic Output Invalid. <button onClick={actions.compileBuild} className="underline">Force Compile</button>
+                    <div className="text-red-400 p-4 border border-red-500 rounded bg-red-900/10">
+                        Critic Output Invalid.
                     </div>
                 )}
-            </>
+
+                {/* 3. EXECUTIVE OVERRIDE BUTTON (The Fix) */}
+                <div className="flex flex-col items-center justify-center pt-8 border-t border-cyan-900/30">
+                    <p className="text-cyan-500/70 text-xs mb-3 uppercase tracking-widest font-bold">
+                        Ready to Compile?
+                    </p>
+                    <button
+                        onClick={() => actions.compileBuild()}
+                        className="px-8 py-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold rounded-2xl shadow-xl shadow-cyan-900/30 flex items-center gap-3 transition-all transform hover:scale-105 active:scale-95"
+                    >
+                        <Zap size={24} className="fill-white" />
+                        Initialize Build Sequence
+                    </button>
+                </div>
+            </div>
         );
     };
 
