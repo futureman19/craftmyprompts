@@ -141,6 +141,7 @@ const HivemindView = ({ user, globalApiKey, globalOpenAIKey }) => {
                                 statusMessage={hivemind.statusMessage}
                                 currentPhase={hivemind.currentPhase} // Pass phase!
                                 githubToken={hivemind.githubToken} // <--- PASS TOKEN
+                                mode={hivemind.mode} // <--- PASS MODE
                                 actions={{
                                     submitChoices: hivemind.submitChoices,
                                     submitSpecs: hivemind.submitSpecs,
