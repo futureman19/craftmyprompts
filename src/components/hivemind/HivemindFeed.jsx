@@ -56,7 +56,10 @@ const HivemindFeed = ({ history, loading, statusMessage, actions, currentPhase, 
     // PHASE 1: VISION (Strategy)
     const renderVision = () => {
         const data = parseAgentJson(strategyMsg, strategyRole);
-        if (!data) return <div className="text-red-400 p-4 font-mono text-sm border border-red-900/50 rounded bg-red-900/10">Waiting for {strategyRole}...</div>;
+        if (!data) {
+            if (strategyMsg) return <div className="text-amber-400 p-4 border border-amber-900/50 rounded bg-amber-900/10 font-mono text-xs whitespace-pre-wrap">{strategyRole} Error: {strategyMsg.text}</div>;
+            return <div className="text-red-400 p-4 font-mono text-sm border border-red-900/50 rounded bg-red-900/10">Waiting for {strategyRole}...</div>;
+        }
         // VisionaryDeck and Muse use the same "Strategy" schema now
         return <VisionaryDeck data={data} onConfirm={actions.submitChoices} />;
     };
@@ -64,7 +67,10 @@ const HivemindFeed = ({ history, loading, statusMessage, actions, currentPhase, 
     // PHASE 2: SPECS (Tech Lead / Cinematographer)
     const renderSpecs = () => {
         const data = parseAgentJson(specsMsg, specsRole);
-        if (!data) return <div className="text-red-400 p-4 font-mono text-sm border border-red-900/50 rounded bg-red-900/10">Waiting for {specsRole}...</div>;
+        if (!data) {
+            if (specsMsg) return <div className="text-amber-400 p-4 border border-amber-900/50 rounded bg-amber-900/10 font-mono text-xs whitespace-pre-wrap">{specsRole} Error: {specsMsg.text}</div>;
+            return <div className="text-red-400 p-4 font-mono text-sm border border-red-900/50 rounded bg-red-900/10">Waiting for {specsRole}...</div>;
+        }
         // SpecsDeck and Cinematographer use the same "Specs" schema now
         return <SpecsDeck data={data} onConfirm={actions.submitSpecs} />;
     };
@@ -77,7 +83,10 @@ const HivemindFeed = ({ history, loading, statusMessage, actions, currentPhase, 
         // --- CREATIVE MODES (Art, Text, Video) ---
         // They all use the "Modules" schema, so they share the StylistDeck
         if (mode === 'art' || mode === 'text' || mode === 'video') {
-            if (!data) return <div className="text-red-400 p-4">Waiting for {buildRole}...</div>;
+            if (!data) {
+                if (buildMsg) return <div className="text-amber-400 p-4 border border-amber-900/50 rounded bg-amber-900/10 font-mono text-xs whitespace-pre-wrap">{buildRole} Error: {buildMsg.text}</div>;
+                return <div className="text-red-400 p-4">Waiting for {buildRole}...</div>;
+            }
             return <StylistDeck data={data} onConfirm={actions.sendToAudit} />;
         }
 
