@@ -162,6 +162,7 @@ export default async function handler(req, res) {
         // 1. TARGETED RUN (Specific Agent requested by Frontend)
         if (targetAgentId) {
             // Add MANAGER_AGENT to the roster
+            // SAFETY: Filter out any undefined agents (prevents crashes if an import fails)
             const allAgents = [
                 // Coding
                 VISIONARY, TECH_LEAD, ARCHITECT, CRITIC, MANAGER_AGENT, EXECUTIVE_AGENT,
@@ -171,10 +172,14 @@ export default async function handler(req, res) {
                 EDITOR_AGENT, LINGUIST_AGENT, SCRIBE_AGENT,
                 // Video
                 PRODUCER_AGENT, DIRECTOR_AGENT, VFX_AGENT
-            ];
+            ].filter(Boolean); // <--- CRITICAL FIX: Removes undefined entries
+
             const targetAgent = allAgents.find(a => a.id === targetAgentId);
 
-            if (!targetAgent) throw new Error(`Agent ID '${targetAgentId}' not found.`);
+            if (!targetAgent) {
+                // Return a clear 404 instead of crashing
+                return res.status(404).json({ error: `Agent ID '${targetAgentId}' not found in roster.` });
+            }
 
             const result = await runAgent(targetAgent, context);
             results.push(result);
@@ -195,6 +200,10 @@ export default async function handler(req, res) {
 
     } catch (globalError) {
         console.error("Swarm Fatal Error:", globalError);
-        return res.status(500).json({ error: "The Hivemind failed to synchronize." });
+        // RETURN REAL ERROR MESSAGE FOR DEBUGGING
+        return res.status(500).json({
+            error: `Hivemind Crash: ${globalError.message}`,
+            details: globalError.toString()
+        });
     }
 }
