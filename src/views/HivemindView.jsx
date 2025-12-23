@@ -23,15 +23,22 @@ const HivemindView = ({ user, globalApiKey, globalOpenAIKey }) => {
     const hasStarted = useRef(false);
 
     useEffect(() => {
-        // If we have a prompt and haven't started yet...
-        if (incomingPrompt && !hasStarted.current) {
+        // Check if we have a prompt passed from navigation
+        if (location.state?.prompt && !hasStarted.current) {
             hasStarted.current = true;
-            console.log("🚀 Hivemind Protocol Initiated:", incomingPrompt);
+            const prompt = location.state.prompt;
 
-            // Trigger the Mission using the new hook
-            hivemind.startMission(incomingPrompt);
+            // CRITICAL: specific check for mode, fallback to coding
+            const incomingMode = location.state.mode || location.state.category || 'coding';
+
+            console.log("Hivemind Launching:", { prompt, incomingMode }); // Debug log
+
+            hivemind.startMission(prompt, incomingMode);
+
+            // Clear state so it doesn't re-trigger on refresh
+            window.history.replaceState({}, document.title);
         }
-    }, [incomingPrompt]);
+    }, [location]);
 
     // 3. Navigation Back
     const handleBack = () => {
