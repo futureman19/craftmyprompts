@@ -12,6 +12,7 @@ import BuilderView from './views/BuilderView.jsx';
 import AgentView from './views/AgentView.jsx';
 import HivemindView from './views/HivemindView.jsx';
 import ProfileView from './views/ProfileView.jsx'; // 2. Import Profile View
+import ArtView from './views/ArtView.jsx'; // 3. Import Art View
 
 // Import Orchestrator Hook
 import { useOrchestrator } from './hooks/useOrchestrator.js';
@@ -148,7 +149,7 @@ const App = () => {
           } />
 
           <Route path="/hivemind" element={<HivemindView user={user} globalApiKey={globalApiKey} globalOpenAIKey={import.meta.env.VITE_OPENAI_API_KEY || ''} />} />
-
+          <Route path="/art" element={<ArtView />} />
           <Route path="/feed" element={<FeedView user={user} loadPrompt={loadPrompt} onLoginRequest={handleLoginRequest} />} />
 
           <Route path="/profile" element={
