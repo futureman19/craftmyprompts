@@ -4,17 +4,29 @@ import { Loader, Layers, ShieldCheck, Zap, Package, AlertTriangle } from 'lucide
 // --- IMPORT ALL AGENT DECKS ---
 import VisionaryDeck from '../agent/VisionaryDeck.jsx';
 import SpecsDeck from '../agent/SpecsDeck.jsx';       // Phase 2
-import ProjectBlueprint from '../agent/ProjectBlueprint.jsx'; // Phase 3
+import ProjectBlueprint from '../agent/ProjectBlueprint.jsx'; // Phase 3 (Coding)
 import FileDeck from '../agent/FileDeck.jsx';         // Phase 3 (Files)
+import StylistDeck from '../agent/StylistDeck.jsx';   // Phase 3 (Art)
 import CriticDeck from '../agent/CriticDeck.jsx';     // Phase 4
 import DeploymentDeck from '../agent/DeploymentDeck.jsx'; // Phase 5 (Final)
 
-const HivemindFeed = ({ history, loading, statusMessage, actions, currentPhase, githubToken }) => {
+const HivemindFeed = ({ history, loading, statusMessage, actions, currentPhase, githubToken, mode = 'coding' }) => {
 
-    // --- 1. FIND LATEST AGENT OUTPUTS ---
-    const visionaryMsg = history.findLast(m => m.role === 'The Visionary');
-    const techMsg = history.findLast(m => m.role === 'The Tech Lead');
-    const architectMsg = history.findLast(m => m.role === 'The Architect');
+    // --- 1. FIND LATEST AGENT OUTPUTS (Dynamic based on Mode) ---
+    
+    // Phase 1: Strategy
+    const strategyRole = mode === 'art' ? 'The Muse' : 'The Visionary';
+    const strategyMsg = history.findLast(m => m.role === strategyRole);
+
+    // Phase 2: Specs
+    const specsRole = mode === 'art' ? 'The Cinematographer' : 'The Tech Lead';
+    const specsMsg = history.findLast(m => m.role === specsRole);
+
+    // Phase 3: Build
+    const buildRole = mode === 'art' ? 'The Stylist' : 'The Architect';
+    const buildMsg = history.findLast(m => m.role === buildRole);
+
+    // Phase 4 & 5: Audit & Executive (Shared Roles for now, or customize if needed)
     const criticMsg = history.findLast(m => m.role === 'The Critic');
     const executiveMsg = history.findLast(m => m.role === 'The Executive');
 
@@ -38,21 +50,31 @@ const HivemindFeed = ({ history, loading, statusMessage, actions, currentPhase, 
 
     // PHASE 1: VISION (Strategy)
     const renderVision = () => {
-        const data = parseAgentJson(visionaryMsg, 'Visionary');
-        if (!data) return <div className="text-red-400 p-4">Visionary Signal Lost.</div>;
+        const data = parseAgentJson(strategyMsg, strategyRole);
+        if (!data) return <div className="text-red-400 p-4 font-mono text-sm border border-red-900/50 rounded bg-red-900/10">Waiting for {strategyRole}...</div>;
+        // VisionaryDeck and Muse use the same "Strategy" schema now
         return <VisionaryDeck data={data} onConfirm={actions.submitChoices} />;
     };
 
-    // PHASE 2: SPECS (Tech Lead)
+    // PHASE 2: SPECS (Tech Lead / Cinematographer)
     const renderSpecs = () => {
-        const data = parseAgentJson(techMsg, 'Tech Lead');
-        if (!data) return <div className="text-red-400 p-4">Tech Lead Signal Lost.</div>;
+        const data = parseAgentJson(specsMsg, specsRole);
+        if (!data) return <div className="text-red-400 p-4 font-mono text-sm border border-red-900/50 rounded bg-red-900/10">Waiting for {specsRole}...</div>;
+        // SpecsDeck and Cinematographer use the same "Specs" schema now
         return <SpecsDeck data={data} onConfirm={actions.submitSpecs} />;
     };
 
-    // PHASE 3: BLUEPRINT (Architect)
+    // PHASE 3: BLUEPRINT (Architect / Stylist)
     const renderBlueprint = () => {
-        const data = parseAgentJson(architectMsg, 'Architect');
+        const data = parseAgentJson(buildMsg, buildRole);
+
+        // --- ART MODE DIVERGENCE ---
+        if (mode === 'art') {
+             if (!data) return <div className="text-red-400 p-4">Waiting for {buildRole}...</div>;
+             return <StylistDeck data={data} onConfirm={actions.sendToAudit} />;
+        }
+
+        // --- CODING MODE (Default) ---
         return (
             <div className="w-full max-w-4xl mx-auto space-y-6 animate-in fade-in">
                 <div className="p-4 bg-cyan-950/30 border border-cyan-500/30 rounded-xl flex items-center gap-4">
@@ -68,7 +90,6 @@ const HivemindFeed = ({ history, loading, statusMessage, actions, currentPhase, 
                 <ProjectBlueprint structure={data?.structure} />
                 {data?.modules && <FileDeck modules={data.modules} />}
 
-                {/* Only show "Send to Audit" if we are strictly in blueprint phase and not loading */}
                 {!loading && currentPhase === 'blueprint' && (
                     <div className="flex justify-end pt-4">
                         <button
@@ -86,10 +107,9 @@ const HivemindFeed = ({ history, loading, statusMessage, actions, currentPhase, 
     // PHASE 4: CRITIQUE (Critic)
     const renderCritique = () => {
         const data = parseAgentJson(criticMsg, 'Critic');
-        // Render Blueprint for context, then the Critic Deck
         return (
             <>
-                {renderBlueprint()}
+                {renderBlueprint()} {/* Show the work being critiqued */}
                 {data ? (
                     <CriticDeck data={data} onConfirm={(selections) => actions.compileBuild(selections)} />
                 ) : (
@@ -103,6 +123,18 @@ const HivemindFeed = ({ history, loading, statusMessage, actions, currentPhase, 
 
     // PHASE 5: LAUNCHPAD (Executive)
     const renderFinal = () => {
+        // For Art Mode, "Final" might just be the prompt string
+        // For now, we reuse the deployment deck or show a simple success message
+        if (mode === 'art') {
+             return (
+                 <div className="max-w-4xl mx-auto p-6 bg-slate-900 border border-fuchsia-500 rounded-xl text-center">
+                     <h2 className="text-2xl font-bold text-fuchsia-400 mb-2">Masterpiece Defined</h2>
+                     <p className="text-slate-400">Your prompt has been audited and finalized.</p>
+                     {/* We can add the prompt string display here later */}
+                 </div>
+             );
+        }
+
         const projectData = parseAgentJson(executiveMsg, 'Executive');
 
         if (!projectData || !projectData.files) {
@@ -115,9 +147,9 @@ const HivemindFeed = ({ history, loading, statusMessage, actions, currentPhase, 
         }
 
         return (
-            <DeploymentDeck
-                projectData={projectData}
-                githubToken={githubToken}
+            <DeploymentDeck 
+                projectData={projectData} 
+                githubToken={githubToken} 
                 onSaveToken={actions.saveGithubToken}
                 onDeploy={actions.deployToGithub}
             />
@@ -128,7 +160,7 @@ const HivemindFeed = ({ history, loading, statusMessage, actions, currentPhase, 
     if (loading) {
         return (
             <div className="flex flex-col items-center justify-center h-64 space-y-4">
-                <Loader size={48} className="animate-spin text-fuchsia-500" />
+                <Loader size={48} className={`animate-spin ${mode === 'art' ? 'text-fuchsia-500' : 'text-cyan-500'}`} />
                 <p className="text-slate-400 animate-pulse font-mono text-sm">{statusMessage}</p>
             </div>
         );
