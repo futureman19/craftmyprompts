@@ -188,25 +188,13 @@ const CodingFeed = ({
             {/* --- RESTORED FEEDBACK BAR --- */}
             {/* --- RESTORED FEEDBACK BAR --- */}
             {currentPhase !== 'idle' && (
-                <>
-                    <ManagerFeedback
-                        messages={managerMessages}
-                        onSendMessage={handleManagerFeedback}
-                        isOpen={isDrawerOpen}
-                        onClose={() => setIsDrawerOpen(false)}
-                        currentPhase={currentPhase}
-                    />
-
-                    {/* MANAGER TRIGGER BUTTON */}
-                    {!isDrawerOpen && (
-                        <button
-                            onClick={() => setIsDrawerOpen(true)}
-                            className="fixed bottom-6 right-6 p-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full shadow-2xl z-40 transition-transform hover:scale-110 flex items-center gap-2 animate-bounce"
-                        >
-                            <Bot size={24} />
-                        </button>
-                    )}
-                </>
+                <ManagerFeedback
+                    messages={managerMessages}
+                    onSendMessage={handleManagerFeedback}
+                    isOpen={isDrawerOpen}
+                    setIsOpen={setIsDrawerOpen}
+                    loading={loading}
+                />
             )}
         </div>
     );

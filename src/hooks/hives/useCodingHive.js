@@ -188,19 +188,42 @@ export const useCodingHive = (initialKeys = {}) => {
 
             setManagerMessages(prev => [...prev, { role: 'assistant', content: decision.reply }]);
 
+            // --- ROUTING LOGIC FIX ---
+
+            // Case 1: Spec Refinement (Minor Tweaks)
             if (decision.target_phase === 'specs') {
-                setStatusMessage("Manager: Rewinding to Specifications...");
+                setStatusMessage("Manager: Updating Specifications...");
+                // Merge new instruction into strategy to keep context
                 const updatedStrategy = { ...contextData.strategy, _refinement: decision.refined_instruction };
                 await submitChoices(updatedStrategy);
             }
+            // Case 2: Blueprint Refinement (Architectural Tweaks)
             else if (decision.target_phase === 'blueprint') {
                 setStatusMessage("Manager: Updating Blueprint...");
                 const updatedSpecs = { ...contextData.specs, _refinement: decision.refined_instruction };
                 await submitSpecs(updatedSpecs);
             }
+            // Case 3: Vision/Strategy Change (Major Features like "Multiplayer")
             else if (decision.target_phase === 'vision') {
-                setStatusMessage("Manager: Rebooting Strategy...");
-                startMission(contextData.originalPrompt + " " + decision.refined_instruction);
+                // STOP! Do not call startMission() unless it's a true reset.
+                // Instead, treat this as a "Major Spec Refactor".
+
+                const isTrueReset = userText.toLowerCase().includes('reset') || userText.toLowerCase().includes('start over');
+
+                if (isTrueReset) {
+                    setStatusMessage("Manager: Rebooting System...");
+                    startMission(decision.refined_instruction || userText);
+                } else {
+                    // SOFT REWIND: Go to Specs, but pass the new Vision info
+                    setStatusMessage("Manager: Pivot in progress (Refining Specs)...");
+                    const updatedStrategy = {
+                        ...contextData.strategy,
+                        _major_update: decision.refined_instruction
+                    };
+                    // Call submitChoices (Tech Lead) instead of startMission (Visionary)
+                    // This preserves the history array!
+                    await submitChoices(updatedStrategy);
+                }
             }
 
         } catch (e) {
