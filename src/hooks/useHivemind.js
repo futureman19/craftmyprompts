@@ -13,6 +13,12 @@ export const useHivemind = (initialKeys = {}) => {
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [mode, setMode] = useState('coding'); // 'coding' | 'art'
 
+    // --- HELPER: CLEAN JSON (Strip Markdown) ---
+    const cleanJson = (text) => {
+        if (!text) return "";
+        return text.replace(/```json/g, '').replace(/```/g, '').trim();
+    };
+
     // --- KEY MANAGEMENT (Self-Healing) ---
     // User Manual Input (localStorage) > Environment Variables (initialKeys)
     const getEffectiveKeys = () => ({
@@ -80,10 +86,13 @@ export const useHivemind = (initialKeys = {}) => {
         try {
             // Call Visionary or Muse
             const data = await callAgent(agent, userPrompt);
-            const msg = data.swarm[0];
+            const rawMsg = data.swarm[0];
+
+            // CLEAN IT
+            const cleanContent = cleanJson(rawMsg.content);
 
             // Add to history
-            setHistory([{ ...msg, text: msg.content, role: roleName, type: 'vision_options' }]);
+            setHistory([{ ...rawMsg, content: cleanContent, text: cleanContent, role: roleName, type: 'vision_options' }]);
         } catch (e) { console.error(e); setStatusMessage("Error: " + e.message); }
         finally { setLoading(false); }
     };
@@ -114,10 +123,15 @@ export const useHivemind = (initialKeys = {}) => {
                 "Define technical specs based on this strategy.",
                 contextString
             );
-            const msg = data.swarm[0];
+            const rawMsg = data.swarm[0];
+
+            // CLEAN IT
+            const cleanContent = cleanJson(rawMsg.content);
+
             setHistory(prev => [...prev, {
-                ...msg,
-                text: msg.content,
+                ...rawMsg,
+                content: cleanContent,
+                text: cleanContent,
                 role: roleName,
                 type: 'spec_options' // <--- NEW TYPE
             }]);
@@ -152,10 +166,15 @@ export const useHivemind = (initialKeys = {}) => {
                 "Generate the detailed plan based on these specs.",
                 contextString
             );
-            const msg = data.swarm[0];
+            const rawMsg = data.swarm[0];
+
+            // CLEAN IT
+            const cleanContent = cleanJson(rawMsg.content);
+
             setHistory(prev => [...prev, {
-                ...msg,
-                text: msg.content,
+                ...rawMsg,
+                content: cleanContent,
+                text: cleanContent,
                 role: roleName,
                 type: 'blueprint'
             }]);
@@ -212,7 +231,8 @@ export const useHivemind = (initialKeys = {}) => {
             const contextString = `Current Phase: ${currentPhase}\nUser Request: ${userText}`;
 
             const data = await callAgent('manager', "Analyze feedback and direct the swarm.", contextString);
-            const decision = JSON.parse(data.swarm[0].content); // Expecting JSON reply
+            // CLEAN BEFORE PARSING
+            const decision = JSON.parse(cleanJson(data.swarm[0].content));
 
             // 3. Add Manager Reply to Chat
             setManagerMessages(prev => [...prev, { role: 'assistant', content: decision.reply }]);
