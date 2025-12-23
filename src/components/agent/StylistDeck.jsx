@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { Palette, CheckCircle, Star, Shirt } from 'lucide-react';
 
-const StylistDeck = ({ data, onConfirm }) => {
+const StylistDeck = ({ data, onConfirm, mode }) => {
     const [selections, setSelections] = useState({});
 
-    const getTitle = (mode) => {
+    const getHeader = () => {
         if (mode === 'text') return "Content Outline";
-        if (mode === 'video') return "Production Board";
-        if (mode === 'coding') return "File Architecture";
-        return "Set & Wardrobe"; // Default (Art)
+        if (mode === 'video') return "Shot List & Script";
+        if (mode === 'art') return "Set & Wardrobe";
+        return "Blueprint Details";
     };
 
     // The Stylist returns 'modules' as its main content array
@@ -29,7 +29,7 @@ const StylistDeck = ({ data, onConfirm }) => {
                         <Shirt size={28} />
                     </div>
                     <div>
-                        <h3 className="text-xl font-bold text-white">{getTitle(data.mode || 'art')}</h3>
+                        <h3 className="text-xl font-bold text-white">{getHeader()}</h3>
                         <p className="text-sm text-slate-400 mt-2">{data.blueprint_summary}</p>
                     </div>
                 </div>

@@ -61,7 +61,7 @@ const HivemindFeed = ({ history, loading, statusMessage, actions, currentPhase, 
             return <div className="text-red-400 p-4 font-mono text-sm border border-red-900/50 rounded bg-red-900/10">Waiting for {strategyRole}...</div>;
         }
         // VisionaryDeck and Muse use the same "Strategy" schema now
-        return <VisionaryDeck data={data} onConfirm={actions.submitChoices} />;
+        return <VisionaryDeck data={data} mode={mode} onConfirm={actions.submitChoices} />;
     };
 
     // PHASE 2: SPECS (Tech Lead / Cinematographer)
@@ -72,7 +72,7 @@ const HivemindFeed = ({ history, loading, statusMessage, actions, currentPhase, 
             return <div className="text-red-400 p-4 font-mono text-sm border border-red-900/50 rounded bg-red-900/10">Waiting for {specsRole}...</div>;
         }
         // SpecsDeck and Cinematographer use the same "Specs" schema now
-        return <SpecsDeck data={data} onConfirm={actions.submitSpecs} />;
+        return <SpecsDeck data={data} mode={mode} onConfirm={actions.submitSpecs} />;
     };
 
     // PHASE 3: BLUEPRINT (Architect / Stylist)
@@ -87,7 +87,7 @@ const HivemindFeed = ({ history, loading, statusMessage, actions, currentPhase, 
                 if (buildMsg) return <div className="text-red-100 p-6 border-2 border-red-500 rounded-lg bg-red-900/30 font-mono text-sm whitespace-pre-wrap shadow-lg"><div className="text-red-400 font-bold mb-2">🚨 {buildRole} FAILED</div>{buildMsg.text}</div>;
                 return <div className="text-red-400 p-4">Waiting for {buildRole}...</div>;
             }
-            return <StylistDeck data={data} onConfirm={actions.sendToAudit} />;
+            return <StylistDeck data={data} mode={mode} onConfirm={actions.sendToAudit} />;
         }
 
         // --- CODING MODE (Default) ---

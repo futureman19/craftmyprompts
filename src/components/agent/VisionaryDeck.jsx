@@ -1,8 +1,16 @@
 import React, { useState } from 'react';
 import { Lightbulb, CheckCircle, Star } from 'lucide-react';
 
-const VisionaryDeck = ({ data, onConfirm }) => {
+const VisionaryDeck = ({ data, onConfirm, mode }) => {
     const [selections, setSelections] = useState({});
+
+    // HEADER LOGIC
+    const getHeader = () => {
+        if (mode === 'text') return "Editorial Board";
+        if (mode === 'video') return "Producer's Room";
+        if (mode === 'art') return "Creative Brief";
+        return "Mission Strategy"; // Default/Coding
+    };
 
     if (!data || !data.strategy_options) return null;
 
@@ -22,9 +30,7 @@ const VisionaryDeck = ({ data, onConfirm }) => {
                     </div>
                     <div>
                         <h3 className="text-xl font-bold text-white">
-                            {data.mode === 'text' ? 'Editorial Board' :
-                                data.mode === 'art' ? 'Creative Brief' :
-                                    'Mission Strategy'}
+                            {getHeader()}
                         </h3>
                         <p className="text-sm text-slate-400 mt-2">{data.strategy_summary}</p>
                     </div>

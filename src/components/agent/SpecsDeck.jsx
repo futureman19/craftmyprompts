@@ -1,8 +1,15 @@
 import React, { useState } from 'react';
 import { Cpu, CheckCircle, ArrowRight, Star } from 'lucide-react';
 
-const SpecsDeck = ({ data, onConfirm }) => {
+const SpecsDeck = ({ data, onConfirm, mode }) => {
     const [selections, setSelections] = useState({});
+
+    const getHeader = () => {
+        if (mode === 'text') return "Tone & Voice Calibration";
+        if (mode === 'video') return "Director's Vision";
+        if (mode === 'art') return "Camera & Lighting";
+        return "Technical Specifications";
+    };
 
     if (!data || !data.spec_options) return null;
 
@@ -22,9 +29,7 @@ const SpecsDeck = ({ data, onConfirm }) => {
                     </div>
                     <div>
                         <h3 className="text-xl font-bold text-white">
-                            {data.mode === 'text' ? 'Voice & Tone Calibration' :
-                                data.mode === 'art' ? 'Camera & Lighting' :
-                                    'Technical Specifications'}
+                            {getHeader()}
                         </h3>
                         <p className="text-sm text-slate-400 mt-2">{data.spec_summary}</p>
                     </div>
