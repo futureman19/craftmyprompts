@@ -57,7 +57,7 @@ const HivemindFeed = ({ history, loading, statusMessage, actions, currentPhase, 
     const renderVision = () => {
         const data = parseAgentJson(strategyMsg, strategyRole);
         if (!data) {
-            if (strategyMsg) return <div className="text-amber-400 p-4 border border-amber-900/50 rounded bg-amber-900/10 font-mono text-xs whitespace-pre-wrap">{strategyRole} Error: {strategyMsg.text}</div>;
+            if (strategyMsg) return <div className="text-red-100 p-6 border-2 border-red-500 rounded-lg bg-red-900/30 font-mono text-sm whitespace-pre-wrap shadow-lg"><div className="text-red-400 font-bold mb-2">🚨 {strategyRole} FAILED</div>{strategyMsg.text}</div>;
             return <div className="text-red-400 p-4 font-mono text-sm border border-red-900/50 rounded bg-red-900/10">Waiting for {strategyRole}...</div>;
         }
         // VisionaryDeck and Muse use the same "Strategy" schema now
@@ -68,7 +68,7 @@ const HivemindFeed = ({ history, loading, statusMessage, actions, currentPhase, 
     const renderSpecs = () => {
         const data = parseAgentJson(specsMsg, specsRole);
         if (!data) {
-            if (specsMsg) return <div className="text-amber-400 p-4 border border-amber-900/50 rounded bg-amber-900/10 font-mono text-xs whitespace-pre-wrap">{specsRole} Error: {specsMsg.text}</div>;
+            if (specsMsg) return <div className="text-red-100 p-6 border-2 border-red-500 rounded-lg bg-red-900/30 font-mono text-sm whitespace-pre-wrap shadow-lg"><div className="text-red-400 font-bold mb-2">🚨 {specsRole} FAILED</div>{specsMsg.text}</div>;
             return <div className="text-red-400 p-4 font-mono text-sm border border-red-900/50 rounded bg-red-900/10">Waiting for {specsRole}...</div>;
         }
         // SpecsDeck and Cinematographer use the same "Specs" schema now
@@ -84,7 +84,7 @@ const HivemindFeed = ({ history, loading, statusMessage, actions, currentPhase, 
         // They all use the "Modules" schema, so they share the StylistDeck
         if (mode === 'art' || mode === 'text' || mode === 'video') {
             if (!data) {
-                if (buildMsg) return <div className="text-amber-400 p-4 border border-amber-900/50 rounded bg-amber-900/10 font-mono text-xs whitespace-pre-wrap">{buildRole} Error: {buildMsg.text}</div>;
+                if (buildMsg) return <div className="text-red-100 p-6 border-2 border-red-500 rounded-lg bg-red-900/30 font-mono text-sm whitespace-pre-wrap shadow-lg"><div className="text-red-400 font-bold mb-2">🚨 {buildRole} FAILED</div>{buildMsg.text}</div>;
                 return <div className="text-red-400 p-4">Waiting for {buildRole}...</div>;
             }
             return <StylistDeck data={data} onConfirm={actions.sendToAudit} />;
