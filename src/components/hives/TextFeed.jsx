@@ -2,8 +2,9 @@ import React, { useRef, useEffect } from 'react';
 import { Loader, Copy, CheckCircle2, FileText, List, PenTool, BookOpen } from 'lucide-react';
 
 // --- IMPORT AGENT DECKS (Text Specific) ---
-import VisionaryDeck from '../agent/VisionaryDeck.jsx'; // Will render "Editorial Board"
-import SpecsDeck from '../agent/SpecsDeck.jsx';         // Will render "Tone Calibration"
+import EditorDeck from '../agent/text/EditorDeck.jsx';  // "Editor-in-Chief"
+import SpecsDeck from '../agent/SpecsDeck.jsx';         // "Tone Calibration"
+import Manuscript from '../agent/text/Manuscript.jsx';  // "Content Outline"
 import CriticDeck from '../agent/CriticDeck.jsx';
 
 import { generateFinalOutput } from '../../utils/formatters.js';
@@ -52,7 +53,9 @@ const TextFeed = ({ history, loading, statusMessage, actions, currentPhase }) =>
     const renderVision = () => {
         const data = parseAgentJson(strategyMsg, strategyRole);
         if (!data) return <div className="text-red-400 p-4 font-mono text-sm border border-red-900/50 rounded bg-red-900/10">Waiting for {strategyRole}...</div>;
-        return <VisionaryDeck data={data} mode="text" onConfirm={actions.submitChoices} />;
+
+        // Use the specialized EditorDeck
+        return <EditorDeck data={data} onConfirm={actions.submitChoices} />;
     };
 
     // PHASE 2: SPECS (The Linguist)
@@ -64,46 +67,15 @@ const TextFeed = ({ history, loading, statusMessage, actions, currentPhase }) =>
 
     // PHASE 3: BLUEPRINT (The Scribe)
     const renderBlueprint = () => {
-        const data = parseAgentJson(scribeMsg, scribeRole); // Uses Scribe now
+        const data = parseAgentJson(scribeMsg, scribeRole);
         if (!data) return <div className="text-red-400 p-4 font-mono text-sm border border-red-900/50 rounded bg-red-900/10">Waiting for {scribeRole}...</div>;
 
         return (
             <div className="w-full max-w-4xl mx-auto mt-6 animate-in fade-in space-y-6">
-                {/* Header */}
-                <div className="bg-slate-900 border border-blue-500/30 rounded-2xl p-6 shadow-2xl relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-1 h-full bg-blue-500" />
-                    <div className="flex items-start gap-4">
-                        <div className="p-3 bg-blue-500/10 rounded-xl text-blue-400">
-                            <List size={28} />
-                        </div>
-                        <div>
-                            <h3 className="text-xl font-bold text-white">Narrative Blueprint</h3>
-                            <p className="text-sm text-slate-400 mt-2">{data.blueprint_summary}</p>
-                        </div>
-                    </div>
-                </div>
+                {/* 1. Visual Outline (Manuscript) */}
+                <Manuscript data={data} />
 
-                {/* Outline Stack */}
-                <div className="space-y-3">
-                    {data.structure?.map((section, idx) => (
-                        <div key={idx} className="bg-slate-950/50 border border-slate-800 p-4 rounded-xl flex items-start gap-4 hover:border-slate-700 transition-colors">
-                            <div className="w-6 h-6 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center text-xs font-bold mt-1">
-                                {idx + 1}
-                            </div>
-                            <div className="flex-1">
-                                <div className="flex justify-between items-start mb-1">
-                                    <h4 className="text-white font-bold">{section.section}</h4>
-                                    <span className="text-[10px] uppercase font-bold text-slate-600 bg-slate-900 px-2 py-1 rounded">
-                                        {section.type}
-                                    </span>
-                                </div>
-                                <p className="text-slate-400 text-sm leading-relaxed">{section.notes}</p>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-
-                {/* Confirm Action */}
+                {/* 2. Confirm Action */}
                 {!loading && (
                     <div className="flex justify-end pt-4 border-t border-slate-800">
                         <button
