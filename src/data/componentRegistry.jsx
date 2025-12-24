@@ -4,7 +4,7 @@ import GitHubModal from '../components/GitHubModal.jsx';
 import A2UIRenderer from '../components/a2ui/A2UIRenderer.jsx';
 
 import LivePreview from '../components/LivePreview.jsx';
-import ProjectBlueprint from '../components/agent/ProjectBlueprint.jsx'; // Import Blueprint Component
+import ProjectBlueprint from '../components/agent/coding/ProjectBlueprint.jsx'; // Import Blueprint Component
 
 // --- A2UI COMPONENT REGISTRY ---
 // This file maps "Tool Names" (Intents) to actual React Components.
