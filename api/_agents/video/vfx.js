@@ -15,5 +15,7 @@ export const VFX_AGENT = {
   {
     "synthesis_summary": "Final render prompt ready.",
     "final_prompt": "Cinematic drone shot flying through a neon city... [detailed motion description] ... 4k, fluid motion."
-  }`
+  }
+  
+  CRITICAL: You must output valid JSON.`
 };

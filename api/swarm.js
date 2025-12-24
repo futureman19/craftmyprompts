@@ -107,9 +107,14 @@ export default async function handler(req, res) {
             }
 
             const strictModel = MODELS[provider] || MODELS.gemini;
-            const fullSystemPrompt = inputContext
+            let fullSystemPrompt = inputContext
                 ? `${agent.systemPrompt}\n\n### PREVIOUS CONTEXT:\n${inputContext}`
                 : agent.systemPrompt;
+
+            // --- SAFETY NET: FORCE "JSON" IN SYSTEM PROMPT ---
+            if (agent.responseType === 'json' && !fullSystemPrompt.toLowerCase().includes('json')) {
+                fullSystemPrompt += " IMPORTANT: Output JSON only.";
+            }
 
             let content = "";
 
