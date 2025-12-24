@@ -6,7 +6,7 @@ import {
     Layers, FileCode, Loader, Users
 } from 'lucide-react';
 import TestRunnerPanel from '../test-runner/TestRunnerPanel.jsx';
-import ProjectBlueprint from '../agent/ProjectBlueprint.jsx';
+import ProjectBlueprint from '../agent/coding/ProjectBlueprint.jsx';
 import { useTestRunner } from '../../hooks/useTestRunner.js';
 
 const BuilderPreviewPanel = ({

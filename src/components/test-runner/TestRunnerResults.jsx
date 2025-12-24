@@ -7,9 +7,9 @@ import {
 import CodeBlock from './CodeBlock.jsx';
 import SwarmResultGrid from './SwarmResultGrid.jsx';
 import ArenaResultGrid from './ArenaResultGrid.jsx';
-import ProjectBlueprint from '../agent/ProjectBlueprint.jsx';
-import FileDeck from '../agent/FileDeck.jsx';
-import VisionaryDeck from '../agent/VisionaryDeck.jsx';
+import ProjectBlueprint from '../agent/coding/ProjectBlueprint.jsx';
+import FileDeck from '../agent/coding/FileDeck.jsx';
+import VisionaryDeck from '../agent/coding/VisionaryDeck.jsx';
 import { validateVirality } from '../../utils/viralityValidator.js';
 
 // --- HELPER 1: LIVE PREVIEW IFRAME ---
