@@ -1,22 +1,28 @@
 import { checkRateLimit } from './_utils/rate-limiter.js';
 
 // --- AGENT IMPORTS ---
-// We import these safely. If a file is missing/broken during dev, we catch it later.
-import { VISIONARY } from './_agents/visionary.js';
-import { ARCHITECT } from './_agents/architect.js';
-import { CRITIC } from './_agents/critic.js';
-import { TECH_LEAD } from './_agents/tech_lead.js';
-import { MANAGER_AGENT } from './_agents/manager.js';
-import { EXECUTIVE_AGENT } from './_agents/executive.js';
 
+// 1. CODING SQUAD (Moved to /coding folder)
+import { VISIONARY } from './_agents/coding/visionary.js';
+import { ARCHITECT } from './_agents/coding/architect.js';
+import { CRITIC } from './_agents/coding/critic.js';
+import { TECH_LEAD } from './_agents/coding/tech_lead.js';
+import { EXECUTIVE_AGENT } from './_agents/coding/executive.js';
+
+// 2. SHARED MANAGEMENT (Stays in root or shared folder)
+import { MANAGER_AGENT } from './_agents/manager.js';
+
+// 3. ART SQUAD
 import { MUSE_AGENT } from './_agents/art/muse.js';
 import { CINEMATOGRAPHER_AGENT } from './_agents/art/cinematographer.js';
 import { STYLIST_AGENT } from './_agents/art/stylist.js';
 
+// 4. TEXT SQUAD
 import { EDITOR_AGENT } from './_agents/text/editor.js';
 import { LINGUIST_AGENT } from './_agents/text/linguist.js';
 import { SCRIBE_AGENT } from './_agents/text/scribe.js';
 
+// 5. VIDEO SQUAD
 import { PRODUCER_AGENT } from './_agents/video/producer.js';
 import { DIRECTOR_AGENT } from './_agents/video/director.js';
 import { VFX_AGENT } from './_agents/video/vfx.js';
@@ -45,7 +51,6 @@ export default async function handler(req, res) {
         const { openai: openAIKey, anthropic: anthropicKey, gemini: geminiKey, groq: groqKey } = keys;
 
         // 2. DEFINE SQUADS (Mapping Categories to Start Agents)
-        // This ensures 'text' mode wakes up the Editor, not the Visionary.
         const SQUADS = {
             coding: VISIONARY,
             art: MUSE_AGENT,
@@ -55,9 +60,15 @@ export default async function handler(req, res) {
 
         // 3. DEFINE ROSTER (All Agents for Lookup)
         const ROSTER = [
-            VISIONARY, ARCHITECT, CRITIC, TECH_LEAD, MANAGER_AGENT, EXECUTIVE_AGENT,
+            // Coding
+            VISIONARY, ARCHITECT, CRITIC, TECH_LEAD, EXECUTIVE_AGENT,
+            // Management
+            MANAGER_AGENT,
+            // Art
             MUSE_AGENT, CINEMATOGRAPHER_AGENT, STYLIST_AGENT,
+            // Text
             EDITOR_AGENT, LINGUIST_AGENT, SCRIBE_AGENT,
+            // Video
             PRODUCER_AGENT, DIRECTOR_AGENT, VFX_AGENT
         ].filter(Boolean); // Safety filter for broken imports
 
