@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Lightbulb, CheckCircle, Star, FastForward, MessageSquareQuote } from 'lucide-react';
+import { Lightbulb, CheckCircle, Star, FastForward, MessageSquareQuote, ArrowRight } from 'lucide-react';
 
 const VisionaryDeck = ({ data, onConfirm, mode }) => {
     const [selections, setSelections] = useState({});
@@ -67,8 +67,8 @@ const VisionaryDeck = ({ data, onConfirm, mode }) => {
                                         key={i}
                                         onClick={() => handleSelect(cat.category, label)}
                                         className={`p-3 rounded-xl text-left border transition-all relative min-h-[80px] flex flex-col justify-between ${isSelected
-                                                ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg'
-                                                : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-indigo-500/50'
+                                            ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg'
+                                            : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-indigo-500/50'
                                             }`}
                                     >
                                         <div className="flex justify-between w-full mb-1">
@@ -107,7 +107,7 @@ const VisionaryDeck = ({ data, onConfirm, mode }) => {
                     // DISABLED REMOVED! You can click this even if selections is empty.
                     className="px-8 py-3 bg-white hover:bg-indigo-50 text-indigo-950 rounded-xl font-bold text-sm shadow-lg flex items-center gap-2 transition-all active:scale-95"
                 >
-                    Confirm Strategy <CheckCircle size={18} />
+                    Continue <ArrowRight size={18} />
                 </button>
             </div>
         </div>

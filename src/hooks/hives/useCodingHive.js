@@ -254,33 +254,42 @@ export const useCodingHive = (initialKeys = {}) => {
     // --- ACTION: REFINE (Loop back to Architect) ---
     const refineBlueprint = async (critiqueSelections) => {
         setLoading(true);
-        // 1. Set phase back to Blueprint so we can see the changes happening
-        setCurrentPhase('blueprint');
-        setStatusMessage('The Architect is refining the code based on your feedback...');
+        setCurrentPhase('blueprint'); // Visual Loop
+        setStatusMessage('The Architect is refining the code...');
+
+        // 1. Detect Auto-Pilot
+        const isAutoPilot = Object.keys(critiqueSelections).length === 0;
 
         // 2. Prepare Context
-        const feedbackList = Object.entries(critiqueSelections)
-            .map(([cat, val]) => `- ${cat}: ${val}`)
-            .join('\n');
+        let contextString = "";
 
-        const contextString = `
-        CRITICAL FEEDBACK FROM USER:
-        ${feedbackList}
-        
-        TASK: Refine the previous blueprint to address these issues. 
-        Return the fully updated structure and modules.
-        `;
+        if (isAutoPilot) {
+            contextString = `
+            USER DECISION: AUTO-PILOT (Fix All Risks).
+            TASK: The user has deferred to your judgment. 
+            Review the Critic's risks and implement fixes for all HIGH severity issues immediately.
+            Return the fully updated structure and modules.
+            `;
+        } else {
+            const feedbackList = Object.entries(critiqueSelections)
+                .map(([cat, val]) => `- ${cat}: ${val}`)
+                .join('\n');
+            contextString = `
+            CRITICAL FEEDBACK FROM USER:
+            ${feedbackList}
+            
+            TASK: Refine the previous blueprint to address these specific issues. 
+            Return the fully updated structure and modules.
+            `;
+        }
 
         const role = 'The Architect';
         const id = 'architect';
 
         try {
-            // 3. Call Architect (Not Executive)
             const data = await callAgent(id, "Refine the blueprint based on this critique.", contextString);
             const rawMsg = data.swarm[0];
             const cleanContent = cleanJson(rawMsg.content);
-
-            // 4. Add new Blueprint to history (This pushes the new code to the top of the stack)
             setHistory(prev => [...prev, { ...rawMsg, content: cleanContent, text: cleanContent, role: role, type: 'blueprint' }]);
         } catch (e) {
             console.error(e);
