@@ -14,6 +14,7 @@ export const CRITIC = {
     CRITICAL: Output JSON ONLY using this EXACT schema (to match the UI Deck):
     {
       "critique_summary": "Brief analysis of the potential risks...",
+      "agent_commentary": "Write 3-5 conversational sentences summarizing the security and logic risks you found. Be direct but helpful.",
       "risk_options": [
         {
           "category": "Critical Risks",
