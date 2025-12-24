@@ -200,7 +200,9 @@ export const useArtHive = (initialKeys = {}) => {
     };
 
     // --- STEP 6: GENERATE (The Gallery + The Darkroom) ---
-    const generateImage = async () => {
+    // --- STEP 6: GENERATE (The Gallery + The Darkroom) ---
+    // UPDATED: Now accepts technical overrides (aspect ratio, etc.)
+    const generateImage = async (technicalOverrides = {}) => {
         setLoading(true);
         setCurrentPhase('gallery');
         setStatusMessage('Synthesizing final prompt...');
@@ -213,7 +215,7 @@ export const useArtHive = (initialKeys = {}) => {
             const msg = data.swarm[0];
             const cleanContent = cleanJson(msg.content);
 
-            // Save text history immediately so the user sees the prompt
+            // Save text history immediately
             setHistory(prev => [...prev, { ...msg, content: cleanContent, role: 'The Gallery', type: 'final' }]);
 
             // B. Call Darkroom (Image)
@@ -226,12 +228,20 @@ export const useArtHive = (initialKeys = {}) => {
 
                 const keys = getEffectiveKeys();
 
+                // Merge Agent defaults with User overrides
+                // Note: overrides take precedence
+                const finalAspectRatio = technicalOverrides.aspectRatio || "1:1";
+                const finalPersonGen = technicalOverrides.personGeneration || "allow_adult";
+
                 const imgResponse = await fetch('/api/imagine', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         prompt: parsedData.final_prompt,
-                        apiKey: keys.gemini // Imagen requires Gemini Key
+                        apiKey: keys.gemini,
+                        // Pass the new technical specs to the API
+                        aspectRatio: finalAspectRatio,
+                        personGeneration: finalPersonGen
                     })
                 });
 

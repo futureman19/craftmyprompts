@@ -16,12 +16,14 @@ const ArtFeed = ({ initialPrompt, onStateChange }) => {
         history, currentPhase, loading, statusMessage,
         startMission, submitChoices, submitSpecs, sendToAudit, refineBlueprint, generateImage,
         managerMessages, isDrawerOpen, setIsDrawerOpen, handleManagerFeedback,
-        // NEW IMPORTS
         generatedImage, isGeneratingImage
     } = useArtHive();
 
     const [hasStarted, setHasStarted] = useState(false);
     const bottomRef = useRef(null);
+
+    // NEW: Track Technical Specs from the Blueprint UI
+    const [technicalSpecs, setTechnicalSpecs] = useState({});
 
     // Start mission on first load
     useEffect(() => {
@@ -31,7 +33,7 @@ const ArtFeed = ({ initialPrompt, onStateChange }) => {
         }
     }, [initialPrompt]);
 
-    // Notify parent layout of phase changes (for UI polish)
+    // Notify parent layout of phase changes
     useEffect(() => {
         onStateChange && onStateChange(currentPhase);
     }, [currentPhase]);
@@ -39,13 +41,12 @@ const ArtFeed = ({ initialPrompt, onStateChange }) => {
     // Auto-scroll
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [history, loading]);
+    }, [history, loading, isGeneratingImage, generatedImage]);
 
     // --- HELPER: Parse Agent JSON safely ---
     const parseAgentJson = (msg) => {
         if (!msg || !msg.content) return null;
         try {
-            // Handle potential markdown wrapping
             const clean = msg.content.replace(/```json/g, '').replace(/```/g, '').trim();
             return JSON.parse(clean);
         } catch (e) {
@@ -54,29 +55,34 @@ const ArtFeed = ({ initialPrompt, onStateChange }) => {
         }
     };
 
-    // --- RENDERERS FOR EACH PHASE ---
+    // --- RENDERERS ---
 
-    // PHASE 1: MUSE (Strategy)
+    // PHASE 1: MUSE
     const renderMuse = (msg) => {
         const data = parseAgentJson(msg);
         return <MuseDeck data={data} onConfirm={submitChoices} />;
     };
 
-    // PHASE 2: STYLIST (Specs)
+    // PHASE 2: STYLIST
     const renderStylist = (msg) => {
         const data = parseAgentJson(msg);
         return <StylistDeck data={data} onConfirm={submitSpecs} />;
     };
 
-    // PHASE 3: CINEMATOGRAPHER (Blueprint)
+    // PHASE 3: BLUEPRINT (With Technical Controls)
     const renderBlueprint = (msg) => {
         const data = parseAgentJson(msg);
+
         return (
             <div className="w-full max-w-5xl mx-auto space-y-6 animate-in fade-in">
-                {/* The Visual Layer Stack */}
-                <ArtBlueprint data={data} />
+                {/* The Visual Layer Stack + Controls */}
+                {/* We listen for settings changes here */}
+                <ArtBlueprint
+                    data={data}
+                    onSettingsChange={setTechnicalSpecs}
+                />
 
-                {/* Action Buttons (Fast Lane vs Audit) */}
+                {/* Action Buttons */}
                 {!loading && currentPhase === 'cinematographer' && (
                     <div className="flex justify-end pt-4 gap-3">
                         <button
@@ -87,7 +93,8 @@ const ArtFeed = ({ initialPrompt, onStateChange }) => {
                         </button>
 
                         <button
-                            onClick={generateImage}
+                            // PASS THE SPECS TO THE GENERATOR
+                            onClick={() => generateImage(technicalSpecs)}
                             className="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-purple-900/20 transition-all transform active:scale-95"
                         >
                             <Zap size={18} /> Approve & Generate
@@ -98,7 +105,7 @@ const ArtFeed = ({ initialPrompt, onStateChange }) => {
         );
     };
 
-    // PHASE 4: CRITIC (Audit)
+    // PHASE 4: CRITIC
     const renderCritic = (msg) => {
         const data = parseAgentJson(msg);
         return <ArtCriticDeck data={data} onConfirm={refineBlueprint} />;
@@ -131,13 +138,13 @@ const ArtFeed = ({ initialPrompt, onStateChange }) => {
 
                     {/* B. The Masterpiece */}
                     {generatedImage && (
-                        <div className="relative w-full h-full">
+                        <div className="relative w-full h-full flex justify-center bg-zinc-950">
                             <img
                                 src={generatedImage}
                                 alt="Generated Masterpiece"
-                                className="w-full h-auto object-contain max-h-[600px] animate-in fade-in duration-1000"
+                                className="w-auto h-auto max-w-full max-h-[600px] object-contain animate-in fade-in duration-1000 shadow-2xl"
                             />
-                            {/* Download Action (Hover) */}
+                            {/* Download Action */}
                             <a
                                 href={generatedImage}
                                 download={`hivemind-art-${Date.now()}.png`}
@@ -149,7 +156,7 @@ const ArtFeed = ({ initialPrompt, onStateChange }) => {
                         </div>
                     )}
 
-                    {/* C. Placeholder (Before Generation starts) */}
+                    {/* C. Placeholder */}
                     {!generatedImage && !isGeneratingImage && (
                         <div className="text-slate-600 flex flex-col items-center">
                             <Palette size={48} className="mb-2 opacity-20" />
@@ -176,11 +183,10 @@ const ArtFeed = ({ initialPrompt, onStateChange }) => {
         );
     };
 
-
     // --- MAIN RENDER ---
     return (
         <div className="flex-1 flex flex-col">
-            {/* 1. Status Bar (Sticky Top) */}
+            {/* 1. Status Bar */}
             {statusMessage && (
                 <div className="sticky top-0 z-30 bg-slate-950/90 backdrop-blur-sm border-b border-slate-800 p-2 text-center text-sm font-medium text-purple-300 animate-in fade-in">
                     {statusMessage}
@@ -190,7 +196,6 @@ const ArtFeed = ({ initialPrompt, onStateChange }) => {
             {/* 2. Main Feed Content */}
             <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-8 custom-scrollbar">
                 {history.map((msg, idx) => {
-                    // We only render the *last* message of the current phase to avoid clutter
                     const isLast = idx === history.length - 1;
                     if (!isLast && msg.type !== 'final') return null;
 
@@ -204,7 +209,6 @@ const ArtFeed = ({ initialPrompt, onStateChange }) => {
                     }
                 })}
 
-                {/* Loading Spinner */}
                 {loading && (
                     <div className="flex justify-center p-8 animate-in fade-in">
                         <Loader size={32} className="animate-spin text-purple-500" />
@@ -213,7 +217,7 @@ const ArtFeed = ({ initialPrompt, onStateChange }) => {
                 <div ref={bottomRef} />
             </div>
 
-            {/* 3. Manager Drawer (Global Co-Pilot) */}
+            {/* 3. Manager Drawer */}
             <ManagerDrawer
                 isOpen={isDrawerOpen}
                 setIsOpen={setIsDrawerOpen}
