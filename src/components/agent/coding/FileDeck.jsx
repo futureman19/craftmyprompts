@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FileCode, X, Copy, Check, Maximize2 } from 'lucide-react';
-import CodeBlock from '../test-runner/CodeBlock.jsx'; // Reuse existing block
+import CodeBlock from '../../test-runner/CodeBlock.jsx'; // Reuse existing block
 
 const FileDeck = ({ modules = [] }) => {
     const [selectedFile, setSelectedFile] = useState(null);
