@@ -16,6 +16,7 @@ import { MANAGER_AGENT } from './_agents/manager.js';
 import { MUSE_AGENT } from './_agents/art/muse.js';
 import { CINEMATOGRAPHER_AGENT } from './_agents/art/cinematographer.js';
 import { STYLIST_AGENT } from './_agents/art/stylist.js';
+import { GALLERY_AGENT } from './_agents/art/gallery.js';
 
 // 4. TEXT SQUAD
 import { EDITOR_AGENT } from './_agents/text/editor.js';
@@ -65,7 +66,7 @@ export default async function handler(req, res) {
             // Management
             MANAGER_AGENT,
             // Art
-            MUSE_AGENT, CINEMATOGRAPHER_AGENT, STYLIST_AGENT,
+            MUSE_AGENT, CINEMATOGRAPHER_AGENT, STYLIST_AGENT, GALLERY_AGENT,
             // Text
             EDITOR_AGENT, LINGUIST_AGENT, SCRIBE_AGENT,
             // Video

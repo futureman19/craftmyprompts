@@ -10,6 +10,9 @@ import CodingFeed from '../components/hives/CodingFeed.jsx';
 import { useTextHive } from '../hooks/hives/useTextHive.js';
 import TextFeed from '../components/hives/TextFeed.jsx';
 
+import { useArtHive } from '../hooks/hives/useArtHive.js';
+import ArtFeed from '../components/hives/ArtFeed.jsx';
+
 // --- WRAPPER COMPONENTS (Initialize the specific Brain) ---
 
 const CodingEngine = ({ prompt, apiKey }) => {
@@ -70,6 +73,25 @@ const TextEngine = ({ prompt, apiKey }) => {
                 sendToAudit: hive.sendToAudit,
                 compileBuild: hive.compileBuild
             }}
+        />
+    );
+};
+
+const ArtEngine = ({ prompt, apiKey }) => {
+    // Initialize the Art Brain
+    const hive = useArtHive({ gemini: apiKey });
+
+    // Auto-start
+    React.useEffect(() => {
+        if (prompt && hive.currentPhase === 'idle') {
+            hive.startMission(prompt);
+        }
+    }, [prompt, hive]);
+
+    return (
+        <ArtFeed
+            initialPrompt={prompt}
+            onStateChange={(phase) => console.log('Art Phase:', phase)}
         />
     );
 };
@@ -170,8 +192,11 @@ const HivemindView = ({ user, globalApiKey }) => {
 
                 {/* ART (Placeholder for now) */}
                 <button
-                    onClick={() => alert("Art Engine Upgrading... Please use Text or Coding for now.")}
-                    className="group relative p-8 bg-slate-900 border border-fuchsia-500/30 rounded-2xl hover:border-fuchsia-500 transition-all text-left opacity-50"
+                    onClick={() => {
+                        const p = window.prompt("Describe your Masterpiece:");
+                        if (p) handleManualLaunch('art', p);
+                    }}
+                    className="group relative p-8 bg-slate-900 border border-fuchsia-500/30 rounded-2xl hover:border-fuchsia-500 transition-all text-left"
                 >
                     <div className="mb-4 p-4 bg-fuchsia-500/10 rounded-full w-fit text-fuchsia-400">
                         <Palette size={32} />
@@ -208,6 +233,10 @@ const HivemindView = ({ user, globalApiKey }) => {
 
                 {activeMode === 'text' && (
                     <TextEngine prompt={incomingPrompt} apiKey={globalApiKey} />
+                )}
+
+                {activeMode === 'art' && (
+                    <ArtEngine prompt={incomingPrompt} apiKey={globalApiKey} />
                 )}
             </div>
         </div>
