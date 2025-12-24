@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Package, Github, Download, ExternalLink, CheckCircle, AlertTriangle, Edit3 } from 'lucide-react';
-import { generateProjectZip } from '../../utils/artifactEngine.js';
+import { generateProjectZip } from '../../../utils/artifactEngine.js';
 
 const DeploymentDeck = ({ projectData, githubToken, onSaveToken, onDeploy }) => {
     const [deployStatus, setDeployStatus] = useState('idle');
