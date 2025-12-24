@@ -14,8 +14,8 @@ export default async function handler(req, res) {
         if (!prompt) throw new Error("No prompt provided.");
 
         // 2. Call Google Imagen 3 (via REST API)
-        // Note: We use 'predict' endpoint for image generation models
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict?key=${apiKey}`;
+        // UPDATED MODEL: imagen-3.0-generate-002
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
 
         const response = await fetch(url, {
             method: 'POST',
@@ -26,8 +26,7 @@ export default async function handler(req, res) {
                 ],
                 parameters: {
                     sampleCount: 1,
-                    // You can explicitly set aspectRatio here (e.g., "16:9", "1:1") 
-                    // or let the prompt dictate it.
+                    // Imagen 3 supports: "1:1", "3:4", "4:3", "9:16", "16:9"
                     aspectRatio: "1:1"
                 }
             })
