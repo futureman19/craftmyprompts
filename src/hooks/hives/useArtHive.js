@@ -11,6 +11,10 @@ export const useArtHive = (initialKeys = {}) => {
     const [managerMessages, setManagerMessages] = useState([]);
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
+    // NEW: Image Generation State
+    const [generatedImage, setGeneratedImage] = useState(null);
+    const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+
     // Implicit Mode
     const mode = 'art';
 
@@ -195,7 +199,7 @@ export const useArtHive = (initialKeys = {}) => {
         finally { setLoading(false); }
     };
 
-    // --- STEP 6: GENERATE (The Gallery) ---
+    // --- STEP 6: GENERATE (The Gallery + The Darkroom) ---
     const generateImage = async () => {
         setLoading(true);
         setCurrentPhase('gallery');
@@ -204,18 +208,47 @@ export const useArtHive = (initialKeys = {}) => {
         const fullContext = history.map(m => `${m.role}: ${m.text}`).join('\n\n');
 
         try {
-            // FIX: Call 'gallery' (The Specialist), not 'manager' (The Generalist)
+            // A. Call Gallery Agent (Text)
             const data = await callAgent('gallery', "Create the final optimized prompt.", fullContext);
             const msg = data.swarm[0];
-
-            // Ensure the role is set correctly for the UI to recognize it
             const cleanContent = cleanJson(msg.content);
+
+            // Save text history immediately so the user sees the prompt
             setHistory(prev => [...prev, { ...msg, content: cleanContent, role: 'The Gallery', type: 'final' }]);
+
+            // B. Call Darkroom (Image)
+            const parsedData = JSON.parse(cleanContent);
+
+            if (parsedData.final_prompt) {
+                setLoading(false); // Text is done
+                setIsGeneratingImage(true); // Image starts
+                setStatusMessage("Developing image in Darkroom...");
+
+                const keys = getEffectiveKeys();
+
+                const imgResponse = await fetch('/api/imagine', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        prompt: parsedData.final_prompt,
+                        apiKey: keys.gemini // Imagen requires Gemini Key
+                    })
+                });
+
+                const imgData = await imgResponse.json();
+
+                if (!imgResponse.ok) throw new Error(imgData.error || "Image Generation Failed");
+
+                setGeneratedImage(imgData.image);
+                setStatusMessage("Masterpiece developed successfully.");
+            }
+
         } catch (e) {
             console.error(e);
-            setStatusMessage("Generation Failed: " + e.message);
+            setStatusMessage("Error: " + e.message);
         } finally {
             setLoading(false);
+            setIsGeneratingImage(false);
         }
     };
 
@@ -267,6 +300,9 @@ export const useArtHive = (initialKeys = {}) => {
         isDrawerOpen,
         setIsDrawerOpen,
         handleManagerFeedback,
-        mode
+        mode,
+        // NEW EXPORTS
+        generatedImage,
+        isGeneratingImage
     };
 };

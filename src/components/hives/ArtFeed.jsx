@@ -15,7 +15,9 @@ const ArtFeed = ({ initialPrompt, onStateChange }) => {
     const {
         history, currentPhase, loading, statusMessage,
         startMission, submitChoices, submitSpecs, sendToAudit, refineBlueprint, generateImage,
-        managerMessages, isDrawerOpen, setIsDrawerOpen, handleManagerFeedback
+        managerMessages, isDrawerOpen, setIsDrawerOpen, handleManagerFeedback,
+        // NEW IMPORTS
+        generatedImage, isGeneratingImage
     } = useArtHive();
 
     const [hasStarted, setHasStarted] = useState(false);
@@ -102,30 +104,72 @@ const ArtFeed = ({ initialPrompt, onStateChange }) => {
         return <ArtCriticDeck data={data} onConfirm={refineBlueprint} />;
     };
 
-    // PHASE 5: GALLERY (Final Output)
+    // PHASE 5: GALLERY (Final Output + Image)
     const renderGallery = (msg) => {
         const data = parseAgentJson(msg);
         if (!data || !data.final_prompt) return null;
 
         return (
-            <div className="w-full max-w-3xl mx-auto mt-8 animate-in slide-in-from-bottom-4 relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 blur-3xl -z-10" />
-                <div className="bg-slate-900/80 backdrop-blur-md border border-purple-500/50 p-6 rounded-2xl shadow-2xl">
+            <div className="w-full max-w-4xl mx-auto mt-8 animate-in slide-in-from-bottom-4 relative pb-20">
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-pink-500/10 blur-3xl -z-10" />
+
+                {/* 1. THE IMAGE FRAME */}
+                <div className="mb-6 bg-black rounded-xl border border-slate-800 overflow-hidden shadow-2xl relative min-h-[300px] flex items-center justify-center group">
+
+                    {/* A. Loading State */}
+                    {isGeneratingImage && (
+                        <div className="text-center space-y-4">
+                            <div className="relative w-16 h-16 mx-auto">
+                                <div className="absolute inset-0 border-4 border-slate-800 rounded-full"></div>
+                                <div className="absolute inset-0 border-4 border-t-purple-500 rounded-full animate-spin"></div>
+                            </div>
+                            <p className="text-purple-400 font-mono text-xs animate-pulse">
+                                Developing Negative...
+                            </p>
+                        </div>
+                    )}
+
+                    {/* B. The Masterpiece */}
+                    {generatedImage && (
+                        <div className="relative w-full h-full">
+                            <img
+                                src={generatedImage}
+                                alt="Generated Masterpiece"
+                                className="w-full h-auto object-contain max-h-[600px] animate-in fade-in duration-1000"
+                            />
+                            {/* Download Action (Hover) */}
+                            <a
+                                href={generatedImage}
+                                download={`hivemind-art-${Date.now()}.png`}
+                                className="absolute top-4 right-4 p-2 bg-black/50 backdrop-blur hover:bg-white text-white hover:text-black rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                                title="Download Image"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></svg>
+                            </a>
+                        </div>
+                    )}
+
+                    {/* C. Placeholder (Before Generation starts) */}
+                    {!generatedImage && !isGeneratingImage && (
+                        <div className="text-slate-600 flex flex-col items-center">
+                            <Palette size={48} className="mb-2 opacity-20" />
+                            <span className="text-xs">Waiting for prompt approval...</span>
+                        </div>
+                    )}
+                </div>
+
+                {/* 2. THE PROMPT CONSOLE */}
+                <div className="bg-slate-900/90 backdrop-blur-md border border-purple-500/30 p-6 rounded-2xl shadow-xl">
                     <div className="flex items-center gap-3 mb-4">
                         <div className="p-2 bg-purple-500/20 rounded-lg text-purple-300">
-                            <Terminal size={24} />
+                            <Terminal size={20} />
                         </div>
-                        <h3 className="text-lg font-bold text-white">Final Generation Prompt</h3>
+                        <h3 className="text-sm font-bold text-white uppercase tracking-wider">Prompt Console</h3>
                     </div>
-                    <p className="text-sm text-slate-400 mb-4 italic">{data.synthesis_summary}</p>
+                    <p className="text-sm text-slate-400 mb-4 italic">"{data.synthesis_summary}"</p>
 
-                    {/* The Final Prompt Box */}
-                    <div className="bg-black/50 p-4 rounded-xl border border-slate-700 font-mono text-sm text-purple-100 whitespace-pre-wrap select-all">
+                    <div className="bg-black/80 p-4 rounded-xl border border-slate-700 font-mono text-xs text-purple-100 whitespace-pre-wrap select-all">
                         {data.final_prompt}
-                    </div>
-
-                    <div className="mt-4 text-center text-xs text-slate-500">
-                        Ready for DALL-E 3 / Midjourney. Copy the prompt above.
                     </div>
                 </div>
             </div>
