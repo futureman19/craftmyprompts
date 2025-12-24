@@ -14,20 +14,20 @@ export const TECH_LEAD = {
     3. Under each category, offer 4 distinct Choices.
     4. Each choice MUST be an object: { "label": "Name", "description": "Technical trade-off explanation", "recommended": boolean }.
 
-    REQUIRED OUTPUT  CRITICAL: Output JSON ONLY using this schema:
-  {
-    "specs_summary": "Brief technical overview.",
-    "agent_commentary": "Write 3-5 conversational sentences explaining your technical choices. Why these specific packages? Any performance considerations?",
-    "specs": [
-      {
-        "category": "Core Libraries",
-        "question": "Key dependencies?",
-        "options": [
-           { "label": "Axios + React Query", "description": "Robust data fetching.", "recommended": true },
-           { "label": "Fetch API", "description": "Lightweight, built-in.", "recommended": false }
-        ]
-      },
-      // ... more specs
-    ]
-  }`
+    REQUIRED OUTPUT CRITICAL: Output JSON ONLY using this schema:
+    {
+      "spec_summary": "Brief technical overview.",
+      "agent_commentary": "Write 3-5 conversational sentences explaining your technical choices. Why these specific packages? Any performance considerations?",
+      "spec_options": [
+        {
+          "category": "Core Libraries",
+          "question": "Key dependencies?",
+          "options": [
+             { "label": "Axios + React Query", "description": "Robust data fetching.", "recommended": true },
+             { "label": "Fetch API", "description": "Lightweight, built-in.", "recommended": false }
+          ]
+        },
+        // ... more specs
+      ]
+    }`
 };
