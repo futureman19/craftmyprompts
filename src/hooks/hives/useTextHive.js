@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 export const useTextHive = (initialKeys = {}) => {
     // --- STATE ---
     const [history, setHistory] = useState([]);
-    const [currentPhase, setCurrentPhase] = useState('idle'); // 'idle', 'vision', 'spec', 'blueprint', 'critique', 'done'
+    const [currentPhase, setCurrentPhase] = useState('idle'); // 'idle', 'vision', 'specs', 'blueprint', 'drafting', 'critique', 'done'
     const [statusMessage, setStatusMessage] = useState('');
     const [loading, setLoading] = useState(false);
     const [contextData, setContextData] = useState({});
@@ -43,6 +43,7 @@ export const useTextHive = (initialKeys = {}) => {
                 targetAgentId: agentId,
                 context,
                 keys: effectiveKeys,
+                category: 'text',
                 ...extraPayload
             })
         });
@@ -112,7 +113,7 @@ export const useTextHive = (initialKeys = {}) => {
         const role = 'The Scribe';
         const id = 'scribe';
 
-        setStatusMessage(`${role} is drafting the content...`);
+        setStatusMessage(`${role} is outlining the narrative...`);
 
         const newContext = { ...contextData, specs };
         setContextData(newContext);
@@ -124,7 +125,8 @@ export const useTextHive = (initialKeys = {}) => {
         `;
 
         try {
-            const data = await callAgent(id, "Generate the content draft based on these specs.", contextString);
+            // NEW: Ask for structural blueprint/outline
+            const data = await callAgent(id, "Create a structural blueprint (The Outline).", contextString);
             const rawMsg = data.swarm[0];
             const cleanContent = cleanJson(rawMsg.content);
             setHistory(prev => [...prev, { ...rawMsg, content: cleanContent, text: cleanContent, role: role, type: 'blueprint' }]);
@@ -132,7 +134,31 @@ export const useTextHive = (initialKeys = {}) => {
         finally { setLoading(false); }
     };
 
-    // --- STEP 4: CRITIC (Audit) ---
+    // --- STEP 4: DRAFTING (The Publisher) ---
+    const generateDraft = async () => {
+        setLoading(true);
+        setCurrentPhase('drafting');
+
+        const role = 'The Publisher';
+        const id = 'publisher';
+
+        setStatusMessage(`${role} is writing the first draft...`);
+
+        // Collate context: Editor (Strategy) + Linguist (Voice) + Scribe (Outline)
+        const fullContext = history.map(m => `${m.role}: ${m.text}`).join('\n\n');
+
+        try {
+            // NEW: Execute the writing phase
+            const data = await callAgent(id, "Write the FINAL CONTENT based strictly on the approved Outline.", fullContext);
+            const rawMsg = data.swarm[0];
+            const cleanContent = cleanJson(rawMsg.content);
+            setHistory(prev => [...prev, { ...rawMsg, content: cleanContent, text: cleanContent, role: role, type: 'draft' }]);
+
+        } catch (e) { console.error(e); }
+        finally { setLoading(false); }
+    };
+
+    // --- STEP 5: CRITIC (Audit) ---
     const sendToAudit = async () => {
         setLoading(true);
         setCurrentPhase('critique');
@@ -143,21 +169,24 @@ export const useTextHive = (initialKeys = {}) => {
         try {
             const data = await callAgent('critic', "Review this content draft for tone, clarity, and consistency.", fullContext);
             const msg = data.swarm[0];
-            setHistory(prev => [...prev, { ...msg, text: msg.content, role: 'The Critic', type: 'critique' }]);
+
+            // Note: Use 'critique' type to match UI
+            const cleanContent = cleanJson(msg.content);
+            setHistory(prev => [...prev, { ...msg, content: cleanContent, text: cleanContent, role: 'The Critic', type: 'critique' }]);
         } catch (e) { console.error(e); }
         finally { setLoading(false); }
     };
 
-    // --- STEP 5: FINAL (Instant Publish) ---
+    // --- STEP 6: FINAL (Instant Publish - Optional loop back or finish) ---
     const compileBuild = async () => {
         setLoading(true);
         setStatusMessage('Finalizing content...');
 
         const finalEntry = {
-            role: 'The Publisher',
+            role: 'System',
             content: 'Content finalized.',
             text: 'Content finalized.',
-            type: 'final',
+            type: 'final_done', // Distinct from Art Hive 'final'
             timestamp: Date.now()
         };
 
@@ -183,15 +212,22 @@ export const useTextHive = (initialKeys = {}) => {
 
             setManagerMessages(prev => [...prev, { role: 'assistant', content: decision.reply }]);
 
+            // Pivot Logic
             if (decision.target_phase === 'specs') {
                 setStatusMessage("Manager: Rewinding to Tone Calibration...");
                 const updatedStrategy = { ...contextData.strategy, _refinement: decision.refined_instruction };
                 await submitChoices(updatedStrategy);
             }
             else if (decision.target_phase === 'blueprint') {
-                setStatusMessage("Manager: Updating Content Draft...");
+                setStatusMessage("Manager: Updating Outline...");
                 const updatedSpecs = { ...contextData.specs, _refinement: decision.refined_instruction };
                 await submitSpecs(updatedSpecs);
+            }
+            else if (decision.target_phase === 'drafting') {
+                setStatusMessage("Manager: Rewriting Draft...");
+                // Re-trigger publisher with new context override if possible, 
+                // for now just simple re-run or rely on context accumulation
+                await generateDraft();
             }
             else if (decision.target_phase === 'vision') {
                 setStatusMessage("Manager: Rebooting Strategy...");
@@ -214,6 +250,7 @@ export const useTextHive = (initialKeys = {}) => {
         startMission,
         submitChoices,
         submitSpecs,
+        generateDraft, // NEW
         sendToAudit,
         compileBuild,
         managerMessages,
