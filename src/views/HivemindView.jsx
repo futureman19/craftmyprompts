@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Users, Code2, Palette, Edit3, Zap } from 'lucide-react';
 
 // --- IMPORT DEDICATED ENGINES ---
-// (Ensure these files exist in src/hooks/hives/ and src/components/hives/)
 import { useCodingHive } from '../hooks/hives/useCodingHive.js';
 import CodingFeed from '../components/hives/CodingFeed.jsx';
 
@@ -55,8 +54,6 @@ const CodingEngine = ({ prompt, apiKey }) => {
 
 const TextEngine = ({ prompt, apiKey }) => {
     // TextFeed is now self-contained (The Orchestrator)
-    // We just pass the prompt to kickstart it.
-
     return (
         <TextFeed
             initialPrompt={prompt}
@@ -88,14 +85,8 @@ const VideoEngine = ({ prompt, apiKey }) => {
 
     return (
         <VideoFeed
-            history={hive.history}
-            loading={hive.loading}
-            statusMessage={hive.statusMessage}
-            currentPhase={hive.currentPhase}
-            actions={{
-                submitConcept: hive.submitConcept,
-                submitSpecs: hive.submitSpecs
-            }}
+            initialPrompt={prompt} // VideoFeed handles the startMission internally via useEffect if prompt exists
+            onStateChange={(phase) => console.log('Video Phase:', phase)}
         />
     );
 };
@@ -107,7 +98,6 @@ const HivemindView = ({ user, globalApiKey }) => {
     const navigate = useNavigate();
 
     // 1. Determine Mode & Prompt
-    // If arriving from Builder, we have state. If fresh load, we are idle.
     const incomingPrompt = location.state?.prompt || '';
     const incomingMode = location.state?.category || null;
 
@@ -194,7 +184,7 @@ const HivemindView = ({ user, globalApiKey }) => {
                     <p className="text-slate-400 text-sm">Draft blogs, threads, and copy.</p>
                 </button>
 
-                {/* ART (Placeholder for now) */}
+                {/* ART */}
                 <button
                     onClick={() => {
                         const p = window.prompt("Describe your Masterpiece:");
@@ -209,7 +199,7 @@ const HivemindView = ({ user, globalApiKey }) => {
                     <p className="text-slate-400 text-sm">Generate ultra-realistic prompts.</p>
                 </button>
 
-                {/* VIDEO (Placeholder for now) */}
+                {/* VIDEO */}
                 <button
                     onClick={() => {
                         const p = window.prompt("Describe the video concept:");
