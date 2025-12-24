@@ -13,9 +13,9 @@ export default async function handler(req, res) {
         if (!apiKey) throw new Error("Missing Google API Key. Please add it in Settings.");
         if (!prompt) throw new Error("No prompt provided.");
 
-        // 2. Call Google Imagen 3 (via REST API)
-        // UPDATED MODEL: imagen-3.0-generate-002
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
+        // 2. Call Google Imagen 4 (via REST API)
+        // CTO NOTE: Updated to the latest stable model found in your docs
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=${apiKey}`;
 
         const response = await fetch(url, {
             method: 'POST',
@@ -26,7 +26,7 @@ export default async function handler(req, res) {
                 ],
                 parameters: {
                     sampleCount: 1,
-                    // Imagen 3 supports: "1:1", "3:4", "4:3", "9:16", "16:9"
+                    // Imagen 4 supports: "1:1", "3:4", "4:3", "9:16", "16:9"
                     aspectRatio: "1:1"
                 }
             })
@@ -36,7 +36,8 @@ export default async function handler(req, res) {
 
         if (!response.ok) {
             console.error("Google API Error:", data);
-            throw new Error(data.error?.message || "Imagen Generation Failed");
+            // Enhanced error logging to help us debug if it fails again
+            throw new Error(data.error?.message || `Imagen Generation Failed: ${data.error?.status || 'Unknown Error'}`);
         }
 
         // 3. Extract Image Data
