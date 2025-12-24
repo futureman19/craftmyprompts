@@ -1,25 +1,25 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 export const useTextHive = (initialKeys = {}) => {
     // --- STATE ---
     const [history, setHistory] = useState([]);
-    const [currentPhase, setCurrentPhase] = useState('idle'); // 'idle', 'vision', 'specs', 'blueprint', 'drafting', 'critique', 'done'
+    const [currentPhase, setCurrentPhase] = useState('idle'); // idle, editor, linguist, scribe, critic, publisher
     const [statusMessage, setStatusMessage] = useState('');
     const [loading, setLoading] = useState(false);
-    const [contextData, setContextData] = useState({});
+    const [contextData, setContextData] = useState({}); // Stores: { originalPrompt, strategy, voice, outline }
     const [managerMessages, setManagerMessages] = useState([]);
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
     // Implicit Mode
     const mode = 'text';
 
-    // --- HELPER: CLEAN JSON (Strip Markdown) ---
+    // --- HELPER: CLEAN JSON ---
     const cleanJson = (text) => {
         if (!text) return "";
         return text.replace(/```json/g, '').replace(/```/g, '').trim();
     };
 
-    // --- KEY MANAGEMENT (Self-Healing) ---
+    // --- KEY MANAGEMENT ---
     const getEffectiveKeys = () => ({
         gemini: localStorage.getItem('gemini_key') || initialKeys.gemini || '',
         openai: localStorage.getItem('openai_key') || initialKeys.openai || '',
@@ -27,12 +27,13 @@ export const useTextHive = (initialKeys = {}) => {
         groq: localStorage.getItem('groq_key') || initialKeys.groq || ''
     });
 
-    // --- HELPER: CALL API (Targeted) ---
+    // --- HELPER: CALL API ---
     const callAgent = async (agentId, prompt, context = "", extraPayload = {}) => {
         const effectiveKeys = getEffectiveKeys();
 
+        // Basic key check
         if (!effectiveKeys.openai && !effectiveKeys.gemini) {
-            throw new Error("No API Keys found. Please add an OpenAI or Gemini key in Settings.");
+            throw new Error("No API Keys found. Please add them in Settings.");
         }
 
         const response = await fetch('/api/swarm', {
@@ -49,194 +50,216 @@ export const useTextHive = (initialKeys = {}) => {
         });
 
         if (!response.ok) {
-            let errMsg = "Agent Unreachable";
-            try {
-                const errData = await response.json();
-                errMsg = errData.error || errMsg;
-            } catch (e) { }
-            throw new Error(errMsg);
+            const errData = await response.json();
+            throw new Error(errData.error || "Agent Unreachable");
         }
 
         return await response.json();
     };
 
-    // --- STEP 1: VISION (The Editor-in-Chief) ---
+    // --- STEP 1: THE EDITOR (Strategy) ---
     const startMission = async (userPrompt) => {
-        console.log("🚀 Starting Text Mission:", { prompt: userPrompt });
-
         setLoading(true);
         setHistory([]);
-        setCurrentPhase('vision');
+        setCurrentPhase('editor');
+        setStatusMessage('Editor-in-Chief is reviewing the brief...');
 
-        const role = 'The Editor-in-Chief';
-        const id = 'editor';
-
-        setStatusMessage(`${role} is analyzing your request...`);
+        // Save original request
         setContextData({ originalPrompt: userPrompt, mode: 'text' });
 
         try {
-            const data = await callAgent(id, userPrompt);
+            const data = await callAgent('editor', `User Request: "${userPrompt}". Propose editorial strategies.`);
             const rawMsg = data.swarm[0];
             const cleanContent = cleanJson(rawMsg.content);
-            setHistory([{ ...rawMsg, content: cleanContent, text: cleanContent, role: role, type: 'vision_options' }]);
-        } catch (e) { console.error(e); setStatusMessage("Error: " + e.message); }
-        finally { setLoading(false); }
+
+            setHistory([{
+                ...rawMsg,
+                content: cleanContent,
+                text: cleanContent,
+                role: 'Editor-in-Chief',
+                type: 'strategy_options'
+            }]);
+        } catch (e) {
+            console.error(e);
+            setStatusMessage("Error: " + e.message);
+        } finally {
+            setLoading(false);
+        }
     };
 
-    // --- STEP 2: SPECS (The Linguist) ---
-    const submitChoices = async (choices) => {
+    // --- STEP 2: THE LINGUIST (Voice & Tone) ---
+    const submitChoices = async (choice) => {
         setLoading(true);
-        setCurrentPhase('specs');
+        setCurrentPhase('linguist');
+        setStatusMessage('The Linguist is analyzing voice profiles...');
 
-        const role = 'The Linguist';
-        const id = 'linguist';
+        // 1. Handle Auto-Pilot
+        const isAutoPilot = !choice;
+        const strategyContext = isAutoPilot
+            ? "AUTO-PILOT: Choose the best strategy for the user's request."
+            : `SELECTED STRATEGY: ${choice}`;
 
-        setStatusMessage(`${role} is creating the style guide...`);
-        const newContext = { ...contextData, strategy: choices };
-        setContextData(newContext);
-        const contextString = `ORIGINAL PROMPT: "${newContext.originalPrompt}"\nSTRATEGY CHOICES: ${JSON.stringify(choices)}`;
-
-        try {
-            const data = await callAgent(id, "Define tone, voice, and style based on this strategy.", contextString);
-            const rawMsg = data.swarm[0];
-            const cleanContent = cleanJson(rawMsg.content);
-            setHistory(prev => [...prev, { ...rawMsg, content: cleanContent, text: cleanContent, role: role, type: 'spec_options' }]);
-        } catch (e) { console.error(e); }
-        finally { setLoading(false); }
-    };
-
-    // --- STEP 3: BLUEPRINT (The Scribe) ---
-    const submitSpecs = async (specs) => {
-        setLoading(true);
-        setCurrentPhase('blueprint');
-
-        const role = 'The Scribe';
-        const id = 'scribe';
-
-        setStatusMessage(`${role} is outlining the narrative...`);
-
-        const newContext = { ...contextData, specs };
+        // 2. Update Context
+        const newContext = { ...contextData, strategy: choice || "Auto-Pilot" };
         setContextData(newContext);
 
-        const contextString = `
-        ORIGINAL PROMPT: "${newContext.originalPrompt}"
-        STRATEGY CHOICES: ${JSON.stringify(newContext.strategy)}
-        TECHNICAL SPECS: ${JSON.stringify(specs)}
-        `;
-
         try {
-            // NEW: Ask for structural blueprint/outline
-            const data = await callAgent(id, "Create a structural blueprint (The Outline).", contextString);
+            const contextString = `ORIGINAL REQUEST: "${newContext.originalPrompt}"\n${strategyContext}`;
+            const data = await callAgent('linguist', "Define the specific Tone and Vocabulary options.", contextString);
+
             const rawMsg = data.swarm[0];
             const cleanContent = cleanJson(rawMsg.content);
-            setHistory(prev => [...prev, { ...rawMsg, content: cleanContent, text: cleanContent, role: role, type: 'blueprint' }]);
+
+            setHistory(prev => [...prev, {
+                ...rawMsg,
+                content: cleanContent,
+                text: cleanContent,
+                role: 'The Linguist',
+                type: 'spec_options'
+            }]);
         } catch (e) { console.error(e); }
         finally { setLoading(false); }
     };
 
-    // --- STEP 4: DRAFTING (The Publisher) ---
-    const generateDraft = async () => {
+    // --- STEP 3: THE SCRIBE (Outline/Blueprint) ---
+    const submitSpecs = async (voiceChoice) => {
         setLoading(true);
-        setCurrentPhase('drafting');
+        setCurrentPhase('scribe');
+        setStatusMessage('The Scribe is drafting the outline...');
 
-        const role = 'The Publisher';
-        const id = 'publisher';
+        // 1. Handle Auto-Pilot
+        const isAutoPilot = !voiceChoice;
+        const voiceContext = isAutoPilot
+            ? "AUTO-PILOT: Choose the best voice/tone."
+            : `SELECTED VOICE: ${voiceChoice}`;
 
-        setStatusMessage(`${role} is writing the first draft...`);
-
-        // Collate context: Editor (Strategy) + Linguist (Voice) + Scribe (Outline)
-        const fullContext = history.map(m => `${m.role}: ${m.text}`).join('\n\n');
+        // 2. Update Context
+        const newContext = { ...contextData, voice: voiceChoice || "Auto-Pilot" };
+        setContextData(newContext);
 
         try {
-            // NEW: Execute the writing phase
-            const data = await callAgent(id, "Write the FINAL CONTENT based strictly on the approved Outline.", fullContext);
+            const contextString = `
+            ORIGINAL REQUEST: "${newContext.originalPrompt}"
+            STRATEGY: ${newContext.strategy}
+            ${voiceContext}
+            `;
+
+            const data = await callAgent('scribe', "Create a structural outline (Blueprint) for this text.", contextString);
+
             const rawMsg = data.swarm[0];
             const cleanContent = cleanJson(rawMsg.content);
-            setHistory(prev => [...prev, { ...rawMsg, content: cleanContent, text: cleanContent, role: role, type: 'draft' }]);
 
+            setHistory(prev => [...prev, {
+                ...rawMsg,
+                content: cleanContent,
+                text: cleanContent,
+                role: 'The Scribe',
+                type: 'blueprint'
+            }]);
         } catch (e) { console.error(e); }
         finally { setLoading(false); }
     };
 
-    // --- STEP 5: CRITIC (Audit) ---
+    // --- STEP 4: THE CRITIC (Audit) ---
     const sendToAudit = async () => {
         setLoading(true);
-        setCurrentPhase('critique');
-        setStatusMessage('The Critic is reviewing for tone and clarity...');
+        setCurrentPhase('critic');
+        setStatusMessage('The Critic is reviewing the outline...');
 
         const fullContext = history.map(m => `${m.role}: ${m.text}`).join('\n\n');
 
         try {
-            const data = await callAgent('critic', "Review this content draft for tone, clarity, and consistency.", fullContext);
-            const msg = data.swarm[0];
+            // Note: We use the generic 'critic' but the prompt frames it for TEXT
+            const data = await callAgent('critic', "Review this OUTLINE for flow, logic, and missing hooks.", fullContext);
 
-            // Note: Use 'critique' type to match UI
+            const msg = data.swarm[0];
             const cleanContent = cleanJson(msg.content);
-            setHistory(prev => [...prev, { ...msg, content: cleanContent, text: cleanContent, role: 'The Critic', type: 'critique' }]);
+
+            setHistory(prev => [...prev, {
+                ...msg,
+                content: cleanContent,
+                text: cleanContent,
+                role: 'The Critic',
+                type: 'critique'
+            }]);
         } catch (e) { console.error(e); }
         finally { setLoading(false); }
     };
 
-    // --- STEP 6: FINAL (Instant Publish - Optional loop back or finish) ---
-    const compileBuild = async () => {
+    // --- STEP 5: REFINE (Loop back to Scribe) ---
+    const refineBlueprint = async (critiqueSelections) => {
         setLoading(true);
-        setStatusMessage('Finalizing content...');
+        setCurrentPhase('scribe');
+        setStatusMessage('The Scribe is revising the outline...');
 
-        const finalEntry = {
-            role: 'System',
-            content: 'Content finalized.',
-            text: 'Content finalized.',
-            type: 'final_done', // Distinct from Art Hive 'final'
-            timestamp: Date.now()
-        };
+        const isAutoPilot = Object.keys(critiqueSelections).length === 0;
+        let feedback = isAutoPilot ? "AUTO-FIX: Resolve all high severity issues." : JSON.stringify(critiqueSelections);
 
-        // NO TIMEOUT. Update History AND Phase in the same cycle.
-        setHistory(prev => [...prev, finalEntry]);
-        setCurrentPhase('done');
-        setLoading(false);
+        const contextString = `CRITICAL FEEDBACK: ${feedback}\nTASK: Adjust the outline structure accordingly.`;
+
+        try {
+            const data = await callAgent('scribe', "Refine the outline.", contextString);
+
+            const rawMsg = data.swarm[0];
+            const cleanContent = cleanJson(rawMsg.content);
+
+            setHistory(prev => [...prev, {
+                ...rawMsg,
+                content: cleanContent,
+                text: cleanContent,
+                role: 'The Scribe',
+                type: 'blueprint'
+            }]);
+        } catch (e) { console.error(e); }
+        finally { setLoading(false); }
     };
 
-    // --- SWARM OPS: MANAGER FEEDBACK ---
+    // --- STEP 6: PUBLISHER (Final Write) ---
+    const compileManuscript = async () => {
+        setLoading(true);
+        setCurrentPhase('publisher');
+        setStatusMessage('The Publisher is writing the final draft...');
+
+        const fullContext = history.map(m => `${m.role}: ${m.text}`).join('\n\n');
+
+        try {
+            const data = await callAgent('publisher', "Write the full final content based on the approved outline.", fullContext);
+
+            const msg = data.swarm[0];
+            const cleanContent = cleanJson(msg.content);
+
+            setHistory(prev => [...prev, {
+                ...msg,
+                content: cleanContent,
+                text: cleanContent,
+                role: 'The Publisher',
+                type: 'final'
+            }]);
+        } catch (e) { console.error(e); }
+        finally { setLoading(false); }
+    };
+
+    // --- MANAGER FEEDBACK (Global) ---
     const handleManagerFeedback = async (userText, setInput) => {
         if (!userText.trim()) return;
-
-        const userMsg = { role: 'user', content: userText };
-        setManagerMessages(prev => [...prev, userMsg]);
+        setManagerMessages(prev => [...prev, { role: 'user', content: userText }]);
         setInput('');
         setLoading(true);
 
         try {
             const contextString = `Current Phase: ${currentPhase}\nUser Request: ${userText}`;
-            const data = await callAgent('manager', "Analyze feedback and direct the swarm.", contextString);
-            const decision = JSON.parse(cleanJson(data.swarm[0].content));
+            const data = await callAgent('manager', "Direct the Text Swarm based on feedback.", contextString);
 
+            const decision = JSON.parse(cleanJson(data.swarm[0].content));
             setManagerMessages(prev => [...prev, { role: 'assistant', content: decision.reply }]);
 
-            // Pivot Logic
-            if (decision.target_phase === 'specs') {
-                setStatusMessage("Manager: Rewinding to Tone Calibration...");
-                const updatedStrategy = { ...contextData.strategy, _refinement: decision.refined_instruction };
-                await submitChoices(updatedStrategy);
-            }
-            else if (decision.target_phase === 'blueprint') {
-                setStatusMessage("Manager: Updating Outline...");
-                const updatedSpecs = { ...contextData.specs, _refinement: decision.refined_instruction };
-                await submitSpecs(updatedSpecs);
-            }
-            else if (decision.target_phase === 'drafting') {
-                setStatusMessage("Manager: Rewriting Draft...");
-                // Re-trigger publisher with new context override if possible, 
-                // for now just simple re-run or rely on context accumulation
-                await generateDraft();
-            }
-            else if (decision.target_phase === 'vision') {
-                setStatusMessage("Manager: Rebooting Strategy...");
-                startMission(contextData.originalPrompt + " " + decision.refined_instruction);
-            }
+            // Pivot Logic (Manager can move us back)
+            if (decision.target_phase === 'editor') startMission(userText);
+            if (decision.target_phase === 'linguist') submitChoices(contextData.strategy);
 
         } catch (e) {
             console.error(e);
-            setManagerMessages(prev => [...prev, { role: 'assistant', content: "Error: I couldn't process that request." }]);
+            setManagerMessages(prev => [...prev, { role: 'assistant', content: "I couldn't process that." }]);
         } finally {
             setLoading(false);
         }
@@ -250,9 +273,9 @@ export const useTextHive = (initialKeys = {}) => {
         startMission,
         submitChoices,
         submitSpecs,
-        generateDraft, // NEW
         sendToAudit,
-        compileBuild,
+        refineBlueprint,
+        compileManuscript,
         managerMessages,
         isDrawerOpen,
         setIsDrawerOpen,

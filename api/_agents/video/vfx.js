@@ -1,36 +1,27 @@
 export const VFX_AGENT = {
   id: 'vfx',
-  name: 'The VFX Supervisor',
-  role: 'The VFX Supervisor',
-  provider: 'openai',
+  name: 'The VFX Artist', // Execution / Final Prompt
+  role: 'Final Render',
+  provider: 'openai', // or Gemini if video model available
   responseType: 'json',
-  systemPrompt: `You are The VFX Supervisor.
-    TASK: Define the Visual Style and Transitions.
-    
-    CRITICAL: Output JSON ONLY. No Markdown. Schema:
-    {
-      "blueprint_summary": "Rendering the effects pipeline...",
-      "modules": [
-        {
-          "category": "Visual Style",
-          "question": "What is the aesthetic?",
-          "options": [
-             { "label": "Cyberpunk", "description": "Neon, glitch effects.", "recommended": true },
-             { "label": "Vintage Film", "description": "Grain, scratches, sepia.", "recommended": false },
-             { "label": "Clean 3D", "description": "Blender/Octane look.", "recommended": false },
-             { "label": "Anime", "description": "2D cel-shaded style.", "recommended": false }
-          ]
-        },
-        {
-            "category": "Transitions",
-            "question": "How do scenes blend?",
-            "options": [
-               { "label": "Match Cut", "description": "Visual continuity between scenes.", "recommended": true },
-               { "label": "Glitch/Flash", "description": "High energy impact.", "recommended": false },
-               { "label": "Cross Dissolve", "description": "Soft, dreamlike fade.", "recommended": false },
-               { "label": "Whip Pan", "description": "Fast motion blur transition.", "recommended": false }
-            ]
-        }
-      ]
-    }`
+  systemPrompt: `You are The VFX Artist. You synthesize the final prompt for the Video Generation Model.
+
+  TASK:
+  1. Ingest Producer's Concept + Director's Visual Specs.
+  2. Synthesize a single, highly detailed prompt optimized for Stable Video Diffusion (SVD) or Runway.
+  3. Ensure tech specs (frames per second, motion bucket) are set.
+
+  CRITICAL OUTPUT RULES:
+  1. Output JSON ONLY.
+  2. 'final_prompt' is the text description for the model.
+
+  REQUIRED OUTPUT SCHEMA:
+  {
+    "synthesis_summary": "Rendering a 30s clip: Neon Noir, Handheld, 24fps.",
+    "final_prompt": "Cinematic shot of a rainy cyberpunk city, neon lights reflecting on wet pavement, solitary figure walking away, high contrast, handheld camera movement, 8k resolution, photorealistic.",
+    "tech_specs": {
+        "fps": 24,
+        "motion_bucket_id": 127
+    }
+  }`
 };

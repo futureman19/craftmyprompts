@@ -13,6 +13,9 @@ import TextFeed from '../components/hives/TextFeed.jsx';
 import { useArtHive } from '../hooks/hives/useArtHive.js';
 import ArtFeed from '../components/hives/ArtFeed.jsx';
 
+import { useVideoHive } from '../hooks/hives/useVideoHive.js';
+import VideoFeed from '../components/hives/VideoFeed.jsx';
+
 // --- WRAPPER COMPONENTS (Initialize the specific Brain) ---
 
 const CodingEngine = ({ prompt, apiKey }) => {
@@ -92,6 +95,31 @@ const ArtEngine = ({ prompt, apiKey }) => {
         <ArtFeed
             initialPrompt={prompt}
             onStateChange={(phase) => console.log('Art Phase:', phase)}
+        />
+    );
+};
+
+const VideoEngine = ({ prompt, apiKey }) => {
+    // Initialize the Video Brain
+    const hive = useVideoHive({ gemini: apiKey });
+
+    // Auto-start
+    React.useEffect(() => {
+        if (prompt && hive.currentPhase === 'idle') {
+            hive.startMission(prompt);
+        }
+    }, [prompt, hive]);
+
+    return (
+        <VideoFeed
+            history={hive.history}
+            loading={hive.loading}
+            statusMessage={hive.statusMessage}
+            currentPhase={hive.currentPhase}
+            actions={{
+                submitConcept: hive.submitConcept,
+                submitSpecs: hive.submitSpecs
+            }}
         />
     );
 };
@@ -207,8 +235,11 @@ const HivemindView = ({ user, globalApiKey }) => {
 
                 {/* VIDEO (Placeholder for now) */}
                 <button
-                    onClick={() => alert("Video Engine Upgrading... Please use Text or Coding for now.")}
-                    className="group relative p-8 bg-slate-900 border border-amber-500/30 rounded-2xl hover:border-amber-500 transition-all text-left opacity-50"
+                    onClick={() => {
+                        const p = window.prompt("Describe the video concept:");
+                        if (p) handleManualLaunch('video', p);
+                    }}
+                    className="group relative p-8 bg-slate-900 border border-amber-500/30 rounded-2xl hover:border-amber-500 transition-all text-left"
                 >
                     <div className="mb-4 p-4 bg-amber-500/10 rounded-full w-fit text-amber-400">
                         <Zap size={32} />
@@ -237,6 +268,10 @@ const HivemindView = ({ user, globalApiKey }) => {
 
                 {activeMode === 'art' && (
                     <ArtEngine prompt={incomingPrompt} apiKey={globalApiKey} />
+                )}
+
+                {activeMode === 'video' && (
+                    <VideoEngine prompt={incomingPrompt} apiKey={globalApiKey} />
                 )}
             </div>
         </div>
