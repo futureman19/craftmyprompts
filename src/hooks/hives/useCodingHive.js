@@ -91,6 +91,7 @@ export const useCodingHive = (initialKeys = {}) => {
     };
 
     // --- STEP 2: SPECS (The Tech Lead) ---
+    // --- STEP 2: SPECS (The Tech Lead) ---
     const submitChoices = async (choices) => {
         setLoading(true);
         setCurrentPhase('specs');
@@ -99,17 +100,33 @@ export const useCodingHive = (initialKeys = {}) => {
         const id = 'tech_lead';
 
         setStatusMessage(`${role} is defining specifications...`);
+
+        // 1. Detect Auto-Pilot (Empty Object)
+        const isAutoPilot = Object.keys(choices).length === 0;
+
+        // 2. Formulate Context
+        let contextString = `ORIGINAL PROMPT: "${contextData.originalPrompt}"\n`;
+
+        if (isAutoPilot) {
+            contextString += `STRATEGY DECISION: The User has selected AUTO-PILOT. You must choose the best strategy and technology stack yourself based on the prompt.`;
+        } else {
+            contextString += `STRATEGY CHOICES: ${JSON.stringify(choices)}`;
+        }
+
+        // 3. Save Context
         const newContext = { ...contextData, strategy: choices };
         setContextData(newContext);
-        const contextString = `ORIGINAL PROMPT: "${newContext.originalPrompt}"\nSTRATEGY CHOICES: ${JSON.stringify(choices)}`;
 
         try {
             const data = await callAgent(id, "Define technical specs based on this strategy.", contextString);
             const rawMsg = data.swarm[0];
             const cleanContent = cleanJson(rawMsg.content);
             setHistory(prev => [...prev, { ...rawMsg, content: cleanContent, text: cleanContent, role: role, type: 'spec_options' }]);
-        } catch (e) { console.error(e); }
-        finally { setLoading(false); }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setLoading(false);
+        }
     };
 
     // --- STEP 3: BLUEPRINT (The Architect) ---
