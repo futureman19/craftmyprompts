@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Folder, FileCode, Check, Edit, Layers, Code, Loader } from 'lucide-react';
+import { Folder, FileCode, Layers, Code, Loader } from 'lucide-react';
 
-const ProjectBlueprint = ({ structure = [], onApprove, onRefine }) => {
+const ProjectBlueprint = ({ structure = [] }) => {
     const [viewMode, setViewMode] = useState('tree'); // 'tree' | 'raw'
 
     // Safety check for data
@@ -81,21 +81,7 @@ const ProjectBlueprint = ({ structure = [], onApprove, onRefine }) => {
                 )}
             </div>
 
-            {/* Footer / Actions */}
-            <div className="p-3 bg-slate-950 border-t border-cyan-500/20 flex gap-3">
-                <button
-                    onClick={onRefine}
-                    className="flex-1 py-2 px-3 rounded-lg border border-slate-700 hover:border-slate-500 text-slate-400 hover:text-white text-xs font-bold transition-all flex items-center justify-center gap-2"
-                >
-                    <Edit size={14} /> Refine
-                </button>
-                <button
-                    onClick={onApprove}
-                    className="flex-[2] py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-900/20 transition-all flex items-center justify-center gap-2"
-                >
-                    <Check size={14} /> Approve & Build
-                </button>
-            </div>
+            {/* Footer Removed - Actions are now handled by CodingFeed */}
         </div>
     );
 };
