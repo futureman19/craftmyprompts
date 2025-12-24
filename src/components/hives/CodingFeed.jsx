@@ -2,12 +2,13 @@ import React from 'react';
 import { Loader, Layers, ShieldCheck, Zap, AlertTriangle, Bot } from 'lucide-react';
 
 // --- IMPORT AGENT DECKS ---
-import VisionaryDeck from '../agent/VisionaryDeck.jsx';
-import SpecsDeck from '../agent/SpecsDeck.jsx';
-import ProjectBlueprint from '../agent/ProjectBlueprint.jsx';
-import FileDeck from '../agent/FileDeck.jsx';
-import CriticDeck from '../agent/CriticDeck.jsx';
-import DeploymentDeck from '../agent/DeploymentDeck.jsx';
+// --- IMPORT AGENT DECKS ---
+import VisionaryDeck from '../agent/coding/VisionaryDeck.jsx';
+import SpecsDeck from '../agent/coding/SpecsDeck.jsx';
+import ProjectBlueprint from '../agent/coding/ProjectBlueprint.jsx';
+import FileDeck from '../agent/coding/FileDeck.jsx';
+import CriticDeck from '../agent/coding/CriticDeck.jsx';
+import DeploymentDeck from '../agent/coding/DeploymentDeck.jsx';
 
 // --- IMPORT FEEDBACK BAR (Restored) ---
 // Loading ManagerDrawer acting as Feedback Bar
