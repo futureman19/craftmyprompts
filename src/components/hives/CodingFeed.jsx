@@ -71,9 +71,14 @@ const CodingFeed = ({
         return <SpecsDeck data={data} mode="coding" onConfirm={actions.submitSpecs} />;
     };
 
+    // PHASE 3: BLUEPRINT (The Architect)
     const renderBlueprint = () => {
         const data = parseAgentJson(buildMsg, buildRole);
-        if (!data) return <div className="text-red-400 p-4 font-mono text-sm">Waiting for {buildRole}...</div>;
+
+        if (!data) {
+            if (buildMsg) return <div className="text-red-100 p-6 border-2 border-red-500 rounded-lg bg-red-900/30 font-mono text-sm whitespace-pre-wrap shadow-lg"><div className="text-red-400 font-bold mb-2">🚨 {buildRole} FAILED</div>{buildMsg.text}</div>;
+            return <div className="text-red-400 p-4 font-mono text-sm border border-red-900/50 rounded bg-red-900/10">Waiting for {buildRole}...</div>;
+        }
 
         return (
             <div className="w-full max-w-4xl mx-auto space-y-6 animate-in fade-in">
@@ -87,16 +92,34 @@ const CodingFeed = ({
                     </div>
                 </div>
 
-                <ProjectBlueprint structure={data?.structure} />
+                {/* 1. WIRE UP INTERNAL CARD BUTTONS 
+                    - onRefine -> Sends to Critic (Audit)
+                    - onApprove -> Skips Critic, goes straight to Build
+                */}
+                <ProjectBlueprint
+                    structure={data?.structure}
+                    onRefine={actions.sendToAudit}
+                    onApprove={actions.compileBuild}
+                />
+
                 {data?.modules && <FileDeck modules={data.modules} />}
 
                 {!loading && currentPhase === 'blueprint' && (
-                    <div className="flex justify-end pt-4">
+                    <div className="flex justify-end pt-4 gap-3">
+                        {/* Option A: The Standard Route (Check with Critic) */}
                         <button
                             onClick={actions.sendToAudit}
-                            className="px-6 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-cyan-900/20"
+                            className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold flex items-center gap-2 border border-slate-700 transition-colors"
                         >
                             <ShieldCheck size={18} /> Send to Audit
+                        </button>
+
+                        {/* Option B: The Fast Lane (Ship It!) */}
+                        <button
+                            onClick={actions.compileBuild}
+                            className="px-6 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-cyan-900/20 transition-all transform active:scale-95"
+                        >
+                            <Zap size={18} /> Approve & Build
                         </button>
                     </div>
                 )}
