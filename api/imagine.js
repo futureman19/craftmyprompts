@@ -8,13 +8,13 @@ export default async function handler(req, res) {
     if (!limitStatus.success) return res.status(429).json({ error: limitStatus.error });
 
     try {
-        const { prompt, apiKey } = req.body;
+        // CTO NOTE: We now accept technical specs from the frontend
+        const { prompt, apiKey, aspectRatio, personGeneration } = req.body;
 
         if (!apiKey) throw new Error("Missing Google API Key. Please add it in Settings.");
         if (!prompt) throw new Error("No prompt provided.");
 
         // 2. Call Google Imagen 4 (via REST API)
-        // CTO NOTE: Updated to the latest stable model found in your docs
         const url = `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=${apiKey}`;
 
         const response = await fetch(url, {
@@ -26,8 +26,12 @@ export default async function handler(req, res) {
                 ],
                 parameters: {
                     sampleCount: 1,
-                    // Imagen 4 supports: "1:1", "3:4", "4:3", "9:16", "16:9"
-                    aspectRatio: "1:1"
+                    // Dynamic Aspect Ratio (Default to 1:1 if undefined)
+                    aspectRatio: aspectRatio || "1:1",
+                    // Dynamic Person Filter (Default to allow_adult)
+                    personGeneration: personGeneration || "allow_adult",
+                    // Note: imageSize is rarely supported in the generic API, 
+                    // defaulting to standard resolution usually works best.
                 }
             })
         });
@@ -36,7 +40,6 @@ export default async function handler(req, res) {
 
         if (!response.ok) {
             console.error("Google API Error:", data);
-            // Enhanced error logging to help us debug if it fails again
             throw new Error(data.error?.message || `Imagen Generation Failed: ${data.error?.status || 'Unknown Error'}`);
         }
 
