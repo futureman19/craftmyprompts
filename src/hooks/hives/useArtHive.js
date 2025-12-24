@@ -162,7 +162,7 @@ export const useArtHive = (initialKeys = {}) => {
         const fullContext = history.map(m => `${m.role}: ${m.text}`).join('\n\n');
 
         try {
-            const data = await callAgent('critic', "Review this composition for artifacts and logic errors.", fullContext);
+            const data = await callAgent('art_critic', "Review this composition for artifacts and logic errors.", fullContext);
             const msg = data.swarm[0];
             const cleanContent = cleanJson(msg.content);
             setHistory(prev => [...prev, { ...msg, content: cleanContent, text: cleanContent, role: 'The Critic', type: 'critique' }]);
@@ -203,14 +203,20 @@ export const useArtHive = (initialKeys = {}) => {
 
         const fullContext = history.map(m => `${m.role}: ${m.text}`).join('\n\n');
 
-        // Note: In the future, this calls DALL-E directly. 
-        // For now, we ask the Manager/Gallery to create the FINAL PROMPT string.
         try {
-            const data = await callAgent('manager', "Create the final optimized DALL-E 3 prompt based on this entire conversation.", fullContext);
+            // FIX: Call 'gallery' (The Specialist), not 'manager' (The Generalist)
+            const data = await callAgent('gallery', "Create the final optimized prompt.", fullContext);
             const msg = data.swarm[0];
-            setHistory(prev => [...prev, { ...msg, role: 'The Gallery', type: 'final' }]);
-        } catch (e) { console.error(e); }
-        finally { setLoading(false); }
+
+            // Ensure the role is set correctly for the UI to recognize it
+            const cleanContent = cleanJson(msg.content);
+            setHistory(prev => [...prev, { ...msg, content: cleanContent, role: 'The Gallery', type: 'final' }]);
+        } catch (e) {
+            console.error(e);
+            setStatusMessage("Generation Failed: " + e.message);
+        } finally {
+            setLoading(false);
+        }
     };
 
     // --- MANAGER FEEDBACK (Pivot) ---

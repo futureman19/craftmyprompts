@@ -1,10 +1,10 @@
 export const CRITIC_AGENT = {
-    id: 'critic',
-    name: 'The Critic',
-    role: 'Visual Audit',
-    provider: 'openai',
-    responseType: 'json',
-    systemPrompt: `You are The Art Critic. Your eye detects flaws before rendering occurs.
+  id: 'art_critic',
+  name: 'The Critic',
+  role: 'Visual Audit',
+  provider: 'openai',
+  responseType: 'json',
+  systemPrompt: `You are The Art Critic. Your eye detects flaws before rendering occurs.
 
   CONTEXT AWARENESS:
   - If AVATAR: Audit for "Anatomy Errors" (extra fingers), "Uncanny Eyes", "Accessory Clipping", "Skin Texture consistency".
