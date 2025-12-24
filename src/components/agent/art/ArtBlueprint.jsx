@@ -1,7 +1,7 @@
-import React from 'react';
-import { Layers, Camera, Sun, User, Image, Monitor, ScanLine, Aperture } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Layers, Camera, Sun, User, Image, Monitor, ScanLine, Aperture, Ratio, Users, CheckCircle2 } from 'lucide-react';
 
-const ArtBlueprint = ({ data }) => {
+const ArtBlueprint = ({ data, onSettingsChange }) => {
 
     // Safety check
     if (!data || !data.layers) {
@@ -13,6 +13,21 @@ const ArtBlueprint = ({ data }) => {
             </div>
         );
     }
+
+    // --- LOCAL STATE FOR USER OVERRIDES ---
+    // We initialize with the Agent's suggestion, but allow User to change it.
+    const [aspectRatio, setAspectRatio] = useState(data.technical?.aspect_ratio || "1:1");
+    const [personGeneration, setPersonGeneration] = useState(data.technical?.person_generation || "allow_adult");
+
+    // Notify parent (ArtFeed) whenever settings change
+    useEffect(() => {
+        if (onSettingsChange) {
+            onSettingsChange({
+                aspectRatio,
+                personGeneration
+            });
+        }
+    }, [aspectRatio, personGeneration, onSettingsChange]);
 
     // Helper to get icon based on layer name
     const getLayerIcon = (name) => {
@@ -40,7 +55,7 @@ const ArtBlueprint = ({ data }) => {
 
             <div className="flex flex-col md:flex-row">
 
-                {/* LEFT: LAYER STACK */}
+                {/* LEFT: LAYER STACK (Read Only) */}
                 <div className="flex-1 p-4 bg-slate-900/50 border-r border-slate-800">
                     <h4 className="text-[10px] font-bold text-slate-500 uppercase mb-3 flex items-center gap-2">
                         <Layers size={12} /> Visual Stack (Back to Front)
@@ -75,45 +90,78 @@ const ArtBlueprint = ({ data }) => {
                     </div>
                 </div>
 
-                {/* RIGHT: CAMERA SPECS */}
-                <div className="w-full md:w-64 bg-slate-950 p-4">
-                    <h4 className="text-[10px] font-bold text-slate-500 uppercase mb-3 flex items-center gap-2">
-                        <Monitor size={12} /> Technical Specs
-                    </h4>
+                {/* RIGHT: TECHNICAL CONTROLS (Interactive) */}
+                <div className="w-full md:w-72 bg-slate-950 p-5 flex flex-col gap-6">
 
-                    {data.camera && (
-                        <div className="space-y-4">
-                            <div className="p-3 bg-slate-900 rounded-lg border border-slate-800">
-                                <div className="text-[10px] text-slate-500 mb-1">Lens</div>
-                                <div className="text-sm font-bold text-orange-400 flex items-center gap-2">
-                                    <Aperture size={14} /> {data.camera.lens}
+                    {/* 1. Aspect Ratio Control */}
+                    <div>
+                        <h4 className="text-[10px] font-bold text-slate-500 uppercase mb-2 flex items-center gap-2">
+                            <Ratio size={12} /> Format & Ratio
+                        </h4>
+                        <div className="relative">
+                            <select
+                                value={aspectRatio}
+                                onChange={(e) => setAspectRatio(e.target.value)}
+                                className="w-full bg-slate-900 border border-slate-700 text-white text-sm rounded-lg p-2.5 focus:ring-orange-500 focus:border-orange-500 outline-none appearance-none"
+                            >
+                                <option value="1:1">1:1 Square (Default)</option>
+                                <option value="16:9">16:9 Cinematic Landscape</option>
+                                <option value="9:16">9:16 Mobile Portrait</option>
+                                <option value="4:3">4:3 Classic TV</option>
+                                <option value="3:4">3:4 Classic Portrait</option>
+                            </select>
+                            {/* Checkmark to show Agent's choice match */}
+                            {data.technical?.aspect_ratio === aspectRatio && (
+                                <div className="absolute right-3 top-3 text-emerald-500" title="Matches Agent Recommendation">
+                                    <CheckCircle2 size={14} />
                                 </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* 2. Person Generation Control */}
+                    <div>
+                        <h4 className="text-[10px] font-bold text-slate-500 uppercase mb-2 flex items-center gap-2">
+                            <Users size={12} /> Person Filters
+                        </h4>
+                        <div className="flex bg-slate-900 p-1 rounded-lg border border-slate-800">
+                            <button
+                                onClick={() => setPersonGeneration('allow_adult')}
+                                className={`flex-1 text-[10px] font-bold py-1.5 rounded transition-colors ${personGeneration === 'allow_adult' ? 'bg-orange-600 text-white' : 'text-slate-500 hover:text-white'}`}
+                            >
+                                Adults
+                            </button>
+                            <button
+                                onClick={() => setPersonGeneration('dont_allow')}
+                                className={`flex-1 text-[10px] font-bold py-1.5 rounded transition-colors ${personGeneration === 'dont_allow' ? 'bg-orange-600 text-white' : 'text-slate-500 hover:text-white'}`}
+                            >
+                                No People
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* 3. Read-Only Camera Specs (From Agent) */}
+                    <div>
+                        <h4 className="text-[10px] font-bold text-slate-500 uppercase mb-2 flex items-center gap-2">
+                            <Monitor size={12} /> Agent Settings
+                        </h4>
+                        <div className="space-y-2">
+                            <div className="p-2 bg-slate-900 rounded border border-slate-800 flex justify-between items-center">
+                                <span className="text-[10px] text-slate-500">Lens</span>
+                                <span className="text-xs font-mono text-orange-400">{data.camera?.lens || "Auto"}</span>
                             </div>
-
-                            <div className="p-3 bg-slate-900 rounded-lg border border-slate-800">
-                                <div className="text-[10px] text-slate-500 mb-1">Aperture</div>
-                                <div className="text-sm font-bold text-white">
-                                    {data.camera.aperture}
-                                </div>
+                            <div className="p-2 bg-slate-900 rounded border border-slate-800 flex justify-between items-center">
+                                <span className="text-[10px] text-slate-500">Aperture</span>
+                                <span className="text-xs font-mono text-slate-300">{data.camera?.aperture || "Auto"}</span>
                             </div>
-
-                            <div className="p-3 bg-slate-900 rounded-lg border border-slate-800">
-                                <div className="text-[10px] text-slate-500 mb-1">Lighting</div>
-                                <div className="text-xs font-medium text-slate-300">
-                                    {data.camera.lighting}
-                                </div>
-                            </div>
-
-                            <div className="p-3 bg-slate-900 rounded-lg border border-slate-800">
-                                <div className="text-[10px] text-slate-500 mb-1">Aspect Ratio</div>
-                                <div className="text-xs font-medium text-slate-300 border border-slate-700 px-2 py-1 rounded inline-block bg-black">
-                                    {data.camera.aspect_ratio}
-                                </div>
+                            <div className="p-2 bg-slate-900 rounded border border-slate-800 flex justify-between items-center">
+                                <span className="text-[10px] text-slate-500">Lighting</span>
+                                <span className="text-xs font-mono text-slate-300 truncate max-w-[120px]">{data.camera?.lighting || "Auto"}</span>
                             </div>
                         </div>
-                    )}
-                </div>
+                    </div>
 
+                </div>
             </div>
         </div>
     );
