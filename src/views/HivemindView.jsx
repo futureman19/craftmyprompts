@@ -54,43 +54,19 @@ const CodingEngine = ({ prompt, apiKey }) => {
 };
 
 const TextEngine = ({ prompt, apiKey }) => {
-    // Initialize the Text Brain
-    const hive = useTextHive({ gemini: apiKey });
-
-    // Auto-start
-    React.useEffect(() => {
-        if (prompt && hive.currentPhase === 'idle') {
-            hive.startMission(prompt);
-        }
-    }, [prompt]);
+    // TextFeed is now self-contained (The Orchestrator)
+    // We just pass the prompt to kickstart it.
 
     return (
         <TextFeed
-            history={hive.history}
-            loading={hive.loading}
-            statusMessage={hive.statusMessage}
-            currentPhase={hive.currentPhase}
-            actions={{
-                submitChoices: hive.submitChoices,
-                submitSpecs: hive.submitSpecs,
-                sendToAudit: hive.sendToAudit,
-                compileBuild: hive.compileBuild
-            }}
+            initialPrompt={prompt}
+            onStateChange={(phase) => console.log('Text Phase:', phase)}
         />
     );
 };
 
 const ArtEngine = ({ prompt, apiKey }) => {
-    // Initialize the Art Brain
-    const hive = useArtHive({ gemini: apiKey });
-
-    // Auto-start
-    React.useEffect(() => {
-        if (prompt && hive.currentPhase === 'idle') {
-            hive.startMission(prompt);
-        }
-    }, [prompt, hive]);
-
+    // ArtFeed is now self-contained (The Orchestrator)
     return (
         <ArtFeed
             initialPrompt={prompt}
