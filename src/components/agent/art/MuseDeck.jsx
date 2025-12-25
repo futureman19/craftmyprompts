@@ -31,13 +31,13 @@ const MuseDeck = ({ data, onConfirm }) => {
             {/* MAIN CONTENT AREA */}
             <div className="bg-slate-950/50 border-x border-b border-purple-500/30 rounded-b-2xl p-4">
 
-                {/* CARDS GRID */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                {/* HORIZONTAL SCROLL CONTAINER */}
+                <div className="flex gap-4 overflow-x-auto pb-4 snap-x custom-scrollbar">
                     {data.strategy_options.map((option, idx) => (
                         <button
                             key={idx}
                             onClick={() => setSelectedOption(option.label)}
-                            className={`group relative p-4 rounded-xl border text-left transition-all hover:scale-[1.01] ${selectedOption === option.label
+                            className={`snap-start shrink-0 w-72 group relative p-4 rounded-xl border text-left transition-all hover:scale-[1.01] ${selectedOption === option.label
                                     ? 'bg-purple-900/40 border-purple-500 shadow-lg shadow-purple-900/20'
                                     : 'bg-slate-900 border-slate-800 hover:border-purple-500/50 hover:bg-slate-800'
                                 }`}
@@ -79,8 +79,8 @@ const MuseDeck = ({ data, onConfirm }) => {
                         disabled={!selectedOption}
                         onClick={() => onConfirm(selectedOption)}
                         className={`px-6 py-2.5 rounded-xl font-bold text-xs shadow-lg flex items-center gap-2 transition-all transform active:scale-95 ${selectedOption
-                                ? 'bg-white hover:bg-purple-50 text-purple-950 shadow-purple-900/20 cursor-pointer'
-                                : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                            ? 'bg-white hover:bg-purple-50 text-purple-950 shadow-purple-900/20 cursor-pointer'
+                            : 'bg-slate-800 text-slate-500 cursor-not-allowed'
                             }`}
                     >
                         Continue <ArrowRight size={14} />
