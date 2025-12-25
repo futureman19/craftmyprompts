@@ -1,130 +1,87 @@
 import React, { useState } from 'react';
-import { Brush, CheckSquare, Square, FastForward, MessageSquareQuote, ArrowRight, Star } from 'lucide-react';
+import { Palette, CheckCircle, Circle, FastForward, ArrowRight, Brush } from 'lucide-react';
 
 const StylistDeck = ({ data, onConfirm }) => {
-    // State stores ARRAYS of selections per category
-    const [selections, setSelections] = useState({});
+    const [selectedOption, setSelectedOption] = useState(null);
 
     if (!data || !data.spec_options) return null;
 
-    const toggleSelection = (category, value, allowMulti) => {
-        setSelections(prev => {
-            const currentList = prev[category] || [];
-
-            // If Multi-Select is DISABLED for this category, replace the selection
-            if (allowMulti === false) {
-                return { ...prev, [category]: [value] };
-            }
-
-            // Standard Multi-Select Logic
-            if (currentList.includes(value)) {
-                return { ...prev, [category]: currentList.filter(item => item !== value) };
-            } else {
-                return { ...prev, [category]: [...currentList, value] };
-            }
-        });
-    };
-
     return (
-        <div className="w-full max-w-5xl mx-auto mt-6 animate-in fade-in">
+        <div className="w-full max-w-4xl mx-auto mt-4 animate-in slide-in-from-bottom-2">
 
-            {/* HEADER */}
-            <div className="bg-slate-900 border border-pink-500/30 rounded-2xl p-6 shadow-2xl relative overflow-hidden mb-6">
-                <div className="absolute top-0 left-0 w-1 h-full bg-pink-500" />
-
-                <div className="flex items-center gap-4 mb-4">
-                    <div className="p-3 bg-pink-500/10 rounded-xl text-pink-400">
-                        <Brush size={28} />
+            {/* COMPACT HEADER */}
+            <div className="bg-slate-900 border border-pink-500/30 rounded-t-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-lg">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 bg-pink-500/10 rounded-lg text-pink-400">
+                        <Palette size={20} />
                     </div>
                     <div>
-                        <h3 className="text-xl font-bold text-white">The Stylist</h3>
-                        <p className="text-sm text-slate-400">{data.spec_summary}</p>
+                        <h3 className="text-lg font-bold text-white leading-none">The Stylist</h3>
+                        <p className="text-xs text-slate-400 mt-1">{data.spec_summary}</p>
                     </div>
                 </div>
-
-                {/* AGENT BLURB */}
                 {data.agent_commentary && (
-                    <div className="bg-pink-950/30 border border-pink-500/20 p-4 rounded-xl flex gap-3">
-                        <MessageSquareQuote className="text-pink-400 shrink-0 mt-1" size={20} />
-                        <p className="text-pink-200/80 text-sm italic leading-relaxed">
-                            "{data.agent_commentary}"
-                        </p>
+                    <div className="text-xs text-pink-300/80 italic max-w-md text-right border-l-2 border-pink-500/20 pl-3 hidden md:block">
+                        "{data.agent_commentary}"
                     </div>
                 )}
             </div>
 
-            {/* OPTIONS GRID */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                {data.spec_options.map((cat, idx) => (
-                    <div key={idx} className="bg-slate-950/50 border border-slate-800 p-5 rounded-xl flex flex-col h-[500px]">
-                        <div className="flex justify-between items-center mb-2">
-                            <span className="text-xs font-bold text-pink-400 uppercase tracking-wider">{cat.category}</span>
-                            {!cat.allow_multiselect && <span className="text-[10px] text-slate-500 bg-slate-900 px-2 py-1 rounded">Single Select</span>}
-                        </div>
+            {/* MAIN CONTENT */}
+            <div className="bg-slate-950/50 border-x border-b border-pink-500/30 rounded-b-2xl p-4">
 
-                        <h4 className="text-white font-medium text-lg mb-4">{cat.question}</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                    {data.spec_options.map((option, idx) => (
+                        <button
+                            key={idx}
+                            onClick={() => setSelectedOption(option.label)}
+                            className={`group relative p-4 rounded-xl border text-left transition-all hover:scale-[1.01] ${selectedOption === option.label
+                                    ? 'bg-pink-900/40 border-pink-500 shadow-lg shadow-pink-900/20'
+                                    : 'bg-slate-900 border-slate-800 hover:border-pink-500/50 hover:bg-slate-800'
+                                }`}
+                        >
+                            <div className="absolute top-3 right-3 text-slate-700 group-hover:text-pink-500/30 transition-colors">
+                                <Brush size={14} />
+                            </div>
 
-                        {/* SCROLLABLE LIST AREA */}
-                        <div className="flex-1 overflow-y-auto pr-2 space-y-2 custom-scrollbar">
-                            {cat.options.map((opt) => {
-                                const isSelected = (selections[cat.category] || []).includes(opt.label);
-                                return (
-                                    <button
-                                        key={opt.label}
-                                        onClick={() => toggleSelection(cat.category, opt.label, cat.allow_multiselect)}
-                                        className={`w-full p-3 rounded-xl text-left border transition-all flex items-center justify-between group ${isSelected
-                                                ? 'bg-pink-600 border-pink-500 text-white shadow-md'
-                                                : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-pink-500/50 hover:bg-slate-800'
-                                            }`}
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            {/* CHECKBOX / RADIO ICON */}
-                                            {cat.allow_multiselect !== false ? (
-                                                isSelected
-                                                    ? <CheckSquare size={20} className="text-white" />
-                                                    : <Square size={20} className="text-slate-600 group-hover:text-pink-400" />
-                                            ) : (
-                                                // Radio circle for single select
-                                                <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${isSelected ? 'border-white bg-pink-500' : 'border-slate-600'}`}>
-                                                    {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
-                                                </div>
-                                            )}
+                            <div className="flex items-start gap-3">
+                                <div className={`mt-0.5 transition-colors ${selectedOption === option.label ? 'text-pink-400' : 'text-slate-600 group-hover:text-pink-500/50'}`}>
+                                    {selectedOption === option.label ? <CheckCircle size={20} /> : <Circle size={20} />}
+                                </div>
+                                <div>
+                                    <h4 className={`text-sm font-bold mb-1 ${selectedOption === option.label ? 'text-white' : 'text-slate-200'}`}>
+                                        {option.label}
+                                    </h4>
+                                    <p className="text-xs text-slate-400 leading-relaxed line-clamp-2">
+                                        {option.description}
+                                    </p>
+                                </div>
+                            </div>
+                        </button>
+                    ))}
+                </div>
 
-                                            <div className="flex flex-col">
-                                                <span className="font-bold text-sm">{opt.label}</span>
-                                                <span className={`text-[10px] ${isSelected ? 'text-pink-200' : 'text-slate-500'}`}>
-                                                    {opt.description}
-                                                </span>
-                                            </div>
-                                        </div>
+                {/* ACTION BAR */}
+                <div className="flex justify-between items-center pt-2 border-t border-slate-800/50">
+                    <button
+                        onClick={() => onConfirm(null)}
+                        className="text-slate-500 hover:text-white text-xs font-medium flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-800 transition-colors"
+                    >
+                        <FastForward size={14} />
+                        Auto-Pilot
+                    </button>
 
-                                        {opt.recommended && (
-                                            <Star size={12} className={isSelected ? "text-pink-200" : "text-amber-400"} />
-                                        )}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
-                ))}
-            </div>
-
-            {/* ACTION BAR */}
-            <div className="flex justify-between items-center pt-6 border-t border-slate-800">
-                <button
-                    onClick={() => onConfirm({})}
-                    className="text-slate-500 hover:text-white text-sm font-medium flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-slate-800 transition-colors"
-                >
-                    <FastForward size={16} />
-                    Decide for me (Auto-Pilot)
-                </button>
-
-                <button
-                    onClick={() => onConfirm(selections)}
-                    className="px-8 py-3 bg-white hover:bg-pink-50 text-slate-900 rounded-xl font-bold text-sm shadow-lg flex items-center gap-2 transition-all active:scale-95"
-                >
-                    Continue <ArrowRight size={18} />
-                </button>
+                    <button
+                        disabled={!selectedOption}
+                        onClick={() => onConfirm(selectedOption)}
+                        className={`px-6 py-2.5 rounded-xl font-bold text-xs shadow-lg flex items-center gap-2 transition-all transform active:scale-95 ${selectedOption
+                                ? 'bg-white hover:bg-pink-50 text-pink-950 shadow-pink-900/20 cursor-pointer'
+                                : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                            }`}
+                    >
+                        Continue <ArrowRight size={14} />
+                    </button>
+                </div>
             </div>
         </div>
     );
