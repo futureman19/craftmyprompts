@@ -3,10 +3,18 @@ import { Lightbulb, Palette, Camera, Image, Check, FastForward, ArrowRight } fro
 
 const ArtManifest = ({ manifest, currentPhase, onConfirm, onAutoPilot, isReady }) => {
 
-    // 1. ROBUST PHASE CHECKING
-    // The "Show Buttons" logic now accepts multiple variations of phase names
-    // to prevent the buttons from disappearing if the Brain uses a slightly different ID.
-    const showControls = ['strategy', 'strategy_options', 'spec', 'spec_options', 'styling'].includes(currentPhase);
+    // 1. ROBUST PHASE MAPPING
+    // Map the generic UI steps to the specific Agent IDs used by the Hook
+    const PHASE_MAP = {
+        'strategy': ['muse', 'strategy', 'strategy_options'],
+        'spec': ['stylist', 'spec', 'spec_options', 'styling'],
+        'blueprint': ['cinematographer', 'blueprint', 'scribe'],
+        'final': ['gallery', 'final', 'render']
+    };
+
+    // Check if we are in an interactive phase (Muse or Stylist)
+    // Flatten the arrays for strategy and spec to check against currentPhase
+    const showControls = [...PHASE_MAP.strategy, ...PHASE_MAP.spec].includes(currentPhase);
 
     // 2. Step Mapping
     const steps = [
@@ -29,7 +37,7 @@ const ArtManifest = ({ manifest, currentPhase, onConfirm, onAutoPilot, isReady }
             <div className="flex-1 overflow-y-auto p-4 space-y-6">
                 {steps.map((step, idx) => {
                     // Check if this step is roughly the active phase
-                    const isActive = currentPhase && currentPhase.includes(step.id);
+                    const isActive = PHASE_MAP[step.id]?.includes(currentPhase);
                     const isDone = !!step.value;
                     const isPending = !isActive && !isDone;
 
@@ -68,7 +76,6 @@ const ArtManifest = ({ manifest, currentPhase, onConfirm, onAutoPilot, isReady }
             </div>
 
             {/* MISSION CONTROL FOOTER */}
-            {/* Now uses the robust 'showControls' boolean */}
             {showControls && (
                 <div className="p-4 border-t border-slate-800 bg-slate-900/30 space-y-3">
                     <button
