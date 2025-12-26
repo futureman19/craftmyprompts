@@ -1,87 +1,139 @@
-import React, { useState } from 'react';
-import { Palette, CheckCircle, Circle, FastForward, ArrowRight, Brush } from 'lucide-react';
+import React from 'react';
+import { Palette, CheckCircle, Zap, Layers, Brush, Info } from 'lucide-react';
 
-const StylistDeck = ({ data, onConfirm }) => {
-    const [selectedOption, setSelectedOption] = useState(null);
+// Stateless Component - Controlled by ArtFeed
+const StylistDeck = ({ data, selections, onSelect }) => {
 
-    if (!data || !data.spec_options) return null;
+    if (!data) return null;
+
+    // --- CONFIGURATION ---
+    const decks = [
+        {
+            id: 'material',
+            title: 'Materials',
+            icon: <Layers size={14} />,
+            color: 'text-amber-400',
+            bg: 'bg-amber-500/10',
+            border: 'border-amber-500',
+            dataKey: 'material_options'
+        },
+        {
+            id: 'lighting',
+            title: 'Lighting',
+            icon: <Zap size={14} />,
+            color: 'text-cyan-400',
+            bg: 'bg-cyan-500/10',
+            border: 'border-cyan-500',
+            dataKey: 'lighting_options'
+        },
+        {
+            id: 'color',
+            title: 'Palette',
+            icon: <Brush size={14} />,
+            color: 'text-rose-400',
+            bg: 'bg-rose-500/10',
+            border: 'border-rose-500',
+            dataKey: 'color_options'
+        }
+    ];
+
+    // --- HELPERS ---
+    const getLabel = (opt) => {
+        if (!opt) return "Unknown";
+        if (typeof opt === 'string') return opt;
+        return opt.label || opt.title || "Untitled";
+    };
+
+    const getDescription = (opt) => {
+        if (!opt || typeof opt === 'string') return "";
+        return opt.description || opt.details || "";
+    };
 
     return (
-        <div className="w-full max-w-4xl mx-auto mt-4 animate-in slide-in-from-bottom-2">
+        <div className="w-full flex flex-col h-full overflow-hidden animate-in fade-in">
 
-            {/* COMPACT HEADER */}
-            <div className="bg-slate-900 border border-pink-500/30 rounded-t-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-lg">
-                <div className="flex items-center gap-3">
-                    <div className="p-2 bg-pink-500/10 rounded-lg text-pink-400">
-                        <Palette size={20} />
+            {/* 1. SLIM HEADER */}
+            <div className="bg-slate-950 border-b border-slate-800 p-3 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                        <div className="p-1.5 bg-pink-500/10 rounded text-pink-400">
+                            <Palette size={16} />
+                        </div>
+                        <span className="text-sm font-bold text-white">The Stylist</span>
                     </div>
-                    <div>
-                        <h3 className="text-lg font-bold text-white leading-none">The Stylist</h3>
-                        <p className="text-xs text-slate-400 mt-1">{data.spec_summary}</p>
-                    </div>
+                    <div className="h-4 w-px bg-slate-800 hidden md:block" />
+                    <p className="text-xs text-slate-500 truncate max-w-xs md:max-w-md hidden sm:block">
+                        {data.spec_summary || "Defining aesthetics..."}
+                    </p>
                 </div>
-                {data.agent_commentary && (
-                    <div className="text-xs text-pink-300/80 italic max-w-md text-right border-l-2 border-pink-500/20 pl-3 hidden md:block">
-                        "{data.agent_commentary}"
-                    </div>
-                )}
+
+                <div className="flex items-center gap-3">
+                    {data.agent_commentary && (
+                        <div className="group relative">
+                            <Info size={16} className="text-slate-600 hover:text-pink-400 cursor-help" />
+                            <div className="absolute right-0 top-6 w-72 p-3 bg-slate-800 border border-slate-700 rounded-lg shadow-xl text-xs text-slate-300 z-50 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity">
+                                "{data.agent_commentary}"
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
 
-            {/* MAIN CONTENT */}
-            <div className="bg-slate-950/50 border-x border-b border-pink-500/30 rounded-b-2xl p-4">
+            {/* 2. THE MEGA-DECK GRID */}
+            <div className="flex-1 overflow-hidden bg-slate-950 p-4">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-full">
 
-                {/* HORIZONTAL SCROLL CONTAINER */}
-                <div className="flex gap-4 overflow-x-auto pb-4 snap-x custom-scrollbar">
-                    {data.spec_options.map((option, idx) => (
-                        <button
-                            key={idx}
-                            onClick={() => setSelectedOption(option.label)}
-                            className={`snap-start shrink-0 w-72 group relative p-4 rounded-xl border text-left transition-all hover:scale-[1.01] ${selectedOption === option.label
-                                    ? 'bg-pink-900/40 border-pink-500 shadow-lg shadow-pink-900/20'
-                                    : 'bg-slate-900 border-slate-800 hover:border-pink-500/50 hover:bg-slate-800'
-                                }`}
-                        >
-                            <div className="absolute top-3 right-3 text-slate-700 group-hover:text-pink-500/30 transition-colors">
-                                <Brush size={14} />
-                            </div>
+                    {decks.map((deck) => {
+                        const options = data[deck.dataKey] || [];
+                        const currentSelection = selections[deck.id];
 
-                            <div className="flex items-start gap-3">
-                                <div className={`mt-0.5 transition-colors ${selectedOption === option.label ? 'text-pink-400' : 'text-slate-600 group-hover:text-pink-500/50'}`}>
-                                    {selectedOption === option.label ? <CheckCircle size={20} /> : <Circle size={20} />}
+                        return (
+                            <div key={deck.id} className="flex flex-col h-full bg-slate-900/40 rounded-xl border border-slate-800 overflow-hidden shadow-sm">
+                                <div className={`px-3 py-2 border-b border-slate-800 flex items-center justify-between ${deck.bg}`}>
+                                    <div className="flex items-center gap-2">
+                                        <div className={deck.color}>{deck.icon}</div>
+                                        <span className={`text-[10px] font-bold uppercase tracking-wider ${deck.color}`}>
+                                            {deck.title}
+                                        </span>
+                                    </div>
+                                    <span className="text-[9px] text-slate-500 font-mono">
+                                        {options.length}
+                                    </span>
                                 </div>
-                                <div>
-                                    <h4 className={`text-sm font-bold mb-1 ${selectedOption === option.label ? 'text-white' : 'text-slate-200'}`}>
-                                        {option.label}
-                                    </h4>
-                                    <p className="text-xs text-slate-400 leading-relaxed line-clamp-2">
-                                        {option.description}
-                                    </p>
+
+                                <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-2">
+                                    {options.map((option, idx) => {
+                                        const label = getLabel(option);
+                                        const desc = getDescription(option);
+                                        const isSelected = currentSelection === label;
+
+                                        return (
+                                            <button
+                                                key={idx}
+                                                onClick={() => onSelect(deck.id, label)}
+                                                className={`w-full text-left p-3 rounded-lg border transition-all relative group ${isSelected
+                                                        ? `bg-slate-800 ${deck.border} shadow-lg`
+                                                        : 'bg-slate-950/80 border-slate-800/50 hover:bg-slate-900 hover:border-slate-700'
+                                                    }`}
+                                            >
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <span className={`text-xs font-bold ${isSelected ? 'text-white' : 'text-slate-300'}`}>
+                                                        {label}
+                                                    </span>
+                                                    {isSelected && <CheckCircle size={14} className={deck.color} />}
+                                                </div>
+
+                                                <p className="text-[10px] text-slate-500 leading-snug line-clamp-2">
+                                                    {desc}
+                                                </p>
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             </div>
-                        </button>
-                    ))}
-                </div>
+                        );
+                    })}
 
-                {/* ACTION BAR */}
-                <div className="flex justify-between items-center pt-2 border-t border-slate-800/50">
-                    <button
-                        onClick={() => onConfirm(null)}
-                        className="text-slate-500 hover:text-white text-xs font-medium flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-800 transition-colors"
-                    >
-                        <FastForward size={14} />
-                        Auto-Pilot
-                    </button>
-
-                    <button
-                        disabled={!selectedOption}
-                        onClick={() => onConfirm(selectedOption)}
-                        className={`px-6 py-2.5 rounded-xl font-bold text-xs shadow-lg flex items-center gap-2 transition-all transform active:scale-95 ${selectedOption
-                            ? 'bg-white hover:bg-pink-50 text-pink-950 shadow-pink-900/20 cursor-pointer'
-                            : 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                            }`}
-                    >
-                        Continue <ArrowRight size={14} />
-                    </button>
                 </div>
             </div>
         </div>
