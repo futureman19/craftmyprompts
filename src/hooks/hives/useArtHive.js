@@ -3,7 +3,7 @@ import { useState } from 'react';
 export const useArtHive = (initialKeys = {}) => {
     // --- STATE ---
     const [history, setHistory] = useState([]);
-    const [currentPhase, setCurrentPhase] = useState('idle'); // strategy, spec, blueprint, final
+    const [currentPhase, setCurrentPhase] = useState('idle');
     const [statusMessage, setStatusMessage] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -69,6 +69,8 @@ export const useArtHive = (initialKeys = {}) => {
         setHistory([]);
         setCurrentPhase('strategy');
         setStatusMessage('The Muse is dreaming up concepts...');
+
+        // CRITICAL: Save the original User Prompt for the end
         setContextData({ originalPrompt: userPrompt });
 
         try {
@@ -95,7 +97,6 @@ export const useArtHive = (initialKeys = {}) => {
         setCurrentPhase('spec');
         setStatusMessage('The Stylist is defining the palette...');
 
-        // Save selection to context
         const updatedContext = { ...contextData, strategy_choice: choices };
         setContextData(updatedContext);
 
@@ -113,7 +114,7 @@ export const useArtHive = (initialKeys = {}) => {
                 ...rawMsg,
                 content: cleanContent,
                 role: 'The Stylist',
-                type: 'spec_options' // Matches ArtFeed switch case
+                type: 'spec_options'
             }]);
         } catch (e) {
             setStatusMessage(`Error: ${e.message}`);
@@ -161,36 +162,26 @@ export const useArtHive = (initialKeys = {}) => {
         setStatusMessage('Developing Masterpiece...');
 
         try {
-            // 1. First, get the prompt from the Gallery Agent (or reuse Cinematographer data)
-            // For now, let's assume we synthesize the prompt locally or ask for a final prompt
-            // Simulating prompt synthesis for the 'final' message:
+            // FIX: Construct the FULL prompt including the original User Input
+            const fullPrompt = `${contextData.originalPrompt}. ${contextData.strategy_choice}, ${contextData.visual_specs}. Aspect Ratio: ${technicalSpecs.aspect_ratio || '1:1'}`;
 
-            const contextString = `
-                CONCEPT: ${contextData.strategy_choice}
-                SPECS: ${contextData.visual_specs}
-                TECH: ${JSON.stringify(technicalSpecs)}
-            `;
-
-            // Optional: Call a 'Gallery' agent to write the perfect DALL-E prompt
-            // Or just append a system message. Let's start the 'final' phase.
             setCurrentPhase('final');
 
-            // Placeholder for actual image generation API (DALL-E 3 / Flux)
-            // For now, we simulate a delay and a success message.
+            // Simulate Generation Delay
             await new Promise(r => setTimeout(r, 2000));
 
             setHistory(prev => [...prev, {
                 role: 'The Gallery',
                 type: 'final',
                 content: JSON.stringify({
-                    final_prompt: `${contextData.strategy_choice}, ${contextData.visual_specs}. ${technicalSpecs.aspect_ratio || ''}`,
+                    final_prompt: fullPrompt, // Passing the corrected full prompt
                     publication_summary: "Image Generation Complete."
                 })
             }]);
 
             // Mock Image URL (In a real app, this comes from the API)
-            // Using a placeholder service based on keywords
-            setGeneratedImage(`https://image.pollinations.ai/prompt/${encodeURIComponent(contextData.strategy_choice)}?width=1024&height=1024&nologo=true`);
+            // Using the fullPrompt now for better context in the placeholder
+            setGeneratedImage(`https://image.pollinations.ai/prompt/${encodeURIComponent(fullPrompt)}?width=1024&height=1024&nologo=true`);
 
         } catch (e) {
             console.error(e);
@@ -215,9 +206,7 @@ export const useArtHive = (initialKeys = {}) => {
 
             setManagerMessages(prev => [...prev, { role: 'assistant', content: decision.reply }]);
 
-            // Pivot Logic if needed
             if (decision.target_phase === 'strategy') startMission(userText);
-            // ... other pivots
         } catch (e) {
             console.error(e);
         } finally {
