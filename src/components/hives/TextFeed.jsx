@@ -1,211 +1,146 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Loader, FileText, Check, Copy } from 'lucide-react';
-import { useTextHive } from '../../hooks/hives/useTextHive';
+import { Loader, Layers, ShieldCheck, Zap, AlertTriangle } from 'lucide-react';
 
-// Text Components
+import TextManifest from '../agent/text/TextManifest';
 import EditorDeck from '../agent/text/EditorDeck';
 import LinguistDeck from '../agent/text/LinguistDeck';
-import Manuscript from '../agent/text/Manuscript'; // Assumed existing
-import TextCriticDeck from '../agent/text/TextCriticDeck'; // Assumed existing
-import TextManifest from '../agent/text/TextManifest';
+import Manuscript from '../agent/text/Manuscript'; // Used for Blueprint (Scribe)
+// import TextCriticDeck from '../agent/text/TextCriticDeck'; // Placeholder if needed
 
-// Shared
 import ManagerDrawer from '../hivemind/ManagerDrawer';
 import AgentLoader from '../ui/AgentLoader';
 
-const TextFeed = ({ initialPrompt, onStateChange }) => {
-    const {
-        history, currentPhase, loading, statusMessage,
-        startMission, submitChoices, submitSpecs, sendToAudit, refineBlueprint, compileManuscript,
-        managerMessages, isDrawerOpen, setIsDrawerOpen, handleManagerFeedback
-    } = useTextHive();
-
-    const [hasStarted, setHasStarted] = useState(false);
-    const [copied, setCopied] = useState(false);
+const TextFeed = ({
+    history,
+    loading,
+    statusMessage,
+    actions,
+    currentPhase,
+    managerMessages,
+    isDrawerOpen,
+    setIsDrawerOpen,
+    handleManagerFeedback
+}) => {
 
     // --- STATE ---
-    const [manifest, setManifest] = useState({
-        strategy: null, // Format + Angle
-        voice: null,    // Vocab + Structure
-        blueprint: false,
-        final: false
-    });
-
+    const [manifest, setManifest] = useState({});
     const [draftSelections, setDraftSelections] = useState({});
-
-    useEffect(() => {
-        setDraftSelections({});
-    }, [currentPhase]);
-
     const bottomRef = useRef(null);
 
-    // Initial Start
-    useEffect(() => {
-        if (initialPrompt && !hasStarted) {
-            startMission(initialPrompt);
-            setHasStarted(true);
-        }
-    }, [initialPrompt]);
+    // --- FIND MESSAGES ---
+    // Update roles based on actual Agent outputs
+    const editorRole = 'The Editor-In-Chief';
+    const linguistRole = 'The Linguist';
+    const scribeRole = 'The Scribe';
+    const publisherRole = 'The Publisher';
 
-    useEffect(() => {
-        onStateChange && onStateChange(currentPhase);
-    }, [currentPhase]);
+    const editorMsg = history.findLast(m => m.role === editorRole);
+    const linguistMsg = history.findLast(m => m.role === linguistRole);
+    const scribeMsg = history.findLast(m => m.role === scribeRole);
+    const publisherMsg = history.findLast(m => m.role === publisherRole);
 
+    // --- SCROLL TO BOTTOM ---
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [history, loading]);
 
-    // --- HELPERS ---
-    const parseAgentJson = (msg) => {
-        if (!msg || !msg.content) return null;
+    // --- RESET DRAFTS ON PHASE CHANGE ---
+    useEffect(() => {
+        setDraftSelections({});
+    }, [currentPhase]);
+
+    // --- AUTO-UPDATE MANIFEST PROGRESS ---
+    useEffect(() => {
+        if (scribeMsg) setManifest(prev => ({ ...prev, blueprint: "Outline Locked" }));
+        if (publisherMsg) setManifest(prev => ({ ...prev, final: "Manuscript Polished" }));
+    }, [scribeMsg, publisherMsg]);
+
+    // --- HELPER: SAFE JSON PARSER ---
+    const parseAgentJson = (msg, contextName) => {
+        if (!msg) return null;
         try {
-            const clean = msg.content.replace(/```json/g, '').replace(/```/g, '').trim();
-            return JSON.parse(clean);
-        } catch (e) { return null; }
+            const raw = typeof msg.text === 'string' ? msg.text : JSON.stringify(msg.text);
+            const start = raw.indexOf('{');
+            const end = raw.lastIndexOf('}');
+            if (start !== -1 && end !== -1) {
+                return JSON.parse(raw.substring(start, end + 1));
+            }
+        } catch (e) { console.error(`${contextName} Parse Error:`, e); }
+        return null;
     };
 
-    const handleCopy = (text) => {
-        navigator.clipboard.writeText(text);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+    // --- SELECTION HANDLER ---
+    const handleDraftSelect = (key, value) => setDraftSelections(prev => ({ ...prev, [key]: value }));
+
+    // --- READY CHECK ---
+    const checkIsReady = () => {
+        if (currentPhase === 'vision') return draftSelections.format && draftSelections.angle && draftSelections.tone;
+        if (currentPhase === 'specs') return draftSelections.vocab && draftSelections.structure && draftSelections.rhetoric;
+        return false;
     };
 
-    // --- LOGIC ---
-    const handleDraftSelect = (key, value) => {
-        setDraftSelections(prev => ({ ...prev, [key]: value }));
-    };
-
+    // --- SIDEBAR ACTIONS ---
     const handleSidebarConfirm = () => {
-        const choices = draftSelections;
-        if (currentPhase === 'strategy' || currentPhase === 'editor') {
-            const formatted = `Format: ${choices.format}, Angle: ${choices.angle}, Tone: ${choices.tone}`;
-            setManifest(prev => ({ ...prev, strategy: formatted }));
-            submitChoices(formatted);
-        }
-        else if (currentPhase === 'spec' || currentPhase === 'linguist') {
-            const formatted = `Vocab: ${choices.vocab}, Structure: ${choices.structure}, Rhetoric: ${choices.rhetoric}`;
-            setManifest(prev => ({ ...prev, voice: formatted }));
-            submitSpecs(formatted);
+        const c = draftSelections;
+        if (currentPhase === 'vision') {
+            setManifest(prev => ({ ...prev, vision: c }));
+            const formatted = `Format: ${c.format}, Angle: ${c.angle}, Tone: ${c.tone}`;
+            actions.submitChoices(formatted);
+        } else if (currentPhase === 'specs') {
+            setManifest(prev => ({ ...prev, specs: c }));
+            const formatted = `Vocab: ${c.vocab}, Structure: ${c.structure}, Rhetoric: ${c.rhetoric}`;
+            actions.submitSpecs(formatted);
         }
     };
 
     const handleAutoPilot = () => {
-        const activeMsg = history[history.length - 1];
-        if (!activeMsg) return;
-        const data = parseAgentJson(activeMsg);
-        if (!data) return;
-
-        const randoms = {};
-        const pickRandom = (keyArr, targetKey) => {
-            const arr = data[keyArr] || [];
-            if (arr.length) {
-                const choice = arr[Math.floor(Math.random() * arr.length)];
-                randoms[targetKey] = choice.label || choice.title;
-            }
-        };
-
-        if (currentPhase === 'strategy') {
-            pickRandom('format_options', 'format');
-            pickRandom('angle_options', 'angle');
-            pickRandom('tone_options', 'tone');
-        } else if (currentPhase === 'spec') {
-            pickRandom('vocab_options', 'vocab');
-            pickRandom('structure_options', 'structure');
-            pickRandom('rhetoric_options', 'rhetoric');
+        if (currentPhase === 'vision') {
+            const data = parseAgentJson(editorMsg, editorRole);
+            const auto = {
+                format: data?.format_options?.[0]?.label || "Default",
+                angle: data?.angle_options?.[0]?.label || "Default",
+                tone: data?.tone_options?.[0]?.label || "Default"
+            };
+            setManifest(prev => ({ ...prev, vision: auto }));
+            actions.submitChoices(`Format: ${auto.format}, Angle: ${auto.angle}, Tone: ${auto.tone}`);
+        } else if (currentPhase === 'specs') {
+            const data = parseAgentJson(linguistMsg, linguistRole);
+            const auto = {
+                vocab: data?.vocab_options?.[0]?.label || "Default",
+                structure: data?.structure_options?.[0]?.label || "Default",
+                rhetoric: data?.rhetoric_options?.[0]?.label || "Default"
+            };
+            setManifest(prev => ({ ...prev, specs: auto }));
+            actions.submitSpecs(`Vocab: ${auto.vocab}, Structure: ${auto.structure}, Rhetoric: ${auto.rhetoric}`);
         }
-        setDraftSelections(randoms);
-    };
-
-    const checkIsReady = () => {
-        if (currentPhase === 'strategy') return draftSelections.format && draftSelections.angle && draftSelections.tone;
-        if (currentPhase === 'spec') return draftSelections.vocab && draftSelections.structure && draftSelections.rhetoric;
-        return false;
-    };
-
-    // --- RENDERERS ---
-    const renderEditor = (msg) => {
-        const data = parseAgentJson(msg);
-        return <EditorDeck data={data} selections={draftSelections} onSelect={handleDraftSelect} />;
-    };
-
-    const renderLinguist = (msg) => {
-        const data = parseAgentJson(msg);
-        return <LinguistDeck data={data} selections={draftSelections} onSelect={handleDraftSelect} />;
-    };
-
-    const renderManuscript = (msg) => {
-        const data = parseAgentJson(msg);
-        return (
-            <div className="w-full h-full p-4 overflow-y-auto">
-                <Manuscript data={data} />
-                <div className="mt-4 flex gap-4 pb-20">
-                    <button onClick={sendToAudit} className="flex-1 py-4 bg-slate-800 rounded-xl text-slate-300 font-bold hover:bg-slate-700">Request Audit</button>
-                    <button
-                        onClick={() => {
-                            compileManuscript();
-                            setManifest(prev => ({ ...prev, blueprint: true }));
-                        }}
-                        className="flex-1 py-4 bg-emerald-600 rounded-xl text-white font-bold hover:bg-emerald-500 shadow-lg"
-                    >
-                        Approve & Publish
-                    </button>
-                </div>
-            </div>
-        );
-    };
-
-    const renderPublication = (msg) => {
-        const data = parseAgentJson(msg);
-        if (!data) return null;
-
-        // Mark final in manifest
-        if (!manifest.final) setManifest(prev => ({ ...prev, final: true }));
-
-        return (
-            <div className="w-full h-full p-6 pb-20 overflow-y-auto">
-                <div className="bg-slate-100 text-slate-900 p-8 md:p-12 rounded-xl shadow-2xl font-serif leading-relaxed whitespace-pre-wrap relative group">
-                    <button
-                        onClick={() => handleCopy(data.final_text)}
-                        className="absolute top-4 right-4 p-2 bg-slate-200/50 hover:bg-emerald-600 hover:text-white rounded-lg transition-colors text-slate-500"
-                    >
-                        {copied ? <Check size={16} /> : <Copy size={16} />}
-                    </button>
-                    {data.final_text}
-                </div>
-            </div>
-        );
     };
 
     return (
         <div className="flex h-full overflow-hidden bg-slate-950">
-            {/* LEFT COLUMN */}
+            {/* LEFT: MAIN FEED */}
             <div className="flex-1 flex flex-col min-w-0 relative border-r border-slate-800">
-                {statusMessage && loading && (
-                    <div className="absolute top-0 left-0 right-0 z-20 bg-slate-900/90 backdrop-blur border-b border-slate-800 py-1.5 px-4 text-xs font-mono text-emerald-300 animate-in fade-in">
-                        {statusMessage}
-                    </div>
-                )}
-
                 <div className="flex-1 overflow-y-auto scroll-smooth flex flex-col">
-                    {history.map((msg, idx) => {
-                        const isLast = idx === history.length - 1;
-                        if (!isLast && msg.type !== 'final') return null;
+                    <div className="flex-1">
+                        {currentPhase === 'vision' && editorMsg && <EditorDeck data={parseAgentJson(editorMsg, editorRole)} selections={draftSelections} onSelect={handleDraftSelect} />}
+                        {currentPhase === 'specs' && linguistMsg && <LinguistDeck data={parseAgentJson(linguistMsg, linguistRole)} selections={draftSelections} onSelect={handleDraftSelect} />}
 
-                        switch (msg.type) {
-                            case 'strategy_options': return renderEditor(msg);
-                            case 'spec_options': return renderLinguist(msg);
-                            case 'blueprint': return renderManuscript(msg);
-                            case 'final': return renderPublication(msg);
-                            default: return null;
-                        }
-                    })}
+                        {/* Reuse Manuscript for both blueprint and final for now, or use custom renders if available */}
+                        {currentPhase === 'blueprint' && scribeMsg && <Manuscript data={parseAgentJson(scribeMsg, scribeRole)} />}
 
+                        {/* Publishers might just output text or a refined manuscript. For now, showing raw text or specialized deck if we had one. */}
+                        {currentPhase === 'done' && publisherMsg && (
+                            <div className="p-8 max-w-4xl mx-auto animate-in fade-in">
+                                <h2 className="text-2xl font-bold text-indigo-400 mb-4 font-serif">Final Publication</h2>
+                                <div className="prose prose-invert prose-lg">
+                                    <div className="whitespace-pre-wrap text-slate-300">
+                                        {parseAgentJson(publisherMsg, publisherRole)?.content || publisherMsg.text}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
-                    {/* NEW: THE BIG LOADER */}
-                    {loading && (
-                        <AgentLoader message={statusMessage} />
-                    )}
-
+                        {loading && <AgentLoader message={statusMessage} />}
+                    </div>
                     <div ref={bottomRef} />
                 </div>
 
@@ -218,7 +153,7 @@ const TextFeed = ({ initialPrompt, onStateChange }) => {
                 />
             </div>
 
-            {/* RIGHT COLUMN */}
+            {/* RIGHT: MANIFEST SIDEBAR */}
             <TextManifest
                 manifest={manifest}
                 currentPhase={currentPhase}
