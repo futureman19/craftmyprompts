@@ -12,6 +12,7 @@ const CinemaDeck = ({ data, selections, onSelect }) => {
 
     return (
         <div className="w-full h-full p-4 flex flex-col animate-in fade-in">
+            {/* Header */}
             <div className="bg-slate-950 border-b border-slate-800 p-3 flex items-center justify-between shrink-0 mb-4 rounded-xl border">
                 <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
@@ -36,6 +37,7 @@ const CinemaDeck = ({ data, selections, onSelect }) => {
                                 return (
                                     <button key={idx} onClick={() => onSelect(deck.id, label)} className={`w-full text-left p-3 rounded-lg border transition-all ${isSelected ? `bg-slate-800 ${deck.border}` : 'bg-slate-950/80 border-slate-800/50 hover:bg-slate-900'}`}>
                                         <div className="flex items-center justify-between"><span className={`text-xs font-bold ${isSelected ? 'text-white' : 'text-slate-300'}`}>{label}</span>{isSelected && <CheckCircle size={14} className={deck.color} />}</div>
+                                        {opt.description && <p className="text-[10px] text-slate-500 mt-1 line-clamp-2">{opt.description}</p>}
                                     </button>
                                 );
                             })}

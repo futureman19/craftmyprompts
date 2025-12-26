@@ -1,8 +1,7 @@
 import React from 'react';
-import { Wand2, Copy, Download } from 'lucide-react';
+import { Wand2, Copy } from 'lucide-react';
 
 const GalleryDeck = ({ finalData }) => {
-    // In a real app, this would show the generated image URL
     return (
         <div className="w-full p-6 animate-in zoom-in-95">
             <div className="bg-slate-900 border border-fuchsia-500/30 rounded-xl p-8 text-center shadow-2xl">
@@ -19,7 +18,10 @@ const GalleryDeck = ({ finalData }) => {
                 </div>
 
                 <div className="flex justify-center gap-4">
-                    <button className="px-6 py-3 bg-fuchsia-600 hover:bg-fuchsia-500 text-white rounded-xl font-bold flex items-center gap-2 transition-all">
+                    <button
+                        onClick={() => navigator.clipboard.writeText(finalData?.final_prompt || "")}
+                        className="px-6 py-3 bg-fuchsia-600 hover:bg-fuchsia-500 text-white rounded-xl font-bold flex items-center gap-2 transition-all"
+                    >
                         <Copy size={16} /> Copy Prompt
                     </button>
                 </div>

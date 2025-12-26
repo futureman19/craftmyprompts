@@ -1,11 +1,11 @@
 import React from 'react';
-import { Layers, Image as ImageIcon } from 'lucide-react';
+import { Layers } from 'lucide-react';
 
-const CompositionDeck = ({ data }) => {
-    // Structure represents the breakdown of the image prompt (Subject, Medium, Environment, etc.)
-    const structure = data?.structure || data; // Handle if passed as 'data' or 'structure'
+const CompositionDeck = ({ structure }) => {
+    // Handles specific 'structure' prop, or generic 'data' prop if passed that way
+    const data = structure || {};
 
-    if (!structure) return null;
+    if (!data) return <div className="p-10 text-slate-500">Waiting for composition...</div>;
 
     return (
         <div className="w-full p-6 animate-in fade-in">
@@ -16,14 +16,19 @@ const CompositionDeck = ({ data }) => {
                 </div>
                 <div className="space-y-4 font-mono text-sm text-slate-300">
                     {/* Render prompt segments */}
-                    {Object.entries(structure).map(([key, value]) => (
-                        <div key={key} className="flex flex-col gap-1">
-                            <span className="text-[10px] uppercase text-slate-500 font-bold">{key}</span>
-                            <div className="p-3 bg-slate-950 rounded border border-slate-800 text-fuchsia-200">
-                                {value}
+                    {Object.entries(data).map(([key, value]) => {
+                        // Skip system keys
+                        if (key === 'blueprint_summary' || key === 'technical') return null;
+
+                        return (
+                            <div key={key} className="flex flex-col gap-1">
+                                <span className="text-[10px] uppercase text-slate-500 font-bold">{key}</span>
+                                <div className="p-3 bg-slate-950 rounded border border-slate-800 text-fuchsia-200">
+                                    {value}
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </div>
         </div>
