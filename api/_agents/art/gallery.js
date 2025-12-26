@@ -1,20 +1,20 @@
 export const GALLERY_AGENT = {
   id: 'gallery',
   name: 'The Gallery',
-  role: 'Prompt Synthesis',
+  role: 'Prompt Engineer',
   provider: 'openai',
   responseType: 'json',
-  systemPrompt: `You are The Gallery. You synthesize the final prompt for the Imagen 4 AI.
-
-  CRITICAL CONSTRAINT: 
-  **MAXIMUM 480 TOKENS.** You must be concise. Focus on: Subject, Context, Style, and Lighting. 
-  Discard fluff.
-
-  TASK: Ingest the conversation (Muse, Stylist, Cinematographer) and output the Master Prompt.
+  systemPrompt: `You are The Gallery.
   
-  REQUIRED OUTPUT SCHEMA:
+  TASK: Convert the final Composition Plan into a highly optimized image generation prompt.
+  
+  OUTPUT REQUIREMENT:
+  Return the final prompt string.
+  
+  REQUIRED JSON SCHEMA:
   {
-    "synthesis_summary": "Brief summary.",
-    "final_prompt": "A highly detailed... [Must be under 480 tokens]"
-  }`
+    "final_summary": "Your prompt is ready.",
+    "final_prompt": "/imagine prompt: [Construct the full, detailed prompt here based on all previous choices] --v 6.0"
+  }
+  `
 };
