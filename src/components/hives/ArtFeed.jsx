@@ -10,6 +10,7 @@ import ArtManifest from '../agent/art/ArtManifest';
 
 // Shared
 import ManagerDrawer from '../hivemind/ManagerDrawer';
+import AgentLoader from '../ui/AgentLoader';
 
 const ArtFeed = ({ initialPrompt, onStateChange }) => {
     const {
@@ -283,11 +284,7 @@ const ArtFeed = ({ initialPrompt, onStateChange }) => {
             {/* LEFT COLUMN: Workspace + Manager */}
             <div className="flex-1 flex flex-col min-w-0 relative border-r border-slate-800">
 
-                {statusMessage && loading && (
-                    <div className="absolute top-0 left-0 right-0 z-20 bg-slate-900/90 backdrop-blur border-b border-slate-800 py-1.5 px-4 text-xs font-mono text-purple-300 animate-in fade-in">
-                        {statusMessage}
-                    </div>
-                )}
+
 
                 <div className="flex-1 overflow-y-auto scroll-smooth flex flex-col">
                     {history.map((msg, idx) => {
@@ -302,6 +299,12 @@ const ArtFeed = ({ initialPrompt, onStateChange }) => {
                             default: return null;
                         }
                     })}
+
+                    {/* NEW: THE BIG LOADER */}
+                    {loading && !isGeneratingImage && (
+                        <AgentLoader message={statusMessage} />
+                    )}
+
                     <div ref={bottomRef} />
                 </div>
 
