@@ -3,7 +3,7 @@ import ArtManifest from '../agent/art/ArtManifest';
 import ManagerDrawer from '../hivemind/ManagerDrawer';
 import AgentLoader from '../ui/AgentLoader';
 
-// --- NEW IMPORTS (Now they exist!) ---
+// --- IMPORTS ---
 import MuseDeck from '../agent/art/MuseDeck';
 import CinemaDeck from '../agent/art/CinemaDeck';
 import CompositionDeck from '../agent/art/CompositionDeck';
@@ -14,23 +14,56 @@ const ArtFeed = ({ history, loading, statusMessage, actions, currentPhase, manag
     const [draftSelections, setDraftSelections] = useState({});
     const bottomRef = useRef(null);
 
-    // --- PARSER ---
-    const parseAgentJson = (msg) => {
+    // --- 1. ROBUST PARSER & NORMALIZER ---
+    const parseAgentJson = (msg, context) => {
         if (!msg) return null;
         try {
             const raw = typeof msg.text === 'string' ? msg.text : JSON.stringify(msg.text);
             const start = raw.indexOf('{');
             const end = raw.lastIndexOf('}');
-            if (start !== -1 && end !== -1) return JSON.parse(raw.substring(start, end + 1));
-        } catch (e) { console.error("Parse Error:", e); }
+            if (start === -1 || end === -1) return null;
+
+            const json = JSON.parse(raw.substring(start, end + 1));
+
+            // NORMALIZATION: Fix inconsistent keys from AI
+            // 1. Check for nested "options" object
+            let data = json.options ? { ...json, ...json.options } : json;
+
+            // 2. Map Vision Keys
+            if (data.concept && Array.isArray(data.concept)) data.concept_options = data.concept;
+            if (data.conceptOptions) data.concept_options = data.conceptOptions;
+
+            if (data.subject && Array.isArray(data.subject)) data.subject_options = data.subject;
+            if (data.subjectOptions) data.subject_options = data.subjectOptions;
+
+            if (data.mood && Array.isArray(data.mood)) data.mood_options = data.mood;
+            if (data.moodOptions) data.mood_options = data.moodOptions;
+
+            // 3. Map Specs Keys
+            if (data.style && Array.isArray(data.style)) data.style_options = data.style;
+            if (data.styleOptions) data.style_options = data.styleOptions;
+
+            if (data.lighting && Array.isArray(data.lighting)) data.lighting_options = data.lighting;
+            if (data.lightingOptions) data.lighting_options = data.lightingOptions;
+
+            if (data.camera && Array.isArray(data.camera)) data.camera_options = data.camera;
+            if (data.cameraOptions) data.camera_options = data.cameraOptions;
+
+            console.log(`[${context}] Parsed Data:`, data); // Debug Log
+            return data;
+
+        } catch (e) {
+            console.error("Parse Error:", e);
+        }
         return null;
     };
 
-    // Updated roles to match likely Agent outputs
-    const strategyMsg = history.findLast(m => m.role === 'The Muse' || m.role === 'The Visionary');
-    const specsMsg = history.findLast(m => m.role === 'The Cinematographer' || m.role === 'The Tech Lead');
-    const buildMsg = history.findLast(m => m.role === 'The Stylist' || m.role === 'The Architect');
-    const finalMsg = history.findLast(m => m.role === 'The Gallery' || m.role === 'The Executive');
+    // --- 2. FUZZY ROLE MATCHING ---
+    // Uses .includes() to catch "Muse", "The Muse", "Art Director", etc.
+    const strategyMsg = history.findLast(m => m.role && (m.role.includes('Muse') || m.role.includes('Visionary')));
+    const specsMsg = history.findLast(m => m.role && (m.role.includes('Cinematographer') || m.role.includes('Tech')));
+    const buildMsg = history.findLast(m => m.role && (m.role.includes('Stylist') || m.role.includes('Architect')));
+    const finalMsg = history.findLast(m => m.role && (m.role.includes('Gallery') || m.role.includes('Executive')));
 
     useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [history, loading]);
     useEffect(() => { setDraftSelections({}); }, [currentPhase]);
@@ -62,23 +95,23 @@ const ArtFeed = ({ history, loading, statusMessage, actions, currentPhase, manag
 
     const handleAutoPilot = () => {
         if (currentPhase === 'vision') {
-            const data = parseAgentJson(strategyMsg);
+            const data = parseAgentJson(strategyMsg, 'AutoPilot-Vision');
             if (data) {
                 const auto = {
-                    concept: data.concept_options?.[0]?.label || "Default",
-                    subject: data.subject_options?.[0]?.label || "Default",
-                    mood: data.mood_options?.[0]?.label || "Default"
+                    concept: data.concept_options?.[0]?.label || data.concept_options?.[0] || "Default",
+                    subject: data.subject_options?.[0]?.label || data.subject_options?.[0] || "Default",
+                    mood: data.mood_options?.[0]?.label || data.mood_options?.[0] || "Default"
                 };
                 setManifest(prev => ({ ...prev, vision: auto }));
                 actions.submitChoices(`Concept: ${auto.concept}, Subject: ${auto.subject}, Mood: ${auto.mood}`);
             }
         } else if (currentPhase === 'specs') {
-            const data = parseAgentJson(specsMsg);
+            const data = parseAgentJson(specsMsg, 'AutoPilot-Specs');
             if (data) {
                 const auto = {
-                    style: data.style_options?.[0]?.label || "Default",
-                    lighting: data.lighting_options?.[0]?.label || "Default",
-                    camera: data.camera_options?.[0]?.label || "Default"
+                    style: data.style_options?.[0]?.label || data.style_options?.[0] || "Default",
+                    lighting: data.lighting_options?.[0]?.label || data.lighting_options?.[0] || "Default",
+                    camera: data.camera_options?.[0]?.label || data.camera_options?.[0] || "Default"
                 };
                 setManifest(prev => ({ ...prev, specs: auto }));
                 actions.submitSpecs(`Style: ${auto.style}, Lighting: ${auto.lighting}, Camera: ${auto.camera}`);
@@ -87,11 +120,17 @@ const ArtFeed = ({ history, loading, statusMessage, actions, currentPhase, manag
     };
 
     // --- RENDERERS ---
-    const renderVision = () => <MuseDeck data={parseAgentJson(strategyMsg)} selections={draftSelections} onSelect={handleDraftSelect} />;
-    const renderSpecs = () => <CinemaDeck data={parseAgentJson(specsMsg)} selections={draftSelections} onSelect={handleDraftSelect} />;
-    const renderBlueprint = () => <CompositionDeck structure={parseAgentJson(buildMsg)?.composition || parseAgentJson(buildMsg)?.structure || { note: "Processing/Structure Mismatch" }} />;
-    // Added structure fallback for safety
-    const renderFinal = () => <GalleryDeck finalData={parseAgentJson(finalMsg)} />;
+    const renderVision = () => <MuseDeck data={parseAgentJson(strategyMsg, 'Muse')} selections={draftSelections} onSelect={handleDraftSelect} />;
+    const renderSpecs = () => <CinemaDeck data={parseAgentJson(specsMsg, 'Cinema')} selections={draftSelections} onSelect={handleDraftSelect} />;
+
+    // Improved Blueprint Parser: Checks multiple possible keys
+    const renderBlueprint = () => {
+        const raw = parseAgentJson(buildMsg, 'Composition');
+        const structure = raw?.composition || raw?.structure || raw?.layers || { note: "Processing..." };
+        return <CompositionDeck structure={structure} />;
+    };
+
+    const renderFinal = () => <GalleryDeck finalData={parseAgentJson(finalMsg, 'Gallery')} />;
 
     return (
         <div className="flex h-full overflow-hidden bg-slate-950">
