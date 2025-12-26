@@ -27,16 +27,11 @@ const VideoFeed = ({
     const [draftSelections, setDraftSelections] = useState({});
     const bottomRef = useRef(null);
 
-    // --- FIND MESSAGES ---
-    const visionRole = 'The Producer';
-    const specsRole = 'The Director';
-    const blueRole = 'The VFX Specialist';
-    const finalRole = 'The Editor'; // Or whatever final agent name is
-
-    const visionMsg = history.findLast(m => m.role === visionRole);
-    const specsMsg = history.findLast(m => m.role === specsRole);
-    const blueMsg = history.findLast(m => m.role === blueRole);
-    const finalMsg = history.findLast(m => m.role === finalRole);
+    // --- FIND MESSAGES (FUZZY MATCHING) ---
+    const visionMsg = history.findLast(m => m.role && (m.role.includes('Producer') || m.role.includes('Vision')));
+    const specsMsg = history.findLast(m => m.role && (m.role.includes('Director') || m.role.includes('Specs')));
+    const blueMsg = history.findLast(m => m.role && (m.role.includes('VFX') || m.role.includes('Visual')));
+    const finalMsg = history.findLast(m => m.role && (m.role.includes('Editor') || m.role.includes('Production')));
 
     // --- SCROLL TO BOTTOM ---
     useEffect(() => {
@@ -54,7 +49,7 @@ const VideoFeed = ({
         if (finalMsg) setManifest(prev => ({ ...prev, final: "Production Complete" }));
     }, [blueMsg, finalMsg]);
 
-    // --- HELPER: SAFE JSON PARSER ---
+    // --- HELPER: ROBUST JSON PARSER ---
     const parseAgentJson = (msg, contextName) => {
         if (!msg) return null;
         try {
@@ -62,7 +57,33 @@ const VideoFeed = ({
             const start = raw.indexOf('{');
             const end = raw.lastIndexOf('}');
             if (start !== -1 && end !== -1) {
-                return JSON.parse(raw.substring(start, end + 1));
+                const json = JSON.parse(raw.substring(start, end + 1));
+
+                // DATA NORMALIZATION
+                let data = json.options ? { ...json, ...json.options } : json;
+
+                // Vision Phase keys
+                if (data.genre && Array.isArray(data.genre)) data.genre_options = data.genre;
+                if (data.genreOptions) data.genre_options = data.genreOptions;
+
+                if (data.hook && Array.isArray(data.hook)) data.hook_options = data.hook;
+                if (data.hookOptions) data.hook_options = data.hookOptions;
+
+                if (data.setting && Array.isArray(data.setting)) data.setting_options = data.setting;
+                if (data.settingOptions) data.setting_options = data.settingOptions;
+
+                // Specs Phase keys
+                if (data.camera && Array.isArray(data.camera)) data.camera_options = data.camera;
+                if (data.cameraOptions) data.camera_options = data.cameraOptions;
+
+                if (data.lighting && Array.isArray(data.lighting)) data.lighting_options = data.lighting;
+                if (data.lightingOptions) data.lighting_options = data.lightingOptions;
+
+                if (data.motion && Array.isArray(data.motion)) data.motion_options = data.motion;
+                if (data.motionOptions) data.motion_options = data.motionOptions;
+
+                console.log(`[${contextName}] Parsed Data:`, data);
+                return data;
             }
         } catch (e) { console.error(`${contextName} Parse Error:`, e); }
         return null;
@@ -94,20 +115,20 @@ const VideoFeed = ({
 
     const handleAutoPilot = () => {
         if (currentPhase === 'vision') {
-            const data = parseAgentJson(visionMsg, visionRole);
+            const data = parseAgentJson(visionMsg, 'AutoPilot-Producer');
             const auto = {
-                genre: data?.genre_options?.[0]?.label || "Default",
-                hook: data?.hook_options?.[0]?.label || "Default",
-                setting: data?.setting_options?.[0]?.label || "Default"
+                genre: data?.genre_options?.[0]?.label || data?.genre_options?.[0] || "Default",
+                hook: data?.hook_options?.[0]?.label || data?.hook_options?.[0] || "Default",
+                setting: data?.setting_options?.[0]?.label || data?.setting_options?.[0] || "Default"
             };
             setManifest(prev => ({ ...prev, vision: auto }));
             actions.submitChoices(`Genre: ${auto.genre}, Hook: ${auto.hook}, Setting: ${auto.setting}`);
         } else if (currentPhase === 'specs') {
-            const data = parseAgentJson(specsMsg, specsRole);
+            const data = parseAgentJson(specsMsg, 'AutoPilot-Director');
             const auto = {
-                camera: data?.camera_options?.[0]?.label || "Default",
-                lighting: data?.lighting_options?.[0]?.label || "Default",
-                motion: data?.motion_options?.[0]?.label || "Default"
+                camera: data?.camera_options?.[0]?.label || data?.camera_options?.[0] || "Default",
+                lighting: data?.lighting_options?.[0]?.label || data?.lighting_options?.[0] || "Default",
+                motion: data?.motion_options?.[0]?.label || data?.motion_options?.[0] || "Default"
             };
             setManifest(prev => ({ ...prev, specs: auto }));
             actions.submitSpecs(`Camera: ${auto.camera}, Lighting: ${auto.lighting}, Motion: ${auto.motion}`);
@@ -120,9 +141,9 @@ const VideoFeed = ({
             {/* LEFT: MAIN FEED */}
             <div className="flex-1 flex flex-col min-w-0 relative border-r border-slate-800">
                 <div className="flex-1 overflow-y-auto scroll-smooth flex flex-col">
-                    <div className="flex-1">
-                        {currentPhase === 'vision' && visionMsg && <ProducerDeck data={parseAgentJson(visionMsg, visionRole)} selections={draftSelections} onSelect={handleDraftSelect} />}
-                        {currentPhase === 'specs' && specsMsg && <DirectorDeck data={parseAgentJson(specsMsg, specsRole)} selections={draftSelections} onSelect={handleDraftSelect} />}
+                    <div className="flex-1 p-4">
+                        {currentPhase === 'vision' && visionMsg && <ProducerDeck data={parseAgentJson(visionMsg, 'Producer')} selections={draftSelections} onSelect={handleDraftSelect} />}
+                        {currentPhase === 'specs' && specsMsg && <DirectorDeck data={parseAgentJson(specsMsg, 'Director')} selections={draftSelections} onSelect={handleDraftSelect} />}
 
                         {/* Placeholders for Video Blueprint/Final */}
                         {currentPhase === 'blueprint' && blueMsg && (

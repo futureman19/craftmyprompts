@@ -27,17 +27,12 @@ const TextFeed = ({
     const [draftSelections, setDraftSelections] = useState({});
     const bottomRef = useRef(null);
 
-    // --- FIND MESSAGES ---
-    // Update roles based on actual Agent outputs
-    const editorRole = 'The Editor-In-Chief';
-    const linguistRole = 'The Linguist';
-    const scribeRole = 'The Scribe';
-    const publisherRole = 'The Publisher';
-
-    const editorMsg = history.findLast(m => m.role === editorRole);
-    const linguistMsg = history.findLast(m => m.role === linguistRole);
-    const scribeMsg = history.findLast(m => m.role === scribeRole);
-    const publisherMsg = history.findLast(m => m.role === publisherRole);
+    // --- FIND MESSAGES (FUZZY MATCHING) ---
+    // Uses .includes() to be robust against "The Editor" vs "The Editor-In-Chief"
+    const editorMsg = history.findLast(m => m.role && (m.role.includes('Editor') || m.role.includes('Chief')));
+    const linguistMsg = history.findLast(m => m.role && m.role.includes('Linguist'));
+    const scribeMsg = history.findLast(m => m.role && (m.role.includes('Scribe') || m.role.includes('Writer')));
+    const publisherMsg = history.findLast(m => m.role && m.role.includes('Publisher'));
 
     // --- SCROLL TO BOTTOM ---
     useEffect(() => {
@@ -55,7 +50,7 @@ const TextFeed = ({
         if (publisherMsg) setManifest(prev => ({ ...prev, final: "Manuscript Polished" }));
     }, [scribeMsg, publisherMsg]);
 
-    // --- HELPER: SAFE JSON PARSER ---
+    // --- HELPER: ROBUST JSON PARSER ---
     const parseAgentJson = (msg, contextName) => {
         if (!msg) return null;
         try {
@@ -63,7 +58,33 @@ const TextFeed = ({
             const start = raw.indexOf('{');
             const end = raw.lastIndexOf('}');
             if (start !== -1 && end !== -1) {
-                return JSON.parse(raw.substring(start, end + 1));
+                const json = JSON.parse(raw.substring(start, end + 1));
+
+                // DATA NORMALIZATION
+                let data = json.options ? { ...json, ...json.options } : json;
+
+                // Vision Phase Keys
+                if (data.format && Array.isArray(data.format)) data.format_options = data.format;
+                if (data.formatOptions) data.format_options = data.formatOptions;
+
+                if (data.angle && Array.isArray(data.angle)) data.angle_options = data.angle;
+                if (data.angleOptions) data.angle_options = data.angleOptions;
+
+                if (data.tone && Array.isArray(data.tone)) data.tone_options = data.tone;
+                if (data.toneOptions) data.tone_options = data.toneOptions;
+
+                // Specs Phase Keys
+                if (data.vocab && Array.isArray(data.vocab)) data.vocab_options = data.vocab;
+                if (data.vocabOptions) data.vocab_options = data.vocabOptions;
+
+                if (data.structure && Array.isArray(data.structure)) data.structure_options = data.structure;
+                if (data.structureOptions) data.structure_options = data.structureOptions;
+
+                if (data.rhetoric && Array.isArray(data.rhetoric)) data.rhetoric_options = data.rhetoric;
+                if (data.rhetoricOptions) data.rhetoric_options = data.rhetoricOptions;
+
+                console.log(`[${contextName}] Parsed Data:`, data);
+                return data;
             }
         } catch (e) { console.error(`${contextName} Parse Error:`, e); }
         return null;
@@ -95,20 +116,20 @@ const TextFeed = ({
 
     const handleAutoPilot = () => {
         if (currentPhase === 'vision') {
-            const data = parseAgentJson(editorMsg, editorRole);
+            const data = parseAgentJson(editorMsg, 'AutoPilot-Editor');
             const auto = {
-                format: data?.format_options?.[0]?.label || "Default",
-                angle: data?.angle_options?.[0]?.label || "Default",
-                tone: data?.tone_options?.[0]?.label || "Default"
+                format: data?.format_options?.[0]?.label || data?.format_options?.[0] || "Default",
+                angle: data?.angle_options?.[0]?.label || data?.angle_options?.[0] || "Default",
+                tone: data?.tone_options?.[0]?.label || data?.tone_options?.[0] || "Default"
             };
             setManifest(prev => ({ ...prev, vision: auto }));
             actions.submitChoices(`Format: ${auto.format}, Angle: ${auto.angle}, Tone: ${auto.tone}`);
         } else if (currentPhase === 'specs') {
-            const data = parseAgentJson(linguistMsg, linguistRole);
+            const data = parseAgentJson(linguistMsg, 'AutoPilot-Linguist');
             const auto = {
-                vocab: data?.vocab_options?.[0]?.label || "Default",
-                structure: data?.structure_options?.[0]?.label || "Default",
-                rhetoric: data?.rhetoric_options?.[0]?.label || "Default"
+                vocab: data?.vocab_options?.[0]?.label || data?.vocab_options?.[0] || "Default",
+                structure: data?.structure_options?.[0]?.label || data?.structure_options?.[0] || "Default",
+                rhetoric: data?.rhetoric_options?.[0]?.label || data?.rhetoric_options?.[0] || "Default"
             };
             setManifest(prev => ({ ...prev, specs: auto }));
             actions.submitSpecs(`Vocab: ${auto.vocab}, Structure: ${auto.structure}, Rhetoric: ${auto.rhetoric}`);
@@ -120,12 +141,12 @@ const TextFeed = ({
             {/* LEFT: MAIN FEED */}
             <div className="flex-1 flex flex-col min-w-0 relative border-r border-slate-800">
                 <div className="flex-1 overflow-y-auto scroll-smooth flex flex-col">
-                    <div className="flex-1">
-                        {currentPhase === 'vision' && editorMsg && <EditorDeck data={parseAgentJson(editorMsg, editorRole)} selections={draftSelections} onSelect={handleDraftSelect} />}
-                        {currentPhase === 'specs' && linguistMsg && <LinguistDeck data={parseAgentJson(linguistMsg, linguistRole)} selections={draftSelections} onSelect={handleDraftSelect} />}
+                    <div className="flex-1 p-4">
+                        {currentPhase === 'vision' && editorMsg && <EditorDeck data={parseAgentJson(editorMsg, 'Editor')} selections={draftSelections} onSelect={handleDraftSelect} />}
+                        {currentPhase === 'specs' && linguistMsg && <LinguistDeck data={parseAgentJson(linguistMsg, 'Linguist')} selections={draftSelections} onSelect={handleDraftSelect} />}
 
                         {/* Reuse Manuscript for both blueprint and final for now, or use custom renders if available */}
-                        {currentPhase === 'blueprint' && scribeMsg && <Manuscript data={parseAgentJson(scribeMsg, scribeRole)} />}
+                        {currentPhase === 'blueprint' && scribeMsg && <Manuscript data={parseAgentJson(scribeMsg, 'Scribe')} />}
 
                         {/* Publishers might just output text or a refined manuscript. For now, showing raw text or specialized deck if we had one. */}
                         {currentPhase === 'done' && publisherMsg && (
@@ -133,7 +154,7 @@ const TextFeed = ({
                                 <h2 className="text-2xl font-bold text-indigo-400 mb-4 font-serif">Final Publication</h2>
                                 <div className="prose prose-invert prose-lg">
                                     <div className="whitespace-pre-wrap text-slate-300">
-                                        {parseAgentJson(publisherMsg, publisherRole)?.content || publisherMsg.text}
+                                        {parseAgentJson(publisherMsg, 'Publisher')?.content || publisherMsg.text}
                                     </div>
                                 </div>
                             </div>

@@ -18,6 +18,11 @@ export const useArtHive = (initialKeys = {}) => {
         groq: localStorage.getItem('groq_key') || initialKeys.groq || ''
     });
 
+    const cleanJson = (text) => {
+        if (!text) return "";
+        return text.replace(/```json/g, '').replace(/```/g, '').trim();
+    };
+
     const callAgent = async (agentId, prompt, context = "") => {
         const keys = getEffectiveKeys();
         if (!keys.openai && !keys.gemini) throw new Error("Missing API Keys");
@@ -36,7 +41,10 @@ export const useArtHive = (initialKeys = {}) => {
         setContextData({ originalPrompt: prompt });
         try {
             const data = await callAgent('muse', prompt);
-            setHistory([{ ...data.swarm[0], type: 'vision_options' }]);
+            // Explicitly set role to match ArtFeed expectations
+            const rawMsg = data.swarm[0];
+            const cleanContent = cleanJson(rawMsg.content);
+            setHistory([{ ...rawMsg, content: cleanContent, text: cleanContent, role: 'The Muse', type: 'vision_options' }]);
         } catch (e) { console.error(e); } finally { setLoading(false); }
     };
 
@@ -45,7 +53,9 @@ export const useArtHive = (initialKeys = {}) => {
         setContextData(prev => ({ ...prev, strategy: choices }));
         try {
             const data = await callAgent('cinematographer', "Define visual specs.", `STRATEGY: ${JSON.stringify(choices)}`);
-            setHistory(prev => [...prev, { ...data.swarm[0], type: 'spec_options' }]);
+            const rawMsg = data.swarm[0];
+            const cleanContent = cleanJson(rawMsg.content);
+            setHistory(prev => [...prev, { ...rawMsg, content: cleanContent, text: cleanContent, role: 'The Cinematographer', type: 'spec_options' }]);
         } catch (e) { console.error(e); } finally { setLoading(false); }
     };
 
@@ -54,27 +64,28 @@ export const useArtHive = (initialKeys = {}) => {
         setContextData(prev => ({ ...prev, specs }));
         try {
             const data = await callAgent('stylist', "Create composition.", `SPECS: ${JSON.stringify(specs)}`);
-            setHistory(prev => [...prev, { ...data.swarm[0], type: 'blueprint' }]);
+            const rawMsg = data.swarm[0];
+            const cleanContent = cleanJson(rawMsg.content);
+            setHistory(prev => [...prev, { ...rawMsg, content: cleanContent, text: cleanContent, role: 'The Stylist', type: 'blueprint' }]);
         } catch (e) { console.error(e); } finally { setLoading(false); }
     };
 
-    // Note: Art has no Critic phase in v2.4, goes straight to Final
-    const composeBlueprint = async () => {
-        // Alias for step transition if needed
-    };
+    const composeBlueprint = async () => { };
 
     const renderFinal = async () => {
         setLoading(true); setCurrentPhase('done'); setStatusMessage('Rendering final prompt...');
         try {
             const data = await callAgent('gallery', "Finalize prompt.", "History Context");
-            setHistory(prev => [...prev, { ...data.swarm[0], type: 'final' }]);
+            const rawMsg = data.swarm[0];
+            const cleanContent = cleanJson(rawMsg.content);
+            setHistory(prev => [...prev, { ...rawMsg, content: cleanContent, text: cleanContent, role: 'The Gallery', type: 'final' }]);
         } catch (e) { console.error(e); } finally { setLoading(false); }
     };
 
     return {
         history, currentPhase, loading, statusMessage,
         startMission, submitChoices, submitSpecs, composeBlueprint, renderFinal,
-        managerMessages, isDrawerOpen, setIsDrawerOpen, handleManagerFeedback: () => { }, // TODO
+        managerMessages, isDrawerOpen, setIsDrawerOpen, handleManagerFeedback: () => { },
         mode
     };
 };

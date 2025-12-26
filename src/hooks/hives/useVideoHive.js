@@ -11,11 +11,15 @@ export const useVideoHive = (initialKeys = {}) => {
 
     const mode = 'video';
 
-    // ... (Same Key Logic) ...
     const getEffectiveKeys = () => ({
         gemini: localStorage.getItem('gemini_key') || initialKeys.gemini || '',
         openai: localStorage.getItem('openai_key') || initialKeys.openai || '',
     });
+
+    const cleanJson = (text) => {
+        if (!text) return "";
+        return text.replace(/```json/g, '').replace(/```/g, '').trim();
+    };
 
     const callAgent = async (agentId, prompt, context = "") => {
         const keys = getEffectiveKeys();
@@ -32,7 +36,9 @@ export const useVideoHive = (initialKeys = {}) => {
         setContextData({ originalPrompt: prompt });
         try {
             const data = await callAgent('producer', prompt);
-            setHistory([{ ...data.swarm[0], type: 'vision_options' }]);
+            const rawMsg = data.swarm[0];
+            const cleanContent = cleanJson(rawMsg.content);
+            setHistory([{ ...rawMsg, content: cleanContent, text: cleanContent, role: 'The Producer', type: 'vision_options' }]);
         } catch (e) { console.error(e); } finally { setLoading(false); }
     };
 
@@ -41,7 +47,9 @@ export const useVideoHive = (initialKeys = {}) => {
         setContextData(prev => ({ ...prev, strategy: choices }));
         try {
             const data = await callAgent('director', "Define visual direction.", `STRATEGY: ${JSON.stringify(choices)}`);
-            setHistory(prev => [...prev, { ...data.swarm[0], type: 'spec_options' }]);
+            const rawMsg = data.swarm[0];
+            const cleanContent = cleanJson(rawMsg.content);
+            setHistory(prev => [...prev, { ...rawMsg, content: cleanContent, text: cleanContent, role: 'The Director', type: 'spec_options' }]);
         } catch (e) { console.error(e); } finally { setLoading(false); }
     };
 
@@ -50,7 +58,9 @@ export const useVideoHive = (initialKeys = {}) => {
         setContextData(prev => ({ ...prev, specs }));
         try {
             const data = await callAgent('vfx', "Create storyboard.", `SPECS: ${JSON.stringify(specs)}`);
-            setHistory(prev => [...prev, { ...data.swarm[0], type: 'blueprint' }]);
+            const rawMsg = data.swarm[0];
+            const cleanContent = cleanJson(rawMsg.content);
+            setHistory(prev => [...prev, { ...rawMsg, content: cleanContent, text: cleanContent, role: 'The VFX Specialist', type: 'blueprint' }]);
         } catch (e) { console.error(e); } finally { setLoading(false); }
     };
 
@@ -60,7 +70,9 @@ export const useVideoHive = (initialKeys = {}) => {
         setLoading(true); setCurrentPhase('done'); setStatusMessage('Finalizing production...');
         try {
             const data = await callAgent('editor_video', "Render script.", "History Context");
-            setHistory(prev => [...prev, { ...data.swarm[0], type: 'final' }]);
+            const rawMsg = data.swarm[0];
+            const cleanContent = cleanJson(rawMsg.content);
+            setHistory(prev => [...prev, { ...rawMsg, content: cleanContent, text: cleanContent, role: 'The Editor', type: 'final' }]);
         } catch (e) { console.error(e); } finally { setLoading(false); }
     };
 
