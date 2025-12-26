@@ -1,103 +1,106 @@
-import React, { useState } from 'react';
-import { Video, CheckCircle, Circle, FastForward, MessageSquareQuote, ArrowRight, Aperture, Sun } from 'lucide-react';
+import React from 'react';
+import { Video, Camera, Sun, Move, CheckCircle } from 'lucide-react';
 
-const DirectorDeck = ({ data, onConfirm }) => {
-    const [selectedOption, setSelectedOption] = useState(null);
+const DirectorDeck = ({ data, selections, onSelect }) => {
 
-    // Safety Check
-    if (!data || !data.visual_options) return null;
+    if (!data) return null;
+
+    const decks = [
+        {
+            id: 'camera',
+            title: 'Camera',
+            icon: <Camera size={14} />,
+            color: 'text-cyan-400',
+            bg: 'bg-cyan-500/10',
+            border: 'border-cyan-500',
+            dataKey: 'camera_options'
+        },
+        {
+            id: 'lighting',
+            title: 'Lighting',
+            icon: <Sun size={14} />,
+            color: 'text-amber-400',
+            bg: 'bg-amber-500/10',
+            border: 'border-amber-500',
+            dataKey: 'lighting_options'
+        },
+        {
+            id: 'motion',
+            title: 'Motion',
+            icon: <Move size={14} />,
+            color: 'text-purple-400',
+            bg: 'bg-purple-500/10',
+            border: 'border-purple-500',
+            dataKey: 'motion_options'
+        }
+    ];
+
+    const getLabel = (opt) => opt.label || opt.title || "Untitled";
+    const getDescription = (opt) => opt.description || opt.details || "";
 
     return (
-        <div className="w-full max-w-4xl mx-auto mt-8 animate-in slide-in-from-bottom-4">
-
-            {/* HEADER */}
-            <div className="bg-slate-900 border border-amber-500/30 rounded-2xl p-6 shadow-2xl mb-6 relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-1 h-full bg-amber-500" />
-
-                <div className="flex items-center gap-4 mb-4">
-                    <div className="p-3 bg-amber-500/10 rounded-xl text-amber-400">
-                        <Video size={28} />
-                    </div>
-                    <div>
-                        <h3 className="text-xl font-bold text-white">The Director</h3>
-                        <p className="text-sm text-slate-400">{data.direction_summary}</p>
-                    </div>
-                </div>
-
-                {/* AGENT BLURB */}
-                {data.agent_commentary && (
-                    <div className="bg-amber-950/30 border border-amber-500/20 p-4 rounded-xl flex gap-3">
-                        <MessageSquareQuote className="text-amber-400 shrink-0 mt-1" size={20} />
-                        <p className="text-amber-200/80 text-sm italic leading-relaxed">
-                            "{data.agent_commentary}"
-                        </p>
-                    </div>
-                )}
-            </div>
-
-            {/* VISUAL CARDS */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                {data.visual_options.map((option, idx) => (
-                    <button
-                        key={idx}
-                        onClick={() => setSelectedOption(option.label)}
-                        className={`group relative p-5 rounded-xl border text-left transition-all hover:scale-[1.01] ${selectedOption === option.label
-                                ? 'bg-amber-900/40 border-amber-500 shadow-lg shadow-amber-900/20'
-                                : 'bg-slate-900 border-slate-800 hover:border-amber-500/50 hover:bg-slate-800'
-                            }`}
-                    >
-                        <div className="flex items-start gap-4">
-                            {/* Selection Radio */}
-                            <div className={`mt-1 transition-colors ${selectedOption === option.label ? 'text-amber-400' : 'text-slate-600 group-hover:text-amber-500/50'}`}>
-                                {selectedOption === option.label ? <CheckCircle size={24} /> : <Circle size={24} />}
-                            </div>
-
-                            <div className="flex-1">
-                                <h4 className={`text-lg font-bold mb-2 ${selectedOption === option.label ? 'text-white' : 'text-slate-200'}`}>
-                                    {option.label}
-                                </h4>
-
-                                {/* Technical Specs Pills */}
-                                <div className="flex flex-wrap gap-2 mb-3">
-                                    <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-950 rounded text-[10px] font-mono text-slate-400 border border-slate-800">
-                                        <Aperture size={10} />
-                                        {option.camera}
-                                    </div>
-                                    <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-950 rounded text-[10px] font-mono text-slate-400 border border-slate-800">
-                                        <Sun size={10} />
-                                        {option.lighting}
-                                    </div>
-                                </div>
-
-                                <p className="text-sm text-slate-400 leading-relaxed">
-                                    {option.description}
-                                </p>
-                            </div>
+        <div className="w-full flex flex-col h-full overflow-hidden animate-in fade-in">
+            <div className="bg-slate-950 border-b border-slate-800 p-3 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                        <div className="p-1.5 bg-cyan-500/10 rounded text-cyan-400">
+                            <Video size={16} />
                         </div>
-                    </button>
-                ))}
+                        <span className="text-sm font-bold text-white">The Director</span>
+                    </div>
+                    <div className="h-4 w-px bg-slate-800 hidden md:block" />
+                    <p className="text-xs text-slate-500 truncate max-w-xs md:max-w-md hidden sm:block">
+                        {data.spec_summary || "Setting up the shot..."}
+                    </p>
+                </div>
             </div>
 
-            {/* ACTION BAR */}
-            <div className="flex justify-between items-center pt-6 border-t border-slate-800">
-                <button
-                    onClick={() => onConfirm(null)}
-                    className="text-slate-500 hover:text-white text-sm font-medium flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-slate-800 transition-colors"
-                >
-                    <FastForward size={16} />
-                    Decide for me (Auto-Pilot)
-                </button>
+            <div className="flex-1 overflow-hidden bg-slate-950 p-4">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-full">
+                    {decks.map((deck) => {
+                        const options = data[deck.dataKey] || [];
+                        const currentSelection = selections[deck.id];
 
-                <button
-                    disabled={!selectedOption}
-                    onClick={() => onConfirm(selectedOption)}
-                    className={`px-8 py-3 rounded-xl font-bold text-sm shadow-lg flex items-center gap-2 transition-all transform active:scale-95 ${selectedOption
-                            ? 'bg-white hover:bg-amber-50 text-amber-950 shadow-amber-900/20 cursor-pointer'
-                            : 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                        }`}
-                >
-                    Approve Specs <ArrowRight size={18} />
-                </button>
+                        return (
+                            <div key={deck.id} className="flex flex-col h-full bg-slate-900/40 rounded-xl border border-slate-800 overflow-hidden shadow-sm">
+                                <div className={`px-3 py-2 border-b border-slate-800 flex items-center justify-between ${deck.bg}`}>
+                                    <div className="flex items-center gap-2">
+                                        <div className={deck.color}>{deck.icon}</div>
+                                        <span className={`text-[10px] font-bold uppercase tracking-wider ${deck.color}`}>
+                                            {deck.title}
+                                        </span>
+                                    </div>
+                                    <span className="text-[9px] text-slate-500 font-mono">{options.length}</span>
+                                </div>
+                                <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-2">
+                                    {options.map((option, idx) => {
+                                        const label = getLabel(option);
+                                        const desc = getDescription(option);
+                                        const isSelected = currentSelection === label;
+                                        return (
+                                            <button
+                                                key={idx}
+                                                onClick={() => onSelect(deck.id, label)}
+                                                className={`w-full text-left p-3 rounded-lg border transition-all relative group ${isSelected
+                                                        ? `bg-slate-800 ${deck.border} shadow-lg`
+                                                        : 'bg-slate-950/80 border-slate-800/50 hover:bg-slate-900 hover:border-slate-700'
+                                                    }`}
+                                            >
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <span className={`text-xs font-bold ${isSelected ? 'text-white' : 'text-slate-300'}`}>
+                                                        {label}
+                                                    </span>
+                                                    {isSelected && <CheckCircle size={14} className={deck.color} />}
+                                                </div>
+                                                <p className="text-[10px] text-slate-500 leading-snug line-clamp-2">{desc}</p>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
         </div>
     );
