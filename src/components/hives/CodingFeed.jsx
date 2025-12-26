@@ -30,17 +30,7 @@ const CodingFeed = ({
     const [draftSelections, setDraftSelections] = useState({});
     const bottomRef = useRef(null);
 
-    // --- SCROLL TO BOTTOM ---
-    useEffect(() => {
-        bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [history, loading]);
-
-    // --- RESET DRAFTS ON PHASE CHANGE ---
-    useEffect(() => {
-        setDraftSelections({});
-    }, [currentPhase]);
-
-    // --- FIND LAST MESSAGES ---
+    // --- FIND MESSAGES (Needed for Auto-Pilot Data Access) ---
     const strategyRole = 'The Visionary';
     const specsRole = 'The Tech Lead';
     const buildRole = 'The Architect';
@@ -50,17 +40,6 @@ const CodingFeed = ({
     const buildMsg = history.findLast(m => m.role === buildRole);
     const criticMsg = history.findLast(m => m.role === 'The Critic');
     const executiveMsg = history.findLast(m => m.role === 'The Executive');
-
-    // --- AUTO-UPDATE MANIFEST PROGRESS ---
-    // This fixes the "Pending..." bug by listening for Agent completion
-    useEffect(() => {
-        if (buildMsg) {
-            setManifest(prev => ({ ...prev, blueprint: "Architecture Locked" }));
-        }
-        if (executiveMsg) {
-            setManifest(prev => ({ ...prev, final: "Ready for Deployment" }));
-        }
-    }, [buildMsg, executiveMsg]);
 
     // --- HELPER: SAFE JSON PARSER ---
     const parseAgentJson = (msg, contextName) => {
@@ -76,6 +55,38 @@ const CodingFeed = ({
         return null;
     };
 
+    // --- AUTO-UPDATE MANIFEST PROGRESS ---
+    useEffect(() => {
+        if (buildMsg) {
+            setManifest(prev => ({ ...prev, blueprint: "Architecture Locked" }));
+        }
+        // If Critic speaks, record it
+        if (criticMsg) {
+            // We can parse the critic's decision or just say "Review Complete"
+            setManifest(prev => ({ ...prev, critic: "Review Completed" }));
+        }
+        // If Executive speaks (Final Build), check if Critic was skipped
+        if (executiveMsg) {
+            setManifest(prev => {
+                const newManifest = { ...prev, final: "Ready for Deployment" };
+                // If we reached Final but Critic is empty, mark as Skipped
+                if (!prev.critic) {
+                    newManifest.critic = "Skipped";
+                }
+                return newManifest;
+            });
+        }
+    }, [buildMsg, criticMsg, executiveMsg]);
+
+    // --- SCROLL & RESET ---
+    useEffect(() => {
+        bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [history, loading]);
+
+    useEffect(() => {
+        setDraftSelections({});
+    }, [currentPhase]);
+
     // --- SELECTION HANDLER ---
     const handleDraftSelect = (key, value) => setDraftSelections(prev => ({ ...prev, [key]: value }));
 
@@ -90,30 +101,47 @@ const CodingFeed = ({
     const handleSidebarConfirm = () => {
         const c = draftSelections;
         if (currentPhase === 'vision') {
-            // 1. Save OBJECT to Manifest (for the cool UI list)
             setManifest(prev => ({ ...prev, strategy: c }));
-
-            // 2. Send STRING to Agent (so it understands)
             const formatted = `Archetype: ${c.archetype}, Features: ${c.features}, UX: ${c.ux}`;
             actions.submitChoices(formatted);
-
         } else if (currentPhase === 'specs') {
-            // 1. Save OBJECT to Manifest
             setManifest(prev => ({ ...prev, stack: c }));
-
-            // 2. Send STRING to Agent
             const formatted = `Frontend: ${c.frontend}, Backend: ${c.backend}, UI: ${c.ui}`;
             actions.submitSpecs(formatted);
         }
     };
 
+    // --- SMART AUTO-PILOT ---
+    // Takes the 1st option from each deck automatically
     const handleAutoPilot = () => {
         if (currentPhase === 'vision') {
-            setManifest(prev => ({ ...prev, strategy: "Auto-Pilot Strategy" }));
-            actions.submitChoices({});
+            const data = parseAgentJson(strategyMsg, strategyRole);
+            if (!data) return;
+
+            // Pick Top Choices
+            const autoSelections = {
+                archetype: data.archetype_options?.[0]?.label || "Default",
+                features: data.feature_options?.[0]?.label || "Default",
+                ux: data.ux_options?.[0]?.label || "Default"
+            };
+
+            setManifest(prev => ({ ...prev, strategy: autoSelections }));
+            const formatted = `Archetype: ${autoSelections.archetype}, Features: ${autoSelections.features}, UX: ${autoSelections.ux}`;
+            actions.submitChoices(formatted);
+
         } else if (currentPhase === 'specs') {
-            setManifest(prev => ({ ...prev, stack: "Auto-Pilot Stack" }));
-            actions.submitSpecs({});
+            const data = parseAgentJson(specsMsg, specsRole);
+            if (!data) return;
+
+            const autoSelections = {
+                frontend: data.frontend_options?.[0]?.label || "Default",
+                backend: data.backend_options?.[0]?.label || "Default",
+                ui: data.ui_options?.[0]?.label || "Default"
+            };
+
+            setManifest(prev => ({ ...prev, stack: autoSelections }));
+            const formatted = `Frontend: ${autoSelections.frontend}, Backend: ${autoSelections.backend}, UI: ${autoSelections.ui}`;
+            actions.submitSpecs(formatted);
         }
     };
 
@@ -145,7 +173,11 @@ const CodingFeed = ({
         return (
             <div className="space-y-8 animate-in slide-in-from-bottom-4">
                 {renderBlueprint()}
-                {data && <CriticDeck data={data} onConfirm={actions.refineBlueprint} />}
+                {data && <CriticDeck data={data} onConfirm={(selections) => {
+                    // Update Manifest with Critic choices if made
+                    setManifest(prev => ({ ...prev, critic: "Updates Applied" }));
+                    actions.refineBlueprint(selections);
+                }} />}
             </div>
         );
     };

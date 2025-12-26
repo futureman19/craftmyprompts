@@ -1,5 +1,5 @@
 import React from 'react';
-import { Target, Cpu, Layers, Code2, FastForward, ArrowRight, Check, ShieldCheck, Zap, Circle } from 'lucide-react';
+import { Target, Cpu, Layers, Code2, FastForward, ArrowRight, Check, ShieldCheck, Zap, Circle, Bug } from 'lucide-react';
 
 const CodingManifest = ({
     manifest,
@@ -18,12 +18,22 @@ const CodingManifest = ({
     const renderValue = (val, type) => {
         if (!val) return null;
 
-        // If it's a simple string (e.g. "Auto-Pilot" or "Ready")
-        if (typeof val === 'string') {
-            return <div className="text-xs font-medium text-white animate-in fade-in">{val}</div>;
+        // SKIP STATE
+        if (val === 'Skipped') {
+            return <div className="text-[10px] text-slate-500 italic mt-1">Skipped by User</div>;
         }
 
-        // If it's an object (The Deck Selections)
+        // PENDING STATE
+        if (val === 'Pending...') {
+            return <div className="text-[10px] text-slate-600 italic mt-1">Pending...</div>;
+        }
+
+        // SIMPLE STRING (e.g. "Architecture Locked")
+        if (typeof val === 'string') {
+            return <div className="text-xs font-medium text-white animate-in fade-in mt-1">{val}</div>;
+        }
+
+        // OBJECT (Deck Selections)
         if (typeof val === 'object') {
             const listItems = [];
 
@@ -39,7 +49,7 @@ const CodingManifest = ({
             }
 
             return (
-                <div className="space-y-1.5 mt-1.5 animate-in slide-in-from-left-2">
+                <div className="space-y-1.5 mt-2 animate-in slide-in-from-left-2">
                     {listItems.map((item, idx) => (
                         <div key={idx} className="flex items-start gap-2">
                             <Circle size={4} className="mt-1.5 fill-slate-500 text-slate-500 shrink-0" />
@@ -60,6 +70,7 @@ const CodingManifest = ({
         { id: 'vision', label: 'Strategy', icon: <Target size={14} />, value: manifest.strategy },
         { id: 'specs', label: 'Stack', icon: <Cpu size={14} />, value: manifest.stack },
         { id: 'blueprint', label: 'Blueprint', icon: <Layers size={14} />, value: manifest.blueprint },
+        { id: 'critic', label: 'Critic', icon: <Bug size={14} />, value: manifest.critic }, // NEW STEP
         { id: 'final', label: 'Build', icon: <Code2 size={14} />, value: manifest.final },
     ];
 
@@ -76,7 +87,8 @@ const CodingManifest = ({
             <div className="flex-1 overflow-y-auto p-4 space-y-6">
                 {steps.map((step, idx) => {
                     const isActive = currentPhase && currentPhase.includes(step.id);
-                    const isDone = !!step.value;
+                    const isDone = !!step.value && step.value !== 'Pending...';
+                    const isSkipped = step.value === 'Skipped';
                     const isPending = !isActive && !isDone;
 
                     return (
@@ -90,10 +102,11 @@ const CodingManifest = ({
                             <div className={`
                                 w-6 h-6 rounded-full flex items-center justify-center shrink-0 border z-10 transition-all duration-300
                                 ${isActive ? 'bg-cyan-500 text-white border-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.5)] scale-110' :
-                                    isDone ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/50' :
-                                        'bg-slate-900 text-slate-600 border-slate-800'}
+                                    isSkipped ? 'bg-slate-800 text-slate-500 border-slate-700' :
+                                        isDone ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/50' :
+                                            'bg-slate-900 text-slate-600 border-slate-800'}
                             `}>
-                                {isDone && !isActive ? <Check size={12} /> : step.icon}
+                                {isDone && !isActive && !isSkipped ? <Check size={12} /> : step.icon}
                             </div>
 
                             {/* Content */}
@@ -162,7 +175,7 @@ const CodingManifest = ({
             </div>
 
             <div className="p-2 border-t border-slate-800 text-[9px] text-slate-700 font-mono text-center">
-                Hivemind Coding Engine v2.3
+                Hivemind Coding Engine v2.4
             </div>
         </div>
     );
