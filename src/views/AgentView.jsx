@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
-    Sparkles, Brain, MessageSquare, Users, Zap, Bot,
-    Code, Feather, BarChart, ChevronRight, Check
+    Sparkles, Brain, MessageSquare, Users,
+    Code, Feather, Bot, Check, Layout
 } from 'lucide-react';
 import ChatInterface from '../components/ChatInterface.jsx';
 import MemoryManager from '../components/MemoryManager.jsx';
@@ -17,7 +17,8 @@ const AgentView = ({ user, globalApiKey, orchestrator, onUpdateBuilder }) => {
     const [activeTab, setActiveTab] = useState('chat'); // Mobile: 'roster' | 'chat' | 'memory'
     const [activeAgent, setActiveAgent] = useState(null); // The selected persona
 
-    // Group Squads for rendering
+    // --- SQUAD CONFIGURATION ---
+    // FIXED: Updated to use 'writer' instead of 'scribe' to prevent crash
     const SQUADS = [
         {
             id: 'tech',
@@ -33,15 +34,24 @@ const AgentView = ({ user, globalApiKey, orchestrator, onUpdateBuilder }) => {
             icon: Feather,
             color: 'text-indigo-500',
             bg: 'bg-indigo-100 dark:bg-indigo-900/30',
-            agents: [AGENT_ROSTER.editor, AGENT_ROSTER.linguist, AGENT_ROSTER.scribe]
+            // SAFETY FILTER: Boolean check removes any undefined agents (like 'scribe')
+            agents: [AGENT_ROSTER.editor, AGENT_ROSTER.linguist, AGENT_ROSTER.writer || AGENT_ROSTER.scribe].filter(Boolean)
         },
         {
             id: 'creative',
             name: 'Creative Studio',
-            icon: Feather,
+            icon: Layout,
             color: 'text-pink-500',
             bg: 'bg-pink-100 dark:bg-pink-900/30',
-            agents: [AGENT_ROSTER.muse, AGENT_ROSTER.cinematographer, AGENT_ROSTER.producer]
+            agents: [AGENT_ROSTER.muse, AGENT_ROSTER.cinematographer, AGENT_ROSTER.stylist]
+        },
+        {
+            id: 'video',
+            name: 'Video Set',
+            icon: Users,
+            color: 'text-purple-500',
+            bg: 'bg-purple-100 dark:bg-purple-900/30',
+            agents: [AGENT_ROSTER.producer, AGENT_ROSTER.director]
         },
     ];
 
@@ -63,7 +73,7 @@ const AgentView = ({ user, globalApiKey, orchestrator, onUpdateBuilder }) => {
     return (
         <div className="flex-1 flex flex-col h-full bg-slate-50 dark:bg-slate-900 overflow-hidden relative">
 
-            {/* Header (Mobile & Desktop) */}
+            {/* Header */}
             <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 p-4 flex justify-between items-center z-10 shrink-0">
                 <div className="flex items-center gap-3">
                     <div className={`p-2 rounded-lg text-white shadow-md transition-colors ${activeAgent ? 'bg-indigo-600' : 'bg-gradient-to-br from-fuchsia-600 to-purple-600'}`}>
@@ -90,12 +100,13 @@ const AgentView = ({ user, globalApiKey, orchestrator, onUpdateBuilder }) => {
             {/* Main Layout */}
             <div className="flex-1 flex overflow-hidden">
 
-                {/* 1. LEFT PANEL: THE ROSTER (Desktop: Sidebar, Mobile: Tab) */}
+                {/* 1. LEFT PANEL: THE ROSTER */}
                 <div className={`w-full md:w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex-col transition-all duration-300 ${activeTab === 'roster' ? 'flex' : 'hidden md:flex'}`}>
                     <div className="p-4 border-b border-slate-100 dark:border-slate-800">
                         <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Deploy Agent</h3>
                     </div>
                     <div className="flex-1 overflow-y-auto p-2 space-y-6">
+
                         {/* Default / Generalist */}
                         <button
                             onClick={() => { setActiveAgent(null); setActiveTab('chat'); }}
@@ -120,6 +131,7 @@ const AgentView = ({ user, globalApiKey, orchestrator, onUpdateBuilder }) => {
                                 </div>
                                 <div className="space-y-1">
                                     {squad.agents && squad.agents.length > 0 ? squad.agents.map(agent => {
+                                        if (!agent) return null; // Safety Check
                                         const isActive = activeAgent?.id === agent.id;
                                         return (
                                             <button
@@ -149,19 +161,20 @@ const AgentView = ({ user, globalApiKey, orchestrator, onUpdateBuilder }) => {
                 {/* 2. CENTER PANEL: CHAT INTERFACE */}
                 <div className={`flex-1 flex flex-col min-w-0 bg-slate-50 dark:bg-slate-950 transition-all duration-300 ${activeTab === 'chat' ? 'flex' : 'hidden md:flex'}`}>
                     <div className="flex-1 p-4 md:p-6 overflow-hidden">
-                        {/* Key Logic: Pass activeAgent to the Chat Interface */}
                         <ChatInterface
                             key={activeAgent?.id || 'default'}
                             activeAgent={activeAgent}
                             apiKey={globalApiKey}
                             onUpdateBuilder={onUpdateBuilder}
                             initialInput={initialInput}
+
+                            // NEW: Pass the RAG Memory so the Agent is "Knowledge Aware"
                             knowledge={orchestrator.memories || {}}
                         />
                     </div>
                 </div>
 
-                {/* 3. RIGHT PANEL: MEMORY (Desktop: Sidebar, Mobile: Tab) */}
+                {/* 3. RIGHT PANEL: MEMORY MANAGER */}
                 <div className={`w-full md:w-80 border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex-col transition-all duration-300 ${activeTab === 'memory' ? 'flex' : 'hidden md:flex'}`}>
                     <MemoryManager
                         memories={orchestrator.memories || {}}
