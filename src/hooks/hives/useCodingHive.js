@@ -299,9 +299,12 @@ export const useCodingHive = (initialKeys = {}) => {
         }
     };
 
-    // --- ACTION: DEPLOY (GitHub) ---
-    const deployToGithub = async (type, projectData) => {
-        if (!githubToken) throw new Error("No GitHub Token provided.");
+    // --- ACTION: DEPLOY (Robust) ---
+    // Added tokenOverride to allow passing the token directly from the input
+    const deployToGithub = async (type, projectData, tokenOverride = null) => {
+        const tokenToUse = tokenOverride || githubToken;
+
+        if (!tokenToUse) throw new Error("No GitHub Token provided.");
 
         let payload = {};
 
@@ -326,8 +329,13 @@ export const useCodingHive = (initialKeys = {}) => {
             };
         }
         else if (type === 'create_repo') {
+            // ROBUST NAMING: 
+            // 1. Use the name passed from the UI (which comes from the Input box)
+            // 2. Fallback to timestamp ONLY if the UI sent an empty string (safety net)
+            const safeName = projectData.project_name || `hivemind-project-${Math.floor(Date.now() / 1000)}`;
+
             payload = {
-                name: projectData.project_name || 'hivemind-project',
+                name: safeName,
                 description: projectData.description,
                 private: false
             };
@@ -337,7 +345,7 @@ export const useCodingHive = (initialKeys = {}) => {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                token: githubToken,
+                token: tokenToUse,
                 action: type,
                 payload
             })
