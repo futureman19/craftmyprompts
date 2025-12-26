@@ -40,8 +40,8 @@ export const AGENT_ROSTER = {
         provider: 'openai',
         systemPrompt: "You are The Linguist. You define the voice and tone."
     },
-    scribe: {
-        id: 'scribe',
+    writer: {
+        id: 'writer',
         name: 'The Scribe',
         role: 'Blueprint & Draft',
         provider: 'openai',
@@ -101,7 +101,7 @@ export const SQUAD_LIST = [
         name: 'Editorial Squad',
         color: 'text-indigo-500',
         bg: 'bg-indigo-100 dark:bg-indigo-900/30',
-        agents: [AGENT_ROSTER.editor, AGENT_ROSTER.linguist, AGENT_ROSTER.scribe]
+        agents: [AGENT_ROSTER.editor, AGENT_ROSTER.linguist, AGENT_ROSTER.writer]
     },
     {
         id: 'art',
