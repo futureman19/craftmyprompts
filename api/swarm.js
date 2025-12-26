@@ -22,7 +22,7 @@ import { GALLERY_AGENT } from './_agents/art/gallery.js';
 // 4. TEXT SQUAD
 import { EDITOR_AGENT } from './_agents/text/editor.js';
 import { LINGUIST_AGENT } from './_agents/text/linguist.js';
-import { SCRIBE_AGENT } from './_agents/text/scribe.js';
+import { WRITER_AGENT } from './_agents/text/writer.js';
 import { PUBLISHER_AGENT } from './_agents/text/publisher.js';
 
 // 5. VIDEO SQUAD
@@ -70,7 +70,7 @@ export default async function handler(req, res) {
             // Art
             MUSE_AGENT, CINEMATOGRAPHER_AGENT, STYLIST_AGENT, ART_CRITIC, GALLERY_AGENT,
             // Text
-            EDITOR_AGENT, LINGUIST_AGENT, SCRIBE_AGENT, PUBLISHER_AGENT,
+            EDITOR_AGENT, LINGUIST_AGENT, WRITER_AGENT, PUBLISHER_AGENT,
             // Video
             PRODUCER_AGENT, DIRECTOR_AGENT, VFX_AGENT
         ].filter(Boolean); // Safety filter for broken imports
