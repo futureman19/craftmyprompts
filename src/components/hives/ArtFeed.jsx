@@ -1,11 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Loader, Layers, ShieldCheck, Zap, AlertTriangle } from 'lucide-react';
-
 import ArtManifest from '../agent/art/ArtManifest';
 import MuseDeck from '../agent/art/MuseDeck';
-import CinemaDeck from '../agent/art/CinemaDeck';
-import CompositionDeck from '../agent/art/CompositionDeck';
-import GalleryDeck from '../agent/art/GalleryDeck'; // Assuming these exist or will be placeholders
+import CinemaDeck from '../agent/art/CinematographerDeck';
+import CompositionDeck from '../agent/art/ArtBlueprint';
+// GalleryDeck does not exist, we will inline the render logic
 
 import ManagerDrawer from '../hivemind/ManagerDrawer';
 import AgentLoader from '../ui/AgentLoader';
@@ -126,7 +123,21 @@ const ArtFeed = ({
                         {currentPhase === 'vision' && visionMsg && <MuseDeck data={parseAgentJson(visionMsg, visionRole)} selections={draftSelections} onSelect={handleDraftSelect} />}
                         {currentPhase === 'specs' && specsMsg && <CinemaDeck data={parseAgentJson(specsMsg, specsRole)} selections={draftSelections} onSelect={handleDraftSelect} />}
                         {currentPhase === 'blueprint' && blueMsg && <CompositionDeck data={parseAgentJson(blueMsg, blueRole)} />}
-                        {currentPhase === 'done' && finalMsg && <GalleryDeck data={parseAgentJson(finalMsg, finalRole)} />}
+                        {currentPhase === 'done' && finalMsg && (
+                            <div className="p-8 max-w-4xl mx-auto animate-in fade-in text-center">
+                                <h2 className="text-2xl font-bold text-fuchsia-400 mb-4 font-serif">Masterpiece Rendered</h2>
+                                <div className="p-1 rounded-2xl bg-gradient-to-br from-fuchsia-500 via-purple-600 to-indigo-600">
+                                    <div className="bg-slate-950 rounded-xl p-6 overflow-hidden relative">
+                                        <div className="aspect-square w-full max-w-md mx-auto bg-slate-900 rounded-lg flex items-center justify-center mb-4 border border-slate-800">
+                                            <p className="text-slate-600 italic">Image Generation Placeholder</p>
+                                        </div>
+                                        <div className="text-left text-sm text-slate-300 font-mono whitespace-pre-wrap">
+                                            {finalMsg.text}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {loading && <AgentLoader message={statusMessage} />}
                     </div>
