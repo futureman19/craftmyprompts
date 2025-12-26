@@ -50,7 +50,8 @@ export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
     try {
-        const { prompt, category, keys = {}, targetAgentId, context } = req.body;
+        // ADDED 'mode' to destructured body
+        const { prompt, category, keys = {}, targetAgentId, context, mode } = req.body;
         const { openai: openAIKey, anthropic: anthropicKey, gemini: geminiKey, groq: groqKey } = keys;
 
         // 2. DEFINE SQUADS (Mapping Categories to Start Agents)
@@ -78,11 +79,11 @@ export default async function handler(req, res) {
         // 4. DETERMINE TARGET AGENT
         let agentToRun = null;
 
-        if (targetAgentId) {
+        if (targetAgentId && targetAgentId !== 'manager') {
             // Case A: Specific Agent Requested (e.g. Phase 2/3)
             agentToRun = ROSTER.find(a => a.id === targetAgentId);
             if (!agentToRun) throw new Error(`Agent '${targetAgentId}' not found in roster.`);
-        } else if (req.body.mode === 'synthesize') {
+        } else if (targetAgentId === 'manager' || req.body.mode === 'synthesize') {
             // Case B: Manager Synthesis
             agentToRun = MANAGER_AGENT;
         } else {
@@ -93,9 +94,8 @@ export default async function handler(req, res) {
 
         if (!agentToRun) throw new Error("Could not determine which agent to run.");
 
-        // 5. RUN AGENT LOGIC (With Smart Fallback)
+        // 5. RUN AGENT LOGIC (Updated for Chat Mode)
         const runAgent = async (agent, inputContext = "") => {
-            // Provider Fallback Logic
             let provider = agent.provider;
             let apiKey = keys[provider];
 
@@ -107,13 +107,29 @@ export default async function handler(req, res) {
             }
 
             const strictModel = MODELS[provider] || MODELS.gemini;
+
+            // --- CONSTRUCT PROMPT ---
             let fullSystemPrompt = inputContext
-                ? `${agent.systemPrompt}\n\n### PREVIOUS CONTEXT:\n${inputContext}`
+                ? `${agent.systemPrompt}\n\n### CONTEXT:\n${inputContext}`
                 : agent.systemPrompt;
 
-            // --- SAFETY NET: FORCE "JSON" IN SYSTEM PROMPT ---
-            if (agent.responseType === 'json' && !fullSystemPrompt.toLowerCase().includes('json')) {
-                fullSystemPrompt += " IMPORTANT: Output JSON only.";
+            // --- OVERRIDE LOGIC ---
+            if (mode === 'chat') {
+                // RELAXED MODE: For Agent View
+                fullSystemPrompt += `
+                
+                ### INTERACTION MODE: CONVERSATIONAL
+                - You are conversing directly with the user.
+                - IGNORE your default "JSON ONLY" constraints for the format.
+                - Speak naturally in the voice of your persona.
+                - Use Markdown.
+                - ONLY output JSON if the user explicitly asks for a UI component or data structure.
+                `;
+            } else {
+                // STRICT MODE: For Hivemind
+                if (agent.responseType === 'json' && !fullSystemPrompt.toLowerCase().includes('json')) {
+                    fullSystemPrompt += `\n\nIMPORTANT: You are a system process. Output STRICT JSON ONLY based on your schema.`;
+                }
             }
 
             let content = "";
@@ -125,7 +141,10 @@ export default async function handler(req, res) {
                     messages: [{ role: "system", content: fullSystemPrompt }, { role: "user", content: prompt }],
                     temperature: 0.7
                 };
-                if (agent.responseType === 'json') body.response_format = { type: "json_object" };
+                // Only force JSON object if NOT in chat mode
+                if (agent.responseType === 'json' && mode !== 'chat') {
+                    body.response_format = { type: "json_object" };
+                }
 
                 const r = await fetch('https://api.openai.com/v1/chat/completions', {
                     method: 'POST',
@@ -151,7 +170,7 @@ export default async function handler(req, res) {
                     model: strictModel,
                     messages: [{ role: "system", content: fullSystemPrompt }, { role: "user", content: prompt }]
                 };
-                if (agent.responseType === 'json') body.response_format = { type: "json_object" };
+                if (agent.responseType === 'json' && mode !== 'chat') body.response_format = { type: "json_object" };
 
                 const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                     method: 'POST',
@@ -163,8 +182,10 @@ export default async function handler(req, res) {
                 content = d.choices[0].message.content;
             }
 
-            // Cleanup
-            if (content) content = content.replace(/```json/g, '').replace(/```/g, '').trim();
+            // Cleanup JSON markers only if not in chat mode (or if we want to be safe)
+            if (mode !== 'chat' && content) {
+                content = content.replace(/```json/g, '').replace(/```/g, '').trim();
+            }
 
             return {
                 id: agent.id,

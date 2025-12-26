@@ -100,6 +100,8 @@ export const useAgent = (keys = {}, activeAgent = null, knowledge = {}) => {
                     prompt: userText,
                     // Map frontend ID to backend ID. Default to 'manager' if none selected.
                     targetAgentId: activeAgent?.id || 'manager',
+                    // ADD THIS FLAG:
+                    mode: 'chat',
                     // Pass A2UI guide + History + Knowledge as context
                     context: `
                     ${A2UI_SCHEMA_GUIDE}
