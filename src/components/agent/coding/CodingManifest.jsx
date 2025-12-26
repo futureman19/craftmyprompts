@@ -1,10 +1,20 @@
 import React from 'react';
-import { Target, Cpu, Layers, Code2, FastForward, ArrowRight, Check } from 'lucide-react';
+import { Target, Cpu, Layers, Code2, FastForward, ArrowRight, Check, ShieldCheck, Zap } from 'lucide-react';
 
-const CodingManifest = ({ manifest, currentPhase, onConfirm, onAutoPilot, isReady }) => {
+const CodingManifest = ({
+    manifest,
+    currentPhase,
+    onConfirm,
+    onAutoPilot,
+    isReady,
+    // NEW PROPS
+    onAudit,
+    onBuild
+}) => {
 
-    // Robust Phase Checking
-    const showControls = ['vision', 'vision_options', 'specs', 'spec_options'].includes(currentPhase);
+    // Phase Logic
+    const isSetupPhase = ['vision', 'vision_options', 'specs', 'spec_options'].includes(currentPhase);
+    const isBlueprintPhase = ['blueprint', 'critique'].includes(currentPhase);
 
     const steps = [
         { id: 'vision', label: 'Strategy', icon: <Target size={14} />, value: manifest.strategy },
@@ -63,28 +73,51 @@ const CodingManifest = ({ manifest, currentPhase, onConfirm, onAutoPilot, isRead
                 })}
             </div>
 
-            {/* MISSION CONTROL FOOTER */}
-            {showControls && (
-                <div className="p-4 border-t border-slate-800 bg-slate-900/30 space-y-3">
-                    <button
-                        onClick={onAutoPilot}
-                        className="w-full py-3 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-400 hover:text-white text-xs font-bold flex items-center justify-center gap-2 transition-all"
-                    >
-                        <FastForward size={14} /> Auto-Pilot
-                    </button>
+            {/* FOOTER CONTROLS */}
+            <div className="p-4 border-t border-slate-800 bg-slate-900/30 space-y-3">
 
-                    <button
-                        onClick={onConfirm}
-                        disabled={!isReady}
-                        className={`w-full py-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all transform active:scale-95 shadow-lg ${isReady
-                                ? 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-cyan-900/20'
-                                : 'bg-slate-800 text-slate-600 cursor-not-allowed'
-                            }`}
-                    >
-                        Continue <ArrowRight size={14} />
-                    </button>
-                </div>
-            )}
+                {/* 1. SETUP PHASE */}
+                {isSetupPhase && (
+                    <>
+                        <button
+                            onClick={onAutoPilot}
+                            className="w-full py-3 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-400 hover:text-white text-xs font-bold flex items-center justify-center gap-2 transition-all"
+                        >
+                            <FastForward size={14} /> Auto-Pilot
+                        </button>
+
+                        <button
+                            onClick={onConfirm}
+                            disabled={!isReady}
+                            className={`w-full py-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all transform active:scale-95 shadow-lg ${isReady
+                                    ? 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-cyan-900/20'
+                                    : 'bg-slate-800 text-slate-600 cursor-not-allowed'
+                                }`}
+                        >
+                            Continue <ArrowRight size={14} />
+                        </button>
+                    </>
+                )}
+
+                {/* 2. BLUEPRINT PHASE (NEW) */}
+                {isBlueprintPhase && (
+                    <>
+                        <button
+                            onClick={onAudit}
+                            className="w-full py-3 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-bold flex items-center justify-center gap-2 transition-all"
+                        >
+                            <ShieldCheck size={14} /> Run Critic Audit
+                        </button>
+
+                        <button
+                            onClick={onBuild}
+                            className="w-full py-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-cyan-900/20 transition-all transform active:scale-95"
+                        >
+                            <Zap size={14} className="fill-white" /> Build Project
+                        </button>
+                    </>
+                )}
+            </div>
 
             <div className="p-2 border-t border-slate-800 text-[9px] text-slate-700 font-mono text-center">
                 Hivemind Coding Engine v2.1
