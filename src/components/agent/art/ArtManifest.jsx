@@ -12,9 +12,9 @@ const ArtManifest = ({ manifest, currentPhase, onConfirm, onAutoPilot, isReady }
         'final': ['gallery', 'final', 'render']
     };
 
-    // Check if we are in an interactive phase (Muse or Stylist)
-    // Flatten the arrays for strategy and spec to check against currentPhase
-    const showControls = [...PHASE_MAP.strategy, ...PHASE_MAP.spec].includes(currentPhase);
+    // Check if we are in an interactive phase (Muse, Stylist, OR Blueprint)
+    // Flatten the arrays for strategy and spec and blueprint to check against currentPhase
+    const showControls = [...PHASE_MAP.strategy, ...PHASE_MAP.spec, ...PHASE_MAP.blueprint].includes(currentPhase);
 
     // 2. Step Mapping
     const steps = [
@@ -78,12 +78,15 @@ const ArtManifest = ({ manifest, currentPhase, onConfirm, onAutoPilot, isReady }
             {/* MISSION CONTROL FOOTER */}
             {showControls && (
                 <div className="p-4 border-t border-slate-800 bg-slate-900/30 space-y-3">
-                    <button
-                        onClick={onAutoPilot}
-                        className="w-full py-3 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-400 hover:text-white text-xs font-bold flex items-center justify-center gap-2 transition-all"
-                    >
-                        <FastForward size={14} /> Auto-Pilot
-                    </button>
+                    {/* Hide Auto-Pilot on final step */}
+                    {!PHASE_MAP.blueprint.includes(currentPhase) && (
+                        <button
+                            onClick={onAutoPilot}
+                            className="w-full py-3 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-400 hover:text-white text-xs font-bold flex items-center justify-center gap-2 transition-all"
+                        >
+                            <FastForward size={14} /> Auto-Pilot
+                        </button>
+                    )}
 
                     <button
                         onClick={onConfirm}
@@ -93,7 +96,7 @@ const ArtManifest = ({ manifest, currentPhase, onConfirm, onAutoPilot, isReady }
                                 : 'bg-slate-800 text-slate-600 cursor-not-allowed'
                             }`}
                     >
-                        Continue <ArrowRight size={14} />
+                        {PHASE_MAP.blueprint.includes(currentPhase) ? 'Generate Masterpiece 🎨' : <>Continue <ArrowRight size={14} /></>}
                     </button>
                 </div>
             )}

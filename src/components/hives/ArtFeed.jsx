@@ -101,6 +101,12 @@ const ArtFeed = ({ initialPrompt, onStateChange }) => {
             }));
             submitSpecs(formatted);
         }
+        // PHASE 3: THE CINEMATOGRAPHER (Blueprint)
+        else if (currentPhase === 'scribe' || currentPhase === 'blueprint' || currentPhase === 'cinematographer') {
+            // NEW: Blueprint Logic -> GENERATE
+            generateImage(technicalSpecs);
+            setManifest(prev => ({ ...prev, generated: true }));
+        }
     };
 
     // 3. Handle Manifest "Auto-Pilot" Button
@@ -145,6 +151,10 @@ const ArtFeed = ({ initialPrompt, onStateChange }) => {
         if (currentPhase === 'spec' || currentPhase === 'stylist' || currentPhase === 'styling') {
             return draftSelections.material && draftSelections.lighting && draftSelections.color;
         }
+        if (currentPhase === 'scribe' || currentPhase === 'blueprint' || currentPhase === 'cinematographer') {
+            // Blueprint is always ready (has defaults)
+            return true;
+        }
         return false;
     };
 
@@ -175,7 +185,7 @@ const ArtFeed = ({ initialPrompt, onStateChange }) => {
     const renderBlueprint = (msg) => {
         const data = parseAgentJson(msg);
         return (
-            <div className="w-full h-full p-4 overflow-y-auto">
+            <div className="w-full h-full p-4 overflow-hidden">
                 <ArtBlueprint
                     data={data}
                     onSettingsChange={(specs) => {
@@ -183,17 +193,6 @@ const ArtFeed = ({ initialPrompt, onStateChange }) => {
                         setManifest(prev => ({ ...prev, technical: specs }));
                     }}
                 />
-                <div className="mt-4 pb-20">
-                    <button
-                        onClick={() => {
-                            generateImage(technicalSpecs);
-                            setManifest(prev => ({ ...prev, generated: true }));
-                        }}
-                        className="w-full py-4 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold shadow-lg shadow-purple-900/20 active:scale-95 transition-transform"
-                    >
-                        Generate Masterpiece
-                    </button>
-                </div>
             </div>
         );
     };
