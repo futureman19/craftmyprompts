@@ -156,6 +156,7 @@ const AgentView = ({ user, globalApiKey, orchestrator, onUpdateBuilder }) => {
                             apiKey={globalApiKey}
                             onUpdateBuilder={onUpdateBuilder}
                             initialInput={initialInput}
+                            knowledge={orchestrator.memories || {}}
                         />
                     </div>
                 </div>

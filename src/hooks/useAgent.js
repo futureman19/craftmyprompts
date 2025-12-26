@@ -5,7 +5,7 @@ import { COMPONENT_REGISTRY } from '../data/componentRegistry.jsx';
  * useAgent Hook (Swarm Edition)
  * Connects the Chat Interface directly to the Central Swarm API.
  */
-export const useAgent = (keys = {}, activeAgent = null) => {
+export const useAgent = (keys = {}, activeAgent = null, knowledge = {}) => {
 
     // 1. Determine Storage Key
     const agentId = activeAgent?.id || 'general_agent';
@@ -87,6 +87,11 @@ export const useAgent = (keys = {}, activeAgent = null) => {
                 `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.rawText || m.content}`
             ).join('\n\n');
 
+            // NEW: Build Knowledge Context from RAG
+            const knowledgeContext = Object.entries(knowledge)
+                .map(([k, v]) => `[KNOWLEDGE - ${k}]: ${JSON.stringify(v)}`)
+                .join('\n');
+
             // CALL SWARM API
             const response = await fetch('/api/swarm', {
                 method: 'POST',
@@ -95,8 +100,16 @@ export const useAgent = (keys = {}, activeAgent = null) => {
                     prompt: userText,
                     // Map frontend ID to backend ID. Default to 'manager' if none selected.
                     targetAgentId: activeAgent?.id || 'manager',
-                    // Pass A2UI guide + History as context
-                    context: `${A2UI_SCHEMA_GUIDE}\n\n### CHAT HISTORY:\n${historyContext}`,
+                    // Pass A2UI guide + History + Knowledge as context
+                    context: `
+                    ${A2UI_SCHEMA_GUIDE}
+                    
+                    ### USER KNOWLEDGE BASE:
+                    ${knowledgeContext || "No specific knowledge loaded."}
+
+                    ### CHAT HISTORY:
+                    ${historyContext}
+                    `,
                     keys: keys,
                     category: 'general'
                 })

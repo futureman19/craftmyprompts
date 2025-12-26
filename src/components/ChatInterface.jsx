@@ -2,9 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Sparkles, Loader, ArrowRightCircle, AlertTriangle } from 'lucide-react';
 import { useAgent } from '../hooks/useAgent.js';
 
-const ChatInterface = ({ activeAgent, onUpdateBuilder, initialInput }) => {
+const ChatInterface = ({ activeAgent, onUpdateBuilder, initialInput, knowledge }) => {
     const [input, setInput] = useState(initialInput || '');
-    
+
     // Load keys from storage to support multi-provider agents
     const [keys, setKeys] = useState({
         gemini: localStorage.getItem('gemini_key') || import.meta.env.VITE_GEMINI_API_KEY || '',
@@ -18,8 +18,8 @@ const ChatInterface = ({ activeAgent, onUpdateBuilder, initialInput }) => {
         if (initialInput) setInput(initialInput);
     }, [initialInput]);
 
-    // Initialize the Agent Hook with the active persona
-    const { messages, isLoading, sendMessage, handleAction, clearHistory } = useAgent(keys, activeAgent);
+    // Initialize the Agent Hook with the active persona and knowledge
+    const { messages, isLoading, sendMessage, handleAction, clearHistory } = useAgent(keys, activeAgent, knowledge);
 
     const bottomRef = useRef(null);
 
@@ -58,8 +58,8 @@ const ChatInterface = ({ activeAgent, onUpdateBuilder, initialInput }) => {
                         </h3>
                     )}
                 </div>
-                
-                <button 
+
+                <button
                     onClick={clearHistory}
                     className="text-xs text-slate-400 hover:text-red-500 transition-colors font-medium px-2 py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800"
                 >
@@ -98,11 +98,10 @@ const ChatInterface = ({ activeAgent, onUpdateBuilder, initialInput }) => {
                         )}
 
                         {/* Content Bubble */}
-                        <div className={`max-w-[85%] rounded-2xl p-4 shadow-sm ${
-                            msg.role === 'user' 
-                                ? 'bg-indigo-600 text-white rounded-br-none' 
+                        <div className={`max-w-[85%] rounded-2xl p-4 shadow-sm ${msg.role === 'user'
+                                ? 'bg-indigo-600 text-white rounded-br-none'
                                 : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-bl-none text-slate-700 dark:text-slate-200'
-                        }`}>
+                            }`}>
                             {/* Text Content */}
                             {msg.type === 'text' && (
                                 <p className="text-sm leading-relaxed whitespace-pre-wrap font-sans">
@@ -117,9 +116,9 @@ const ChatInterface = ({ activeAgent, onUpdateBuilder, initialInput }) => {
                                         <Sparkles size={10} /> Generated Interface
                                     </div>
                                     <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden bg-slate-50 dark:bg-slate-900/50">
-                                        <msg.component 
-                                            {...msg.props} 
-                                            onAction={handleAction} 
+                                        <msg.component
+                                            {...msg.props}
+                                            onAction={handleAction}
                                         />
                                     </div>
                                 </div>
@@ -128,7 +127,7 @@ const ChatInterface = ({ activeAgent, onUpdateBuilder, initialInput }) => {
                             {/* Push to Builder Action */}
                             {msg.role === 'assistant' && onUpdateBuilder && (
                                 <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-700/50 flex justify-end">
-                                    <button 
+                                    <button
                                         onClick={() => onUpdateBuilder(typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.props || {}))}
                                         className="text-[10px] flex items-center gap-1.5 text-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 font-bold bg-indigo-50 dark:bg-indigo-900/30 px-2 py-1 rounded-full transition-colors"
                                     >
@@ -170,7 +169,7 @@ const ChatInterface = ({ activeAgent, onUpdateBuilder, initialInput }) => {
                         <span>Missing API Key for <strong>{currentProvider}</strong>. Please check settings.</span>
                     </div>
                 ) : null}
-                
+
                 <div className="flex gap-2">
                     <input
                         type="text"
