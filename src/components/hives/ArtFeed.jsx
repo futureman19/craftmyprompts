@@ -226,16 +226,19 @@ const ArtFeed = ({ initialPrompt, onStateChange }) => {
     return (
         <div className="flex h-full overflow-hidden bg-slate-950">
 
-            {/* CENTER: THE WORKSPACE */}
-            <div className="flex-1 overflow-y-auto scroll-smooth bg-slate-950 flex flex-col relative">
+            {/* LEFT COLUMN: Workspace + Manager */}
+            {/* We use flex-col here so the Deck and Manager stack vertically */}
+            <div className="flex-1 flex flex-col min-w-0 relative border-r border-slate-800">
 
+                {/* 1. STATUS BAR */}
                 {statusMessage && loading && (
                     <div className="absolute top-0 left-0 right-0 z-20 bg-slate-900/90 backdrop-blur border-b border-slate-800 py-1.5 px-4 text-xs font-mono text-purple-300 animate-in fade-in">
                         {statusMessage}
                     </div>
                 )}
 
-                <div className="w-full flex-1 flex flex-col h-full">
+                {/* 2. SCROLLABLE DECK AREA */}
+                <div className="flex-1 overflow-y-auto scroll-smooth flex flex-col">
                     {history.map((msg, idx) => {
                         const isLast = idx === history.length - 1;
                         // Performance: Only render the active deck
@@ -252,6 +255,7 @@ const ArtFeed = ({ initialPrompt, onStateChange }) => {
                     <div ref={bottomRef} />
                 </div>
 
+                {/* 3. MANAGER DRAWER (Docked at bottom of Left Column) */}
                 <ManagerDrawer
                     isOpen={isDrawerOpen}
                     setIsOpen={setIsDrawerOpen}
@@ -259,9 +263,10 @@ const ArtFeed = ({ initialPrompt, onStateChange }) => {
                     onSendMessage={handleManagerFeedback}
                     loading={loading}
                 />
+
             </div>
 
-            {/* RIGHT: THE MANIFEST (Fixed Sidebar + Controls) */}
+            {/* RIGHT COLUMN: The Manifest (Now Unobstructed!) */}
             <ArtManifest
                 manifest={manifest}
                 currentPhase={currentPhase}
