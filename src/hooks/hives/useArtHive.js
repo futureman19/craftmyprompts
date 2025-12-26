@@ -195,20 +195,51 @@ export const useArtHive = (initialKeys = {}) => {
     // --- MANAGER FEEDBACK ---
     const handleManagerFeedback = async (userText, setInput) => {
         if (!userText.trim()) return;
+
+        // 1. Show User Message immediately
         setManagerMessages(prev => [...prev, { role: 'user', content: userText }]);
         setInput('');
         setLoading(true);
 
         try {
-            const contextString = `Current Phase: ${currentPhase}\nUser Feedback: ${userText}`;
-            const data = await callAgent('manager', "Direct the Swarm.", contextString);
+            // 2. Ask Manager what to do
+            const contextString = `
+                Current Phase: ${currentPhase}
+                Current Prompt: ${contextData.originalPrompt}
+                User Feedback: ${userText}
+            `;
+
+            const data = await callAgent('manager', "Analyze feedback and direct the swarm.", contextString);
             const decision = JSON.parse(cleanJson(data.swarm[0].content));
 
+            // 3. Show Manager Reply
             setManagerMessages(prev => [...prev, { role: 'assistant', content: decision.reply }]);
 
-            if (decision.target_phase === 'strategy') startMission(userText);
+            // 4. EXECUTE THE PIVOT
+            if (decision.target_phase && decision.revised_prompt) {
+
+                // CASE A: User changed the CORE IDEA (Back to Start)
+                if (decision.target_phase === 'strategy' || decision.target_phase === 'muse') {
+                    console.log("Manager Pivoting Strategy to:", decision.revised_prompt);
+                    // CRITICAL: Overwrite the original prompt in state
+                    setContextData(prev => ({ ...prev, originalPrompt: decision.revised_prompt }));
+                    // Restart Muse with new prompt
+                    await startMission(decision.revised_prompt);
+                }
+
+                // CASE B: User changed the STYLE (Re-run Stylist)
+                else if (decision.target_phase === 'spec' || decision.target_phase === 'stylist') {
+                    console.log("Manager Pivoting Specs to:", decision.revised_prompt);
+                    // Update context
+                    setContextData(prev => ({ ...prev, strategy_choice: decision.revised_prompt }));
+                    // Restart Stylist
+                    await submitChoices(decision.revised_prompt);
+                }
+            }
+
         } catch (e) {
-            console.error(e);
+            console.error("Manager Error:", e);
+            setManagerMessages(prev => [...prev, { role: 'assistant', content: "I couldn't reach the agent network. Please try again." }]);
         } finally {
             setLoading(false);
         }
