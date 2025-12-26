@@ -2,11 +2,16 @@ import React from 'react';
 import { Lightbulb, Palette, Camera, Image, Check, FastForward, ArrowRight } from 'lucide-react';
 
 const ArtManifest = ({ manifest, currentPhase, onConfirm, onAutoPilot, isReady }) => {
-    // manifest = { strategy: "...", style: "...", technical: {...} }
 
+    // 1. ROBUST PHASE CHECKING
+    // The "Show Buttons" logic now accepts multiple variations of phase names
+    // to prevent the buttons from disappearing if the Brain uses a slightly different ID.
+    const showControls = ['strategy', 'strategy_options', 'spec', 'spec_options', 'styling'].includes(currentPhase);
+
+    // 2. Step Mapping
     const steps = [
-        { id: 'strategy_options', label: 'Concept', icon: <Lightbulb size={14} />, value: manifest.strategy },
-        { id: 'spec_options', label: 'Style', icon: <Palette size={14} />, value: manifest.style },
+        { id: 'strategy', label: 'Concept', icon: <Lightbulb size={14} />, value: manifest.strategy },
+        { id: 'spec', label: 'Style', icon: <Palette size={14} />, value: manifest.style },
         { id: 'blueprint', label: 'Composition', icon: <Camera size={14} />, value: manifest.technical?.aspect_ratio },
         { id: 'final', label: 'Render', icon: <Image size={14} />, value: manifest.generated ? 'Complete' : null },
     ];
@@ -23,12 +28,8 @@ const ArtManifest = ({ manifest, currentPhase, onConfirm, onAutoPilot, isReady }
             {/* Steps List */}
             <div className="flex-1 overflow-y-auto p-4 space-y-6">
                 {steps.map((step, idx) => {
-                    // Normalize phase names to match step IDs roughly
-                    let isActive = false;
-                    if (currentPhase === 'strategy' && step.id === 'strategy_options') isActive = true;
-                    if (currentPhase === 'spec' && step.id === 'spec_options') isActive = true;
-                    if (currentPhase === 'scribe' && step.id === 'blueprint') isActive = true;
-
+                    // Check if this step is roughly the active phase
+                    const isActive = currentPhase && currentPhase.includes(step.id);
                     const isDone = !!step.value;
                     const isPending = !isActive && !isDone;
 
@@ -67,8 +68,8 @@ const ArtManifest = ({ manifest, currentPhase, onConfirm, onAutoPilot, isReady }
             </div>
 
             {/* MISSION CONTROL FOOTER */}
-            {/* Only show controls if we are in an active selection phase */}
-            {(currentPhase === 'strategy' || currentPhase === 'spec') && (
+            {/* Now uses the robust 'showControls' boolean */}
+            {showControls && (
                 <div className="p-4 border-t border-slate-800 bg-slate-900/30 space-y-3">
                     <button
                         onClick={onAutoPilot}
