@@ -169,12 +169,16 @@ const ArtFeed = ({ initialPrompt, onStateChange }) => {
                 )}
 
                 {/* Feed Content */}
-                <div className="flex-1 overflow-y-auto p-6 scroll-smooth">
-                    <div className="max-w-5xl space-y-8 pt-6"> {/* Removed mx-auto, let it align leftish but capped width */}
+                {/* CHANGED: Removed 'p-6' padding. Added 'flex flex-col' to ensure full height usage. */}
+                <div className="flex-1 overflow-y-auto scroll-smooth bg-slate-950 flex flex-col">
+
+                    {/* CHANGED: Removed 'pt-6' and 'max-w-5xl'. Now it's full width and flush top. */}
+                    <div className="w-full flex-1 flex flex-col h-full">
                         {history.map((msg, idx) => {
                             const isLast = idx === history.length - 1;
-                            // Keep previous turns visible for context, or hide them? 
-                            // User asked for "Command Center", usually seeing history is good, but let's see.
+
+                            // Only render the active deck to save memory/space
+                            if (!isLast && msg.type !== 'final') return null;
 
                             switch (msg.type) {
                                 case 'strategy_options': return renderMuse(msg);
