@@ -51,9 +51,22 @@ const ArtFeed = ({ initialPrompt, onStateChange }) => {
     }, [history, loading]);
 
     // --- INTERCEPTORS (To update Manifest) ---
-    const handleStrategySelect = (choice) => {
-        setManifest(prev => ({ ...prev, strategy: choice || "Auto-Pilot" }));
-        submitChoices(choice);
+    const handleStrategySelect = (choices) => {
+        // choices is now { genre: "...", environment: "...", style: "..." }
+
+        // 1. Format the string for the Chat History / Context
+        const formattedChoice = `Genre: ${choices.genre}, Environment: ${choices.environment}, Style: ${choices.style}`;
+
+        // 2. Update Manifest (We can now show all 3 details!)
+        setManifest(prev => ({
+            ...prev,
+            strategy: choices.genre, // Main Concept
+            environment: choices.environment, // Extra detail
+            visual_style: choices.style // Extra detail
+        }));
+
+        // 3. Send formatted string to the Agent Logic
+        submitChoices(formattedChoice);
     };
 
     const handleStyleSelect = (choice) => {
