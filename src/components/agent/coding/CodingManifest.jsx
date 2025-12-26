@@ -1,5 +1,5 @@
 import React from 'react';
-import { Target, Cpu, Layers, Code2, FastForward, ArrowRight, Check, ShieldCheck, Zap } from 'lucide-react';
+import { Target, Cpu, Layers, Code2, FastForward, ArrowRight, Check, ShieldCheck, Zap, Circle } from 'lucide-react';
 
 const CodingManifest = ({
     manifest,
@@ -7,24 +7,64 @@ const CodingManifest = ({
     onConfirm,
     onAutoPilot,
     isReady,
-    // NEW PROPS
     onAudit,
     onBuild
 }) => {
 
-    // Phase Logic
     const isSetupPhase = ['vision', 'vision_options', 'specs', 'spec_options'].includes(currentPhase);
     const isBlueprintPhase = ['blueprint', 'critique'].includes(currentPhase);
+
+    // Render Logic for the "Detail List"
+    const renderValue = (val, type) => {
+        if (!val) return null;
+
+        // If it's a simple string (e.g. "Auto-Pilot" or "Ready")
+        if (typeof val === 'string') {
+            return <div className="text-xs font-medium text-white animate-in fade-in">{val}</div>;
+        }
+
+        // If it's an object (The Deck Selections)
+        if (typeof val === 'object') {
+            const listItems = [];
+
+            if (type === 'vision') {
+                if (val.archetype) listItems.push({ label: 'Archetype', val: val.archetype });
+                if (val.features) listItems.push({ label: 'Core Value', val: val.features });
+                if (val.ux) listItems.push({ label: 'UX / Vibe', val: val.ux });
+            }
+            else if (type === 'specs') {
+                if (val.frontend) listItems.push({ label: 'Frontend', val: val.frontend });
+                if (val.backend) listItems.push({ label: 'Backend', val: val.backend });
+                if (val.ui) listItems.push({ label: 'UI Lib', val: val.ui });
+            }
+
+            return (
+                <div className="space-y-1.5 mt-1.5 animate-in slide-in-from-left-2">
+                    {listItems.map((item, idx) => (
+                        <div key={idx} className="flex items-start gap-2">
+                            <Circle size={4} className="mt-1.5 fill-slate-500 text-slate-500 shrink-0" />
+                            <div className="text-[10px] leading-tight">
+                                <span className="text-slate-500">{item.label}</span>
+                                <span className="text-slate-700 mx-1">-</span>
+                                <span className="text-slate-300 font-medium">{item.val}</span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            );
+        }
+        return null;
+    };
 
     const steps = [
         { id: 'vision', label: 'Strategy', icon: <Target size={14} />, value: manifest.strategy },
         { id: 'specs', label: 'Stack', icon: <Cpu size={14} />, value: manifest.stack },
-        { id: 'blueprint', label: 'Blueprint', icon: <Layers size={14} />, value: manifest.blueprint ? 'Locked' : null },
-        { id: 'final', label: 'Build', icon: <Code2 size={14} />, value: manifest.final ? 'Compiled' : null },
+        { id: 'blueprint', label: 'Blueprint', icon: <Layers size={14} />, value: manifest.blueprint },
+        { id: 'final', label: 'Build', icon: <Code2 size={14} />, value: manifest.final },
     ];
 
     return (
-        <div className="w-80 border-l border-slate-800 bg-slate-950 flex flex-col h-full animate-in slide-in-from-right-4 shrink-0">
+        <div className="w-80 border-l border-slate-800 bg-slate-950 flex flex-col h-full animate-in slide-in-from-right-4 shrink-0 transition-all duration-300">
             {/* Header */}
             <div className="p-4 border-b border-slate-800 bg-slate-900/50">
                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">
@@ -40,30 +80,32 @@ const CodingManifest = ({
                     const isPending = !isActive && !isDone;
 
                     return (
-                        <div key={step.id} className={`relative flex gap-3 ${isPending ? 'opacity-30' : 'opacity-100'}`}>
+                        <div key={step.id} className={`relative flex gap-3 ${isPending ? 'opacity-40' : 'opacity-100'} transition-opacity duration-500`}>
+                            {/* Connecting Line */}
                             {idx !== steps.length - 1 && (
-                                <div className="absolute left-[11px] top-6 bottom-[-24px] w-px bg-slate-800" />
+                                <div className={`absolute left-[11px] top-6 bottom-[-24px] w-px transition-colors duration-500 ${isDone ? 'bg-emerald-900' : 'bg-slate-800'}`} />
                             )}
 
+                            {/* Status Icon */}
                             <div className={`
-                                w-6 h-6 rounded-full flex items-center justify-center shrink-0 border z-10 transition-colors
-                                ${isActive ? 'bg-cyan-500 text-white border-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.5)]' :
-                                    isDone ? 'bg-emerald-900/50 text-emerald-400 border-emerald-500/50' :
+                                w-6 h-6 rounded-full flex items-center justify-center shrink-0 border z-10 transition-all duration-300
+                                ${isActive ? 'bg-cyan-500 text-white border-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.5)] scale-110' :
+                                    isDone ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/50' :
                                         'bg-slate-900 text-slate-600 border-slate-800'}
                             `}>
                                 {isDone && !isActive ? <Check size={12} /> : step.icon}
                             </div>
 
-                            <div>
-                                <span className={`text-xs font-bold uppercase tracking-wide block mb-0.5 ${isActive ? 'text-cyan-400' : 'text-slate-500'}`}>
+                            {/* Content */}
+                            <div className="flex-1 min-w-0">
+                                <span className={`text-xs font-bold uppercase tracking-wide block mb-0.5 ${isActive ? 'text-cyan-400' : isDone ? 'text-emerald-400' : 'text-slate-500'}`}>
                                     {step.label}
                                 </span>
+
                                 {step.value ? (
-                                    <div className="text-xs font-medium text-white animate-in fade-in line-clamp-2">
-                                        {step.value}
-                                    </div>
+                                    renderValue(step.value, step.id)
                                 ) : (
-                                    <div className="text-[10px] text-slate-600 italic">
+                                    <div className="text-[10px] text-slate-600 italic mt-1">
                                         {isActive ? 'Awaiting selection...' : 'Pending...'}
                                     </div>
                                 )}
@@ -99,7 +141,7 @@ const CodingManifest = ({
                     </>
                 )}
 
-                {/* 2. BLUEPRINT PHASE (NEW) */}
+                {/* 2. BLUEPRINT PHASE */}
                 {isBlueprintPhase && (
                     <>
                         <button
@@ -120,7 +162,7 @@ const CodingManifest = ({
             </div>
 
             <div className="p-2 border-t border-slate-800 text-[9px] text-slate-700 font-mono text-center">
-                Hivemind Coding Engine v2.1
+                Hivemind Coding Engine v2.3
             </div>
         </div>
     );

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Loader, Layers, ShieldCheck, Zap, AlertTriangle } from 'lucide-react';
 
-// --- IMPORT NEW DECKS ---
 import VisionaryDeck from '../agent/coding/VisionaryDeck';
 import SpecsDeck from '../agent/coding/SpecsDeck';
 import ProjectBlueprint from '../agent/coding/ProjectBlueprint';
@@ -41,6 +40,28 @@ const CodingFeed = ({
         setDraftSelections({});
     }, [currentPhase]);
 
+    // --- FIND LAST MESSAGES ---
+    const strategyRole = 'The Visionary';
+    const specsRole = 'The Tech Lead';
+    const buildRole = 'The Architect';
+
+    const strategyMsg = history.findLast(m => m.role === strategyRole);
+    const specsMsg = history.findLast(m => m.role === specsRole);
+    const buildMsg = history.findLast(m => m.role === buildRole);
+    const criticMsg = history.findLast(m => m.role === 'The Critic');
+    const executiveMsg = history.findLast(m => m.role === 'The Executive');
+
+    // --- AUTO-UPDATE MANIFEST PROGRESS ---
+    // This fixes the "Pending..." bug by listening for Agent completion
+    useEffect(() => {
+        if (buildMsg) {
+            setManifest(prev => ({ ...prev, blueprint: "Architecture Locked" }));
+        }
+        if (executiveMsg) {
+            setManifest(prev => ({ ...prev, final: "Ready for Deployment" }));
+        }
+    }, [buildMsg, executiveMsg]);
+
     // --- HELPER: SAFE JSON PARSER ---
     const parseAgentJson = (msg, contextName) => {
         if (!msg) return null;
@@ -69,12 +90,19 @@ const CodingFeed = ({
     const handleSidebarConfirm = () => {
         const c = draftSelections;
         if (currentPhase === 'vision') {
+            // 1. Save OBJECT to Manifest (for the cool UI list)
+            setManifest(prev => ({ ...prev, strategy: c }));
+
+            // 2. Send STRING to Agent (so it understands)
             const formatted = `Archetype: ${c.archetype}, Features: ${c.features}, UX: ${c.ux}`;
-            setManifest(prev => ({ ...prev, strategy: formatted }));
             actions.submitChoices(formatted);
+
         } else if (currentPhase === 'specs') {
+            // 1. Save OBJECT to Manifest
+            setManifest(prev => ({ ...prev, stack: c }));
+
+            // 2. Send STRING to Agent
             const formatted = `Frontend: ${c.frontend}, Backend: ${c.backend}, UI: ${c.ui}`;
-            setManifest(prev => ({ ...prev, stack: formatted }));
             actions.submitSpecs(formatted);
         }
     };
@@ -88,17 +116,6 @@ const CodingFeed = ({
             actions.submitSpecs({});
         }
     };
-
-    // --- FIND LAST MESSAGES ---
-    const strategyRole = 'The Visionary';
-    const specsRole = 'The Tech Lead';
-    const buildRole = 'The Architect';
-
-    const strategyMsg = history.findLast(m => m.role === strategyRole);
-    const specsMsg = history.findLast(m => m.role === specsRole);
-    const buildMsg = history.findLast(m => m.role === buildRole);
-    const criticMsg = history.findLast(m => m.role === 'The Critic');
-    const executiveMsg = history.findLast(m => m.role === 'The Executive');
 
     // --- RENDERERS ---
 
@@ -117,10 +134,7 @@ const CodingFeed = ({
         if (!data) return null;
         return (
             <div className="space-y-6 animate-in fade-in pb-10">
-                <ProjectBlueprint
-                    structure={data?.structure}
-                // Buttons moved to Sidebar
-                />
+                <ProjectBlueprint structure={data?.structure} />
                 {data?.modules && <FileDeck modules={data.modules} />}
             </div>
         );
@@ -137,10 +151,8 @@ const CodingFeed = ({
     };
 
     const renderFinal = () => {
-        // 1. Try to parse data
         const projectData = parseAgentJson(executiveMsg, 'Executive');
 
-        // 2. If data exists, show the Deployment Deck
         if (projectData && projectData.files) {
             return (
                 <DeploymentDeck
@@ -152,7 +164,6 @@ const CodingFeed = ({
             );
         }
 
-        // 3. FAILSAFE: If the Executive finished but returned bad data
         if (executiveMsg) {
             return (
                 <div className="w-full max-w-2xl mx-auto p-6 bg-slate-900 border border-red-500/50 rounded-xl text-center space-y-4">
@@ -182,7 +193,6 @@ const CodingFeed = ({
             {/* LEFT: MAIN FEED */}
             <div className="flex-1 flex flex-col min-w-0 relative border-r border-slate-800">
                 <div className="flex-1 overflow-y-auto scroll-smooth flex flex-col">
-
                     <div className="flex-1">
                         {currentPhase === 'vision' && strategyMsg && renderVision()}
                         {currentPhase === 'specs' && specsMsg && renderSpecs()}
@@ -192,7 +202,6 @@ const CodingFeed = ({
 
                         {loading && <AgentLoader message={statusMessage} />}
                     </div>
-
                     <div ref={bottomRef} />
                 </div>
 
@@ -212,7 +221,6 @@ const CodingFeed = ({
                 onConfirm={handleSidebarConfirm}
                 onAutoPilot={handleAutoPilot}
                 isReady={checkIsReady()}
-                // WIRED NEW ACTIONS
                 onAudit={actions.sendToAudit}
                 onBuild={actions.compileBuild}
             />
