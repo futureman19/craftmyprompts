@@ -1,103 +1,108 @@
-import React, { useState } from 'react';
-import { Cpu, CheckCircle, ArrowRight, Star, FastForward, MessageSquareQuote } from 'lucide-react';
+import React from 'react';
+import { Cpu, Server, Palette, CheckCircle } from 'lucide-react';
 
-const SpecsDeck = ({ data, onConfirm, mode }) => {
-    const [selections, setSelections] = useState({});
+const SpecsDeck = ({ data, selections, onSelect }) => {
 
-    const getHeader = () => {
-        if (mode === 'text') return "Tone & Voice Calibration";
-        return "Technical Specifications";
-    };
+    if (!data) return null;
 
-    if (!data || !data.spec_options) return null;
+    const decks = [
+        {
+            id: 'frontend',
+            title: 'Frontend',
+            icon: <Cpu size={14} />,
+            color: 'text-emerald-400',
+            bg: 'bg-emerald-500/10',
+            border: 'border-emerald-500',
+            dataKey: 'frontend_options'
+        },
+        {
+            id: 'backend',
+            title: 'Backend',
+            icon: <Server size={14} />,
+            color: 'text-amber-400',
+            bg: 'bg-amber-500/10',
+            border: 'border-amber-500',
+            dataKey: 'backend_options'
+        },
+        {
+            id: 'ui',
+            title: 'UI Library',
+            icon: <Palette size={14} />,
+            color: 'text-purple-400',
+            bg: 'bg-purple-500/10',
+            border: 'border-purple-500',
+            dataKey: 'ui_options'
+        }
+    ];
 
-    const handleSelect = (category, value) => {
-        setSelections(prev => ({ ...prev, [category]: value }));
-    };
+    const getLabel = (opt) => opt.label || opt.title || "Untitled";
+    const getDescription = (opt) => opt.description || opt.details || "";
 
     return (
-        <div className="w-full max-w-4xl mx-auto mt-6 animate-in fade-in">
-
-            {/* HEADER */}
-            <div className="bg-slate-900 border border-cyan-500/30 rounded-2xl p-6 shadow-2xl relative overflow-hidden mb-6">
-                <div className="absolute top-0 left-0 w-1 h-full bg-cyan-500" />
-
-                <div className="flex items-center gap-4 mb-4">
-                    <div className="p-3 bg-cyan-500/10 rounded-xl text-cyan-400">
-                        <Cpu size={28} />
+        <div className="w-full flex flex-col h-full overflow-hidden animate-in fade-in">
+            {/* Header */}
+            <div className="bg-slate-950 border-b border-slate-800 p-3 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                        <div className="p-1.5 bg-emerald-500/10 rounded text-emerald-400">
+                            <Cpu size={16} />
+                        </div>
+                        <span className="text-sm font-bold text-white">The Tech Lead</span>
                     </div>
-                    <div>
-                        <h3 className="text-xl font-bold text-white">{getHeader()}</h3>
-                        <p className="text-sm text-slate-400">{data.spec_summary}</p>
-                    </div>
+                    <div className="h-4 w-px bg-slate-800 hidden md:block" />
+                    <p className="text-xs text-slate-500 truncate max-w-xs md:max-w-md hidden sm:block">
+                        {data.spec_summary || "Selecting technology stack..."}
+                    </p>
                 </div>
-
-                {/* AGENT BLURB */}
-                {data.agent_commentary && (
-                    <div className="bg-cyan-950/30 border border-cyan-500/20 p-4 rounded-xl flex gap-3">
-                        <MessageSquareQuote className="text-cyan-400 shrink-0 mt-1" size={20} />
-                        <p className="text-cyan-200/80 text-sm italic leading-relaxed">
-                            "{data.agent_commentary}"
-                        </p>
-                    </div>
-                )}
             </div>
 
-            {/* OPTIONS GRID */}
-            <div className="grid grid-cols-1 gap-6 mb-8">
-                {data.spec_options.map((cat, idx) => (
-                    <div key={idx} className="bg-slate-950/50 border border-slate-800 p-5 rounded-xl">
-                        <div className="text-xs font-bold text-cyan-400 uppercase tracking-wider mb-2">
-                            {cat.category}
-                        </div>
-                        <h4 className="text-white font-medium text-lg mb-4">{cat.question}</h4>
+            {/* Deck Grid */}
+            <div className="flex-1 overflow-hidden bg-slate-950 p-4">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-full">
+                    {decks.map((deck) => {
+                        const options = data[deck.dataKey] || [];
+                        const currentSelection = selections[deck.id];
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-                            {cat.options.map((opt) => {
-                                const isSelected = selections[cat.category] === opt.label;
-                                return (
-                                    <button
-                                        key={opt.label}
-                                        onClick={() => handleSelect(cat.category, opt.label)}
-                                        className={`p-3 rounded-xl text-left border transition-all relative min-h-[80px] flex flex-col justify-between ${isSelected
-                                                ? 'bg-cyan-600 border-cyan-500 text-white shadow-lg'
-                                                : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-cyan-500/50'
-                                            }`}
-                                    >
-                                        <div className="flex justify-between w-full mb-1">
-                                            {isSelected ? <CheckCircle size={14} /> : <div className="w-3.5 h-3.5 rounded-full border border-slate-600" />}
-                                            {opt.recommended && !isSelected && <Star size={12} className="text-cyan-300 fill-cyan-300/20" />}
-                                        </div>
-                                        <div className="font-bold text-xs leading-tight">{opt.label}</div>
-
-                                        {/* Tooltip */}
-                                        <div className="absolute opacity-0 hover:opacity-100 bottom-full left-0 w-full bg-black/90 text-white text-[10px] p-2 rounded mb-2 z-10 pointer-events-none transition-opacity">
-                                            {opt.description}
-                                        </div>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
-                ))}
-            </div>
-
-            {/* ACTION BAR */}
-            <div className="flex justify-between items-center pt-6 border-t border-slate-800">
-                <button
-                    onClick={() => onConfirm({})}
-                    className="text-slate-500 hover:text-white text-sm font-medium flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-slate-800 transition-colors"
-                >
-                    <FastForward size={16} />
-                    Decide for me (Auto-Pilot)
-                </button>
-
-                <button
-                    onClick={() => onConfirm(selections)}
-                    className="px-8 py-3 bg-white hover:bg-cyan-50 text-slate-900 rounded-xl font-bold text-sm shadow-lg flex items-center gap-2 transition-all active:scale-95"
-                >
-                    Continue <ArrowRight size={18} />
-                </button>
+                        return (
+                            <div key={deck.id} className="flex flex-col h-full bg-slate-900/40 rounded-xl border border-slate-800 overflow-hidden shadow-sm">
+                                <div className={`px-3 py-2 border-b border-slate-800 flex items-center justify-between ${deck.bg}`}>
+                                    <div className="flex items-center gap-2">
+                                        <div className={deck.color}>{deck.icon}</div>
+                                        <span className={`text-[10px] font-bold uppercase tracking-wider ${deck.color}`}>
+                                            {deck.title}
+                                        </span>
+                                    </div>
+                                    <span className="text-[9px] text-slate-500 font-mono">{options.length}</span>
+                                </div>
+                                <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-2">
+                                    {options.map((option, idx) => {
+                                        const label = getLabel(option);
+                                        const desc = getDescription(option);
+                                        const isSelected = currentSelection === label;
+                                        return (
+                                            <button
+                                                key={idx}
+                                                onClick={() => onSelect(deck.id, label)}
+                                                className={`w-full text-left p-3 rounded-lg border transition-all relative group ${isSelected
+                                                        ? `bg-slate-800 ${deck.border} shadow-lg`
+                                                        : 'bg-slate-950/80 border-slate-800/50 hover:bg-slate-900 hover:border-slate-700'
+                                                    }`}
+                                            >
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <span className={`text-xs font-bold ${isSelected ? 'text-white' : 'text-slate-300'}`}>
+                                                        {label}
+                                                    </span>
+                                                    {isSelected && <CheckCircle size={14} className={deck.color} />}
+                                                </div>
+                                                <p className="text-[10px] text-slate-500 leading-snug line-clamp-2">{desc}</p>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
         </div>
     );
