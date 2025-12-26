@@ -1,17 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Loader, Feather, FileText, ShieldCheck, PenTool, Copy, Check } from 'lucide-react';
+import { Loader, FileText, Check, Copy } from 'lucide-react';
 import { useTextHive } from '../../hooks/hives/useTextHive';
 
 // Text Components
 import EditorDeck from '../agent/text/EditorDeck';
 import LinguistDeck from '../agent/text/LinguistDeck';
-import Manuscript from '../agent/text/Manuscript';
-import TextCriticDeck from '../agent/text/TextCriticDeck';
-// Shared/Global Components
+import Manuscript from '../agent/text/Manuscript'; // Assumed existing
+import TextCriticDeck from '../agent/text/TextCriticDeck'; // Assumed existing
+import TextManifest from '../agent/text/TextManifest';
+
+// Shared
 import ManagerDrawer from '../hivemind/ManagerDrawer';
 
 const TextFeed = ({ initialPrompt, onStateChange }) => {
-    // 1. Initialize the Text Brain
     const {
         history, currentPhase, loading, statusMessage,
         startMission, submitChoices, submitSpecs, sendToAudit, refineBlueprint, compileManuscript,
@@ -20,9 +21,24 @@ const TextFeed = ({ initialPrompt, onStateChange }) => {
 
     const [hasStarted, setHasStarted] = useState(false);
     const [copied, setCopied] = useState(false);
+
+    // --- STATE ---
+    const [manifest, setManifest] = useState({
+        strategy: null, // Format + Angle
+        voice: null,    // Vocab + Structure
+        blueprint: false,
+        final: false
+    });
+
+    const [draftSelections, setDraftSelections] = useState({});
+
+    useEffect(() => {
+        setDraftSelections({});
+    }, [currentPhase]);
+
     const bottomRef = useRef(null);
 
-    // Start mission on first load
+    // Initial Start
     useEffect(() => {
         if (initialPrompt && !hasStarted) {
             startMission(initialPrompt);
@@ -30,26 +46,21 @@ const TextFeed = ({ initialPrompt, onStateChange }) => {
         }
     }, [initialPrompt]);
 
-    // Notify parent layout of phase changes
     useEffect(() => {
         onStateChange && onStateChange(currentPhase);
     }, [currentPhase]);
 
-    // Auto-scroll
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [history, loading]);
 
-    // --- HELPER: Parse Agent JSON safely ---
+    // --- HELPERS ---
     const parseAgentJson = (msg) => {
         if (!msg || !msg.content) return null;
         try {
             const clean = msg.content.replace(/```json/g, '').replace(/```/g, '').trim();
             return JSON.parse(clean);
-        } catch (e) {
-            console.error("JSON Parse Error in Feed:", e);
-            return null;
-        }
+        } catch (e) { return null; }
     };
 
     const handleCopy = (text) => {
@@ -58,137 +69,154 @@ const TextFeed = ({ initialPrompt, onStateChange }) => {
         setTimeout(() => setCopied(false), 2000);
     };
 
-    // --- RENDERERS ---
+    // --- LOGIC ---
+    const handleDraftSelect = (key, value) => {
+        setDraftSelections(prev => ({ ...prev, [key]: value }));
+    };
 
-    // PHASE 1: EDITOR (Strategy)
+    const handleSidebarConfirm = () => {
+        const choices = draftSelections;
+        if (currentPhase === 'strategy' || currentPhase === 'editor') {
+            const formatted = `Format: ${choices.format}, Angle: ${choices.angle}, Tone: ${choices.tone}`;
+            setManifest(prev => ({ ...prev, strategy: formatted }));
+            submitChoices(formatted);
+        }
+        else if (currentPhase === 'spec' || currentPhase === 'linguist') {
+            const formatted = `Vocab: ${choices.vocab}, Structure: ${choices.structure}, Rhetoric: ${choices.rhetoric}`;
+            setManifest(prev => ({ ...prev, voice: formatted }));
+            submitSpecs(formatted);
+        }
+    };
+
+    const handleAutoPilot = () => {
+        const activeMsg = history[history.length - 1];
+        if (!activeMsg) return;
+        const data = parseAgentJson(activeMsg);
+        if (!data) return;
+
+        const randoms = {};
+        const pickRandom = (keyArr, targetKey) => {
+            const arr = data[keyArr] || [];
+            if (arr.length) {
+                const choice = arr[Math.floor(Math.random() * arr.length)];
+                randoms[targetKey] = choice.label || choice.title;
+            }
+        };
+
+        if (currentPhase === 'strategy') {
+            pickRandom('format_options', 'format');
+            pickRandom('angle_options', 'angle');
+            pickRandom('tone_options', 'tone');
+        } else if (currentPhase === 'spec') {
+            pickRandom('vocab_options', 'vocab');
+            pickRandom('structure_options', 'structure');
+            pickRandom('rhetoric_options', 'rhetoric');
+        }
+        setDraftSelections(randoms);
+    };
+
+    const checkIsReady = () => {
+        if (currentPhase === 'strategy') return draftSelections.format && draftSelections.angle && draftSelections.tone;
+        if (currentPhase === 'spec') return draftSelections.vocab && draftSelections.structure && draftSelections.rhetoric;
+        return false;
+    };
+
+    // --- RENDERERS ---
     const renderEditor = (msg) => {
         const data = parseAgentJson(msg);
-        return <EditorDeck data={data} onConfirm={submitChoices} />;
+        return <EditorDeck data={data} selections={draftSelections} onSelect={handleDraftSelect} />;
     };
 
-    // PHASE 2: LINGUIST (Voice)
     const renderLinguist = (msg) => {
         const data = parseAgentJson(msg);
-        return <LinguistDeck data={data} onConfirm={submitSpecs} />;
+        return <LinguistDeck data={data} selections={draftSelections} onSelect={handleDraftSelect} />;
     };
 
-    // PHASE 3: SCRIBE (Blueprint/Manuscript)
     const renderManuscript = (msg) => {
         const data = parseAgentJson(msg);
-
         return (
-            <div className="w-full max-w-5xl mx-auto space-y-6 animate-in fade-in">
-                {/* The Outline View */}
+            <div className="w-full h-full p-4 overflow-y-auto">
                 <Manuscript data={data} />
-
-                {/* Action Buttons */}
-                {!loading && currentPhase === 'scribe' && (
-                    <div className="flex justify-end pt-4 gap-3">
-                        <button
-                            onClick={sendToAudit}
-                            className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold flex items-center gap-2 border border-slate-700 transition-colors"
-                        >
-                            <ShieldCheck size={18} /> Send to Editorial Audit
-                        </button>
-
-                        <button
-                            onClick={compileManuscript}
-                            className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-emerald-900/20 transition-all transform active:scale-95"
-                        >
-                            <PenTool size={18} /> Approve & Publish
-                        </button>
-                    </div>
-                )}
+                <div className="mt-4 flex gap-4 pb-20">
+                    <button onClick={sendToAudit} className="flex-1 py-4 bg-slate-800 rounded-xl text-slate-300 font-bold hover:bg-slate-700">Request Audit</button>
+                    <button
+                        onClick={() => {
+                            compileManuscript();
+                            setManifest(prev => ({ ...prev, blueprint: true }));
+                        }}
+                        className="flex-1 py-4 bg-emerald-600 rounded-xl text-white font-bold hover:bg-emerald-500 shadow-lg"
+                    >
+                        Approve & Publish
+                    </button>
+                </div>
             </div>
         );
     };
 
-    // PHASE 4: CRITIC (Audit)
-    const renderCritic = (msg) => {
-        const data = parseAgentJson(msg);
-        return <TextCriticDeck data={data} onConfirm={refineBlueprint} />;
-    };
-
-    // PHASE 5: PUBLISHER (Final Document)
     const renderPublication = (msg) => {
         const data = parseAgentJson(msg);
-        if (!data || !data.final_text) return null;
+        if (!data) return null;
+
+        // Mark final in manifest
+        if (!manifest.final) setManifest(prev => ({ ...prev, final: true }));
 
         return (
-            <div className="w-full max-w-4xl mx-auto mt-8 animate-in slide-in-from-bottom-4 pb-20">
-
-                {/* Document Header */}
-                <div className="flex items-center justify-between mb-4 px-2">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-400">
-                            <FileText size={24} />
-                        </div>
-                        <div>
-                            <h3 className="text-lg font-bold text-white">Final Draft</h3>
-                            <p className="text-xs text-slate-400">{data.publication_summary}</p>
-                        </div>
-                    </div>
-
+            <div className="w-full h-full p-6 pb-20 overflow-y-auto">
+                <div className="bg-slate-100 text-slate-900 p-8 md:p-12 rounded-xl shadow-2xl font-serif leading-relaxed whitespace-pre-wrap relative group">
                     <button
                         onClick={() => handleCopy(data.final_text)}
-                        className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-emerald-600 hover:text-white rounded-lg text-slate-400 text-xs font-bold transition-all"
+                        className="absolute top-4 right-4 p-2 bg-slate-200/50 hover:bg-emerald-600 hover:text-white rounded-lg transition-colors text-slate-500"
                     >
-                        {copied ? <Check size={14} /> : <Copy size={14} />}
-                        {copied ? "Copied!" : "Copy Text"}
+                        {copied ? <Check size={16} /> : <Copy size={16} />}
                     </button>
-                </div>
-
-                {/* The Document Paper */}
-                <div className="bg-slate-100 text-slate-900 p-8 md:p-12 rounded-xl shadow-2xl font-serif leading-relaxed whitespace-pre-wrap selection:bg-emerald-200 selection:text-emerald-900">
                     {data.final_text}
                 </div>
             </div>
         );
     };
 
-    // --- MAIN RENDER ---
     return (
-        <div className="flex-1 flex flex-col">
-            {/* 1. Status Bar */}
-            {statusMessage && (
-                <div className="sticky top-0 z-30 bg-slate-950/90 backdrop-blur-sm border-b border-slate-800 p-2 text-center text-sm font-medium text-emerald-300 animate-in fade-in">
-                    {statusMessage}
-                </div>
-            )}
-
-            {/* 2. Main Feed Content */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-8 custom-scrollbar">
-                {history.map((msg, idx) => {
-                    const isLast = idx === history.length - 1;
-                    // Only show the last "active" card, unless it's the final output
-                    // or we want to keep history visible (optional, keeping history visible for context is usually better)
-                    if (!isLast && msg.type !== 'final') return null;
-
-                    switch (msg.type) {
-                        case 'strategy_options': return renderEditor(msg);
-                        case 'spec_options': return renderLinguist(msg);
-                        case 'blueprint': return renderManuscript(msg);
-                        case 'critique': return renderCritic(msg);
-                        case 'final': return renderPublication(msg);
-                        default: return null;
-                    }
-                })}
-
-                {loading && (
-                    <div className="flex justify-center p-8 animate-in fade-in">
-                        <Loader size={32} className="animate-spin text-emerald-500" />
+        <div className="flex h-full overflow-hidden bg-slate-950">
+            {/* LEFT COLUMN */}
+            <div className="flex-1 flex flex-col min-w-0 relative border-r border-slate-800">
+                {statusMessage && loading && (
+                    <div className="absolute top-0 left-0 right-0 z-20 bg-slate-900/90 backdrop-blur border-b border-slate-800 py-1.5 px-4 text-xs font-mono text-emerald-300 animate-in fade-in">
+                        {statusMessage}
                     </div>
                 )}
-                <div ref={bottomRef} />
+
+                <div className="flex-1 overflow-y-auto scroll-smooth flex flex-col">
+                    {history.map((msg, idx) => {
+                        const isLast = idx === history.length - 1;
+                        if (!isLast && msg.type !== 'final') return null;
+
+                        switch (msg.type) {
+                            case 'strategy_options': return renderEditor(msg);
+                            case 'spec_options': return renderLinguist(msg);
+                            case 'blueprint': return renderManuscript(msg);
+                            case 'final': return renderPublication(msg);
+                            default: return null;
+                        }
+                    })}
+                    <div ref={bottomRef} />
+                </div>
+
+                <ManagerDrawer
+                    isOpen={isDrawerOpen}
+                    setIsOpen={setIsDrawerOpen}
+                    messages={managerMessages}
+                    onSendMessage={handleManagerFeedback}
+                    loading={loading}
+                />
             </div>
 
-            {/* 3. Manager Drawer */}
-            <ManagerDrawer
-                isOpen={isDrawerOpen}
-                setIsOpen={setIsDrawerOpen}
-                messages={managerMessages}
-                onSendMessage={handleManagerFeedback}
-                loading={loading}
+            {/* RIGHT COLUMN */}
+            <TextManifest
+                manifest={manifest}
+                currentPhase={currentPhase}
+                onConfirm={handleSidebarConfirm}
+                onAutoPilot={handleAutoPilot}
+                isReady={checkIsReady()}
             />
         </div>
     );
