@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Lightbulb, CheckCircle, Circle, FastForward, ArrowRight, Star, Map, Palette, Ghost } from 'lucide-react';
+import { Lightbulb, CheckCircle, FastForward, ArrowRight, Star, Map, Palette, Ghost, Info } from 'lucide-react';
 
 const MuseDeck = ({ data, onConfirm }) => {
     // 1. Initialize State for 3 separate choices
@@ -10,16 +10,14 @@ const MuseDeck = ({ data, onConfirm }) => {
     });
 
     // Safety Check
-    if (!data) return (
-        <div className="p-4 text-center text-slate-500 text-xs italic">Waiting for Muse...</div>
-    );
+    if (!data) return null;
 
-    // --- CONFIGURATION FOR THE 3 DECKS ---
+    // --- CONFIGURATION ---
     const decks = [
         {
             id: 'genre',
-            title: 'Genre & Vibe',
-            icon: <Ghost size={16} />,
+            title: 'Genre', // Shortened title
+            icon: <Ghost size={14} />,
             color: 'text-purple-400',
             bg: 'bg-purple-500/10',
             border: 'border-purple-500',
@@ -28,7 +26,7 @@ const MuseDeck = ({ data, onConfirm }) => {
         {
             id: 'environment',
             title: 'Environment',
-            icon: <Map size={16} />,
+            icon: <Map size={14} />,
             color: 'text-emerald-400',
             bg: 'bg-emerald-500/10',
             border: 'border-emerald-500',
@@ -36,8 +34,8 @@ const MuseDeck = ({ data, onConfirm }) => {
         },
         {
             id: 'style',
-            title: 'Visual Style',
-            icon: <Palette size={16} />,
+            title: 'Style', // Shortened title
+            icon: <Palette size={14} />,
             color: 'text-pink-400',
             bg: 'bg-pink-500/10',
             border: 'border-pink-500',
@@ -61,11 +59,9 @@ const MuseDeck = ({ data, onConfirm }) => {
         setSelections(prev => ({ ...prev, [deckId]: value }));
     };
 
-    // Checks if all 3 decks have a selection
     const isReady = selections.genre && selections.environment && selections.style;
 
     const handleAutoPilot = () => {
-        // Randomly pick one from each deck if available
         const autoSelections = {};
         decks.forEach(deck => {
             const options = data[deck.dataKey] || [];
@@ -78,56 +74,68 @@ const MuseDeck = ({ data, onConfirm }) => {
     };
 
     return (
-        <div className="w-full mt-4 animate-in slide-in-from-bottom-2 flex flex-col h-[calc(100vh-200px)] min-h-[500px]">
+        <div className="w-full flex flex-col h-full overflow-hidden animate-in fade-in">
 
-            {/* 1. HEADER (Pinned) */}
-            <div className="bg-slate-900 border border-slate-800 rounded-t-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-lg shrink-0">
-                <div className="flex items-center gap-3">
-                    <div className="p-2 bg-purple-500/10 rounded-lg text-purple-400">
-                        <Lightbulb size={20} />
+            {/* 1. ULTRA-SLIM HEADER */}
+            <div className="bg-slate-900 border-b border-slate-800 p-2 flex items-center justify-between shrink-0 h-12">
+
+                {/* Left: Identity */}
+                <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-purple-500/10 rounded-md text-purple-400">
+                        <Lightbulb size={16} />
                     </div>
-                    <div>
-                        <h3 className="text-lg font-bold text-white leading-none">The Muse</h3>
-                        <p className="text-xs text-slate-400 mt-1">{data.muse_summary || "World Building Options"}</p>
+                    <span className="text-sm font-bold text-white">The Muse</span>
+                </div>
+
+                {/* Center: Summary (Truncated) */}
+                <div className="flex-1 px-4 text-center hidden md:block">
+                    <p className="text-xs text-slate-500 truncate max-w-md mx-auto">
+                        {data.muse_summary || "Select your concepts below."}
+                    </p>
+                </div>
+
+                {/* Right: Info & Stats */}
+                <div className="flex items-center gap-3">
+                    {data.agent_commentary && (
+                        <div className="group relative">
+                            <Info size={16} className="text-slate-600 hover:text-purple-400 cursor-help" />
+                            {/* Tooltip for Commentary */}
+                            <div className="absolute right-0 top-6 w-64 p-3 bg-slate-800 border border-slate-700 rounded-lg shadow-xl text-xs text-slate-300 z-50 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity">
+                                "{data.agent_commentary}"
+                            </div>
+                        </div>
+                    )}
+                    <div className="text-[10px] font-mono bg-slate-800 px-2 py-1 rounded text-slate-400">
+                        {Object.values(selections).filter(Boolean).length}/3
                     </div>
                 </div>
-                {/* Agent Commentary */}
-                {data.agent_commentary && (
-                    <div className="text-xs text-slate-500 italic max-w-md text-right border-l-2 border-slate-700 pl-3 hidden md:block">
-                        "{data.agent_commentary}"
-                    </div>
-                )}
             </div>
 
-            {/* 2. THE MEGA-DECK GRID (Scrollable Area) */}
-            <div className="bg-slate-950/50 border-x border-slate-800 flex-1 overflow-hidden p-4">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-full">
+            {/* 2. THE MEGA-DECK GRID (Flex-1 fills remaining space) */}
+            <div className="flex-1 overflow-hidden p-2 bg-slate-950/30">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 h-full">
 
                     {decks.map((deck) => {
                         const options = data[deck.dataKey] || [];
                         const currentSelection = selections[deck.id];
 
                         return (
-                            <div key={deck.id} className="flex flex-col h-full bg-slate-900/50 rounded-xl border border-slate-800 overflow-hidden">
+                            <div key={deck.id} className="flex flex-col h-full bg-slate-900/40 rounded-lg border border-slate-800 overflow-hidden">
                                 {/* Deck Header */}
-                                <div className={`p-3 border-b border-slate-800 flex items-center gap-2 ${deck.bg}`}>
-                                    <div className="text-sm">{deck.icon}</div>
-                                    <span className={`text-xs font-bold uppercase tracking-wider ${deck.color}`}>
-                                        {deck.title}
-                                    </span>
-                                    <span className="ml-auto text-[10px] text-slate-500 font-mono">
-                                        {options.length} Cards
+                                <div className={`px-3 py-2 border-b border-slate-800 flex items-center justify-between ${deck.bg}`}>
+                                    <div className="flex items-center gap-2">
+                                        <div className={deck.color}>{deck.icon}</div>
+                                        <span className={`text-[10px] font-bold uppercase tracking-wider ${deck.color}`}>
+                                            {deck.title}
+                                        </span>
+                                    </div>
+                                    <span className="text-[9px] text-slate-500 font-mono opacity-70">
+                                        {options.length}
                                     </span>
                                 </div>
 
                                 {/* Deck Scroll Area */}
                                 <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-2">
-                                    {options.length === 0 && (
-                                        <div className="text-center p-4 text-xs text-slate-600 italic">
-                                            No cards dealt.
-                                        </div>
-                                    )}
-
                                     {options.map((option, idx) => {
                                         const label = getLabel(option);
                                         const desc = getDescription(option);
@@ -138,26 +146,27 @@ const MuseDeck = ({ data, onConfirm }) => {
                                             <button
                                                 key={idx}
                                                 onClick={() => handleSelect(deck.id, label)}
-                                                className={`w-full text-left p-3 rounded-lg border transition-all relative group ${isSelected
+                                                className={`w-full text-left p-2.5 rounded border transition-all relative group ${isSelected
                                                         ? `bg-slate-800 ${deck.border} shadow-lg`
-                                                        : 'bg-slate-950 border-slate-800 hover:bg-slate-900 hover:border-slate-700'
+                                                        : 'bg-slate-950/80 border-slate-800/50 hover:bg-slate-900 hover:border-slate-700'
                                                     }`}
                                             >
-                                                {/* Selection Indicator */}
-                                                <div className="flex items-center justify-between mb-1">
-                                                    <span className={`text-sm font-bold ${isSelected ? 'text-white' : 'text-slate-300'}`}>
+                                                {/* Label + Check */}
+                                                <div className="flex items-center justify-between mb-0.5">
+                                                    <span className={`text-xs font-bold ${isSelected ? 'text-white' : 'text-slate-300'}`}>
                                                         {label}
                                                     </span>
-                                                    {isSelected && <CheckCircle size={14} className={deck.color} />}
+                                                    {isSelected && <CheckCircle size={12} className={deck.color} />}
                                                 </div>
 
-                                                <p className="text-[10px] text-slate-400 leading-relaxed line-clamp-3">
+                                                {/* Description */}
+                                                <p className="text-[10px] text-slate-500 leading-snug line-clamp-2">
                                                     {desc}
                                                 </p>
 
-                                                {/* Recommended Dot */}
+                                                {/* Rec Dot */}
                                                 {isRec && !isSelected && (
-                                                    <div className="absolute top-3 right-3 w-1.5 h-1.5 rounded-full bg-slate-600 group-hover:bg-white transition-colors" title="Recommended" />
+                                                    <div className="absolute top-2.5 right-2 w-1.5 h-1.5 rounded-full bg-slate-700 group-hover:bg-slate-500 transition-colors" />
                                                 )}
                                             </button>
                                         );
@@ -170,33 +179,26 @@ const MuseDeck = ({ data, onConfirm }) => {
                 </div>
             </div>
 
-            {/* 3. ACTION BAR (Pinned Bottom) */}
-            <div className="bg-slate-950/50 border-x border-b border-slate-800 rounded-b-2xl p-4 pt-3 flex justify-between items-center shrink-0">
+            {/* 3. ACTION BAR (Slim Footer) */}
+            <div className="bg-slate-900 border-t border-slate-800 p-3 flex justify-between items-center shrink-0">
                 <button
                     onClick={handleAutoPilot}
-                    className="text-slate-500 hover:text-white text-xs font-medium flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-800 transition-colors"
+                    className="text-slate-500 hover:text-white text-[10px] font-bold uppercase flex items-center gap-1.5 px-3 py-2 rounded hover:bg-slate-800 transition-colors"
                 >
-                    <FastForward size={14} />
-                    Auto-Pilot (Random)
+                    <FastForward size={12} />
+                    Auto-Pilot
                 </button>
 
-                <div className="flex items-center gap-4">
-                    {/* Progress Indicator */}
-                    <div className="text-[10px] font-mono text-slate-500">
-                        {Object.values(selections).filter(Boolean).length} / 3 Selected
-                    </div>
-
-                    <button
-                        disabled={!isReady}
-                        onClick={() => onConfirm(selections)}
-                        className={`px-8 py-3 rounded-xl font-bold text-xs shadow-lg flex items-center gap-2 transition-all transform active:scale-95 ${isReady
-                                ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-purple-900/20 cursor-pointer'
-                                : 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                            }`}
-                    >
-                        Confirm Selection <ArrowRight size={14} />
-                    </button>
-                </div>
+                <button
+                    disabled={!isReady}
+                    onClick={() => onConfirm(selections)}
+                    className={`px-6 py-2 rounded-lg font-bold text-xs shadow-lg flex items-center gap-2 transition-all transform active:scale-95 ${isReady
+                            ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-purple-900/20 cursor-pointer'
+                            : 'bg-slate-800 text-slate-600 cursor-not-allowed'
+                        }`}
+                >
+                    Continue <ArrowRight size={12} />
+                </button>
             </div>
         </div>
     );

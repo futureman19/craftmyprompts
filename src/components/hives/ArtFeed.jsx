@@ -161,9 +161,9 @@ const ArtFeed = ({ initialPrompt, onStateChange }) => {
             {/* CENTER: THE WORKSPACE (Scrollable Feed) */}
             <div className="flex-1 flex flex-col h-full relative">
 
-                {/* Status Bar */}
-                {statusMessage && (
-                    <div className="absolute top-0 left-0 right-0 z-20 bg-slate-900/90 backdrop-blur border-b border-slate-800 py-1.5 px-4 text-xs font-mono text-purple-300">
+                {/* Status Bar - ONLY show when loading (Reclaims space when deck is visible) */}
+                {statusMessage && loading && (
+                    <div className="absolute top-0 left-0 right-0 z-20 bg-slate-900/90 backdrop-blur border-b border-slate-800 py-1.5 px-4 text-xs font-mono text-purple-300 animate-in fade-in">
                         {statusMessage}
                     </div>
                 )}
