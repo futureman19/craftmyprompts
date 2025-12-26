@@ -200,20 +200,45 @@ export const useTextHive = (initialKeys = {}) => {
     // --- MANAGER FEEDBACK ---
     const handleManagerFeedback = async (userText, setInput) => {
         if (!userText.trim()) return;
+
         setManagerMessages(prev => [...prev, { role: 'user', content: userText }]);
         setInput('');
         setLoading(true);
 
         try {
-            const contextString = `Current Phase: ${currentPhase}\nUser Feedback: ${userText}`;
-            const data = await callAgent('manager', "Direct the Swarm.", contextString);
+            const contextString = `
+                Current Phase: ${currentPhase}
+                Original Topic: ${contextData.originalPrompt}
+                User Feedback: ${userText}
+            `;
+
+            const data = await callAgent('manager', "Analyze feedback and direct the swarm.", contextString);
             const decision = JSON.parse(cleanJson(data.swarm[0].content));
 
             setManagerMessages(prev => [...prev, { role: 'assistant', content: decision.reply }]);
 
-            if (decision.target_phase === 'strategy') startMission(userText);
+            // EXECUTE THE PIVOT
+            if (decision.target_phase && decision.revised_prompt) {
+
+                // CASE A: User changed the TOPIC (Restart Editor)
+                if (decision.target_phase === 'strategy' || decision.target_phase === 'editor') {
+                    // Update Context
+                    setContextData(prev => ({ ...prev, originalPrompt: decision.revised_prompt }));
+                    // Restart Mission
+                    await startMission(decision.revised_prompt);
+                }
+
+                // CASE B: User changed the VOICE (Restart Linguist)
+                else if (decision.target_phase === 'spec' || decision.target_phase === 'linguist') {
+                    // Update Context
+                    setContextData(prev => ({ ...prev, strategy_choice: decision.revised_prompt }));
+                    // Restart Linguist
+                    await submitChoices(decision.revised_prompt);
+                }
+            }
+
         } catch (e) {
-            console.error(e);
+            console.error("Manager Error:", e);
         } finally {
             setLoading(false);
         }

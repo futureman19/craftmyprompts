@@ -11,6 +11,7 @@ import TextManifest from '../agent/text/TextManifest';
 
 // Shared
 import ManagerDrawer from '../hivemind/ManagerDrawer';
+import AgentLoader from '../ui/AgentLoader';
 
 const TextFeed = ({ initialPrompt, onStateChange }) => {
     const {
@@ -198,6 +199,13 @@ const TextFeed = ({ initialPrompt, onStateChange }) => {
                             default: return null;
                         }
                     })}
+
+
+                    {/* NEW: THE BIG LOADER */}
+                    {loading && (
+                        <AgentLoader message={statusMessage} />
+                    )}
+
                     <div ref={bottomRef} />
                 </div>
 
