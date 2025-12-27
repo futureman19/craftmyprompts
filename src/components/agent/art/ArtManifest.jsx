@@ -3,7 +3,8 @@ import { Palette, Aperture, Layers, Wand2, FastForward, ArrowRight, Check, Zap, 
 
 const ArtManifest = ({ manifest, currentPhase, onConfirm, onAutoPilot, isReady }) => {
 
-    const showControls = ['vision', 'specs'].includes(currentPhase);
+    // UPDATED: Added 'maverick' to allowed phases
+    const showControls = ['vision', 'specs', 'maverick'].includes(currentPhase);
 
     // Smart Renderer for Bullet Lists
     const renderValue = (val, type) => {
@@ -12,6 +13,7 @@ const ArtManifest = ({ manifest, currentPhase, onConfirm, onAutoPilot, isReady }
 
         if (typeof val === 'object') {
             const listItems = [];
+            // ... (Existing mapping logic for vision/specs) ...
             if (type === 'vision') {
                 if (val.concept) listItems.push({ label: 'Concept', val: val.concept });
                 if (val.subject) listItems.push({ label: 'Subject', val: val.subject });
@@ -20,6 +22,12 @@ const ArtManifest = ({ manifest, currentPhase, onConfirm, onAutoPilot, isReady }
                 if (val.style) listItems.push({ label: 'Style', val: val.style });
                 if (val.lighting) listItems.push({ label: 'Lighting', val: val.lighting });
                 if (val.camera) listItems.push({ label: 'Camera', val: val.camera });
+            }
+            // NEW: Render Maverick choices
+            else if (type === 'maverick') {
+                if (Array.isArray(val)) {
+                    val.forEach(v => listItems.push({ label: v.category || 'Wildcard', val: v.label }));
+                }
             }
 
             return (
@@ -43,7 +51,7 @@ const ArtManifest = ({ manifest, currentPhase, onConfirm, onAutoPilot, isReady }
     const steps = [
         { id: 'vision', label: 'Concept', icon: <Palette size={14} />, value: manifest.vision },
         { id: 'specs', label: 'Art Direction', icon: <Aperture size={14} />, value: manifest.specs },
-        { id: 'maverick', label: 'The Maverick', icon: <Zap size={14} />, value: manifest.maverick }, // UPDATED LABEL & KEY
+        { id: 'maverick', label: 'Maverick', icon: <Zap size={14} />, value: manifest.maverick },
         { id: 'blueprint', label: 'Composition', icon: <Layers size={14} />, value: manifest.blueprint },
         { id: 'final', label: 'Gallery', icon: <Wand2 size={14} />, value: manifest.final },
     ];
@@ -111,8 +119,9 @@ const ArtManifest = ({ manifest, currentPhase, onConfirm, onAutoPilot, isReady }
 
                     <button
                         onClick={onConfirm}
-                        disabled={!isReady}
-                        className={`w-full py-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all transform active:scale-95 shadow-lg ${isReady
+                        // Maverick is optional, so it's always ready even if selection is empty
+                        disabled={!isReady && currentPhase !== 'maverick'}
+                        className={`w-full py-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all transform active:scale-95 shadow-lg ${(isReady || currentPhase === 'maverick')
                                 ? 'bg-fuchsia-600 hover:bg-fuchsia-500 text-white shadow-fuchsia-900/20'
                                 : 'bg-slate-800 text-slate-600 cursor-not-allowed'
                             }`}

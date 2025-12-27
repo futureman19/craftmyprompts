@@ -6,7 +6,7 @@ import AgentLoader from '../ui/AgentLoader';
 // --- IMPORTS ---
 import MuseDeck from '../agent/art/MuseDeck';
 import CinemaDeck from '../agent/art/CinemaDeck';
-import MaverickDeck from '../agent/art/MaverickDeck'; // <--- NEW DECK IMPORT
+import MaverickDeck from '../agent/art/MaverickDeck';
 import CompositionDeck from '../agent/art/CompositionDeck';
 import GalleryDeck from '../agent/art/GalleryDeck';
 
@@ -25,11 +25,11 @@ const ArtFeed = ({ history, loading, statusMessage, actions, currentPhase, manag
             const start = raw.indexOf('{');
             const end = raw.lastIndexOf('}');
             if (start === -1 || end === -1) return null;
+
             const json = JSON.parse(raw.substring(start, end + 1));
 
             // Normalize Options
             let data = json.options ? { ...json, ...json.options } : json;
-            // Map common keys if needed (Muse/Cinema logic handled in decks mostly)
             if (data.conceptOptions) data.concept_options = data.conceptOptions;
             if (data.styleOptions) data.style_options = data.styleOptions;
 
@@ -41,9 +41,7 @@ const ArtFeed = ({ history, loading, statusMessage, actions, currentPhase, manag
     // --- ROLE MATCHING ---
     const strategyMsg = history.findLast(m => m.role && (m.role.includes('Muse') || m.role.includes('Visionary')));
     const specsMsg = history.findLast(m => m.role && (m.role.includes('Cinematographer') || m.role.includes('Tech')));
-    // MAVERICK MATCHER
     const maverickMsg = history.findLast(m => m.role && (m.role.includes('Maverick') || m.role.includes('Chaos')));
-
     const buildMsg = history.findLast(m => m.role && (m.role.includes('Stylist') || m.role.includes('Architect')));
     const finalMsg = history.findLast(m => m.role && (m.role.includes('Gallery') || m.role.includes('Executive')));
 
@@ -52,7 +50,7 @@ const ArtFeed = ({ history, loading, statusMessage, actions, currentPhase, manag
 
     // --- PROGRESS TRACKING ---
     useEffect(() => {
-        if (maverickMsg) setManifest(prev => ({ ...prev, maverick: "Wildcards Generated" }));
+        if (maverickMsg) setManifest(prev => ({ ...prev, maverick: "Wildcards Ready" }));
         if (buildMsg) setManifest(prev => ({ ...prev, blueprint: "Composition Locked" }));
         if (finalMsg) setManifest(prev => ({ ...prev, final: "Masterpiece Rendered" }));
     }, [maverickMsg, buildMsg, finalMsg]);
@@ -62,6 +60,7 @@ const ArtFeed = ({ history, loading, statusMessage, actions, currentPhase, manag
     const checkIsReady = () => {
         if (currentPhase === 'vision') return draftSelections.concept && draftSelections.subject && draftSelections.mood;
         if (currentPhase === 'specs') return draftSelections.style && draftSelections.lighting && draftSelections.camera;
+        if (currentPhase === 'maverick') return true; // Optional step, always ready
         return false;
     };
 
@@ -73,6 +72,10 @@ const ArtFeed = ({ history, loading, statusMessage, actions, currentPhase, manag
         } else if (currentPhase === 'specs') {
             setManifest(prev => ({ ...prev, specs: c }));
             actions.submitSpecs(`Style: ${c.style}, Lighting: ${c.lighting}, Camera: ${c.camera}`);
+        } else if (currentPhase === 'maverick') {
+            // NEW: Handle Maverick confirmation
+            setManifest(prev => ({ ...prev, maverick: c.maverick || [] }));
+            actions.refineBlueprint(c.maverick || []); // Pass array or empty
         }
     };
 
@@ -99,6 +102,12 @@ const ArtFeed = ({ history, loading, statusMessage, actions, currentPhase, manag
                 setManifest(prev => ({ ...prev, specs: auto }));
                 actions.submitSpecs(auto);
             }
+        } else if (currentPhase === 'maverick') {
+            // Auto-Pilot picks the first wildcard
+            const data = parseAgentJson(maverickMsg, 'Auto');
+            const auto = data?.wildcards?.[0] ? [data.wildcards[0]] : [];
+            setManifest(prev => ({ ...prev, maverick: auto }));
+            actions.refineBlueprint(auto);
         }
     };
 
@@ -108,11 +117,8 @@ const ArtFeed = ({ history, loading, statusMessage, actions, currentPhase, manag
 
     const renderMaverick = () => {
         const data = parseAgentJson(maverickMsg, 'Maverick');
-        return (
-            <div className="space-y-8 animate-in slide-in-from-bottom-4">
-                <MaverickDeck data={data} onConfirm={actions.refineBlueprint} />
-            </div>
-        );
+        // Now using Standard Deck Props (selections/onSelect) instead of onConfirm
+        return <MaverickDeck data={data} selections={draftSelections} onSelect={handleDraftSelect} />;
     };
 
     const renderBlueprint = () => {
@@ -130,7 +136,7 @@ const ArtFeed = ({ history, loading, statusMessage, actions, currentPhase, manag
                     <div className="flex-1 p-4">
                         {currentPhase === 'vision' && strategyMsg && renderVision()}
                         {currentPhase === 'specs' && specsMsg && renderSpecs()}
-                        {currentPhase === 'maverick' && renderMaverick()}
+                        {currentPhase === 'maverick' && maverickMsg && renderMaverick()}
                         {currentPhase === 'blueprint' && buildMsg && renderBlueprint()}
                         {currentPhase === 'done' && renderFinal()}
                         {loading && <AgentLoader message={statusMessage} />}
