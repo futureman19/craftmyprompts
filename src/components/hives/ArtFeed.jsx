@@ -123,7 +123,9 @@ const ArtFeed = ({ history, loading, statusMessage, actions, currentPhase, manag
 
     const renderBlueprint = () => {
         const raw = parseAgentJson(buildMsg, 'Composition');
-        const structure = raw?.composition || raw?.structure || { note: "Processing..." };
+        // If raw has 'composition' inside, pass the whole raw object so the deck can find the summary too.
+        // Otherwise pass raw directly.
+        const structure = raw || { note: "Processing..." };
         return <CompositionDeck structure={structure} />;
     };
 

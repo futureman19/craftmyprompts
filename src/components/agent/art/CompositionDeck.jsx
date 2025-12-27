@@ -2,8 +2,13 @@ import React from 'react';
 import { Layers, User, Mountain, Sun, Camera, Palette, Brush, CheckCircle } from 'lucide-react';
 
 const CompositionDeck = ({ structure }) => {
-    // Handle data structure variations
+    // Handle data structure variations safely
     const data = structure || {};
+
+    // If 'composition' is nested inside structure (depends on parser), extract it. 
+    // Otherwise assume structure IS the composition object.
+    const layersObject = data.composition || data;
+    const summary = data.blueprint_summary || "Finalizing visual hierarchy...";
 
     // Icon Mapping Helper
     const getIcon = (key) => {
@@ -17,10 +22,21 @@ const CompositionDeck = ({ structure }) => {
         return <Layers size={18} />;
     };
 
-    // Filter out metadata keys
-    const layers = Object.entries(data).filter(([key]) => key !== 'blueprint_summary' && key !== 'technical');
+    // Filter out metadata keys to show only the visual layers
+    const layers = Object.entries(layersObject).filter(([key]) =>
+        key !== 'blueprint_summary' &&
+        key !== 'technical' &&
+        key !== 'note'
+    );
 
-    if (layers.length === 0) return <div className="p-10 text-slate-500 text-center">Initializing Blueprint...</div>;
+    if (layers.length === 0) {
+        return (
+            <div className="p-10 text-slate-500 text-center flex flex-col items-center gap-3">
+                <Layers className="animate-pulse" size={32} />
+                <p>Initializing Blueprint...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="w-full max-w-4xl mx-auto mt-8 animate-in fade-in">
@@ -33,7 +49,7 @@ const CompositionDeck = ({ structure }) => {
                 <div>
                     <h3 className="text-lg font-bold text-white">Composition Blueprint</h3>
                     <p className="text-xs text-blue-200">
-                        {data.blueprint_summary || "Finalizing visual hierarchy..."}
+                        {summary}
                     </p>
                 </div>
             </div>
@@ -62,7 +78,7 @@ const CompositionDeck = ({ structure }) => {
                                 {key.replace(/_/g, ' ')}
                             </h4>
                             <p className="text-sm text-slate-200 leading-relaxed font-mono">
-                                {value}
+                                {typeof value === 'string' ? value : JSON.stringify(value)}
                             </p>
                         </div>
 
