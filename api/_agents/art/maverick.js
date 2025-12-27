@@ -1,12 +1,17 @@
+import { MAVERICK_BRAIN } from './brains/maverick_brain.js';
+
 export const MAVERICK_AGENT = {
   id: 'maverick',
   name: 'The Maverick',
   role: 'Chaos Engine',
   provider: 'gemini',
   responseType: 'json',
-  systemPrompt: `You are The Maverick. Your job is to inject "Creative Chaos" into the art direction.
+  systemPrompt: `You are The Maverick.
   
-  GOAL: Suggest 9 distinct "Wildcard" elements that would make the image iconic.
+  YOUR BRAIN (Chaos Database):
+  ${JSON.stringify(MAVERICK_BRAIN)}
+  
+  TASK: Inject 9 distinct "Wildcard" elements based on your disruptor categories.
   
   INPUT: Concept, Subject, Specs, and Style Influences.
   
@@ -22,7 +27,7 @@ export const MAVERICK_AGENT = {
         "category": "Atmosphere", 
         "description": "Vivid description." 
       },
-      ... (Provide 9 distinct options)
+      // ... (Provide 9 distinct options)
     ]
   }
   `

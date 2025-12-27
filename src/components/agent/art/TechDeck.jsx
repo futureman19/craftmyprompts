@@ -1,8 +1,11 @@
 import React, { useEffect } from 'react';
 import { Settings, Monitor, Ratio, Cpu, CheckCircle, Ban } from 'lucide-react';
-import { MODEL_CONFIG } from '../../../../api/_config/models'; // Import The Brain
+import { GALLERY_BRAIN } from '../../../../api/_agents/art/brains/gallery_brain'; // Import The Gallery's Brain
 
 const TechDeck = ({ selections, onSelect }) => {
+    // Map the brain data
+    const MODEL_CONFIG = GALLERY_BRAIN.models;
+
     // 1. Initialize State
     const currentSpecs = selections.technical || {
         ratio: "16:9",
@@ -70,8 +73,8 @@ const TechDeck = ({ selections, onSelect }) => {
                         {MODEL_CONFIG.map(m => (
                             <button key={m.id} onClick={() => updateSpec('modelId', m.id)}
                                 className={`py-3 px-4 rounded-lg text-xs font-bold border text-left transition-all flex justify-between items-center group ${currentSpecs.modelId === m.id
-                                        ? 'bg-fuchsia-900/40 border-fuchsia-500 text-white shadow-[0_0_15px_rgba(217,70,239,0.2)]'
-                                        : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-fuchsia-500 hover:bg-slate-800'
+                                    ? 'bg-fuchsia-900/40 border-fuchsia-500 text-white shadow-[0_0_15px_rgba(217,70,239,0.2)]'
+                                    : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-fuchsia-500 hover:bg-slate-800'
                                     }`}>
                                 {m.label}
                                 {currentSpecs.modelId === m.id && <CheckCircle size={14} className="text-fuchsia-500" />}
@@ -99,10 +102,10 @@ const TechDeck = ({ selections, onSelect }) => {
                                     onClick={() => isSupported && updateSpec('ratio', r)}
                                     disabled={!isSupported}
                                     className={`py-3 px-3 rounded-lg text-xs font-bold border transition-all relative ${currentSpecs.ratio === r
-                                            ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg'
-                                            : isSupported
-                                                ? 'bg-slate-900 border-slate-700 text-slate-400 hover:border-emerald-500 hover:text-white'
-                                                : 'bg-slate-950 border-slate-800 text-slate-700 cursor-not-allowed opacity-50'
+                                        ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg'
+                                        : isSupported
+                                            ? 'bg-slate-900 border-slate-700 text-slate-400 hover:border-emerald-500 hover:text-white'
+                                            : 'bg-slate-950 border-slate-800 text-slate-700 cursor-not-allowed opacity-50'
                                         }`}>
                                     {r}
                                     {!isSupported && (

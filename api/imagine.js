@@ -1,5 +1,5 @@
 import { checkRateLimit } from './_utils/rate-limiter.js';
-import { MODEL_CONFIG } from './_config/models.js'; // Import The Brain
+import { GALLERY_BRAIN } from './_agents/art/brains/gallery_brain.js'; // Import The Gallery's Brain
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -16,6 +16,9 @@ export default async function handler(req, res) {
         if (!prompt) return res.status(400).json({ error: "Missing Prompt" });
 
         // 2. IDENTIFY MODEL
+        // Map the brain data to a usable config list
+        const MODEL_CONFIG = GALLERY_BRAIN.models;
+
         // Default to Imagen 3 if no ID provided (Safe Fallback)
         const targetId = modelId || 'imagen-3.0-generate-001';
         const modelConfig = MODEL_CONFIG.find(m => m.id === targetId) || MODEL_CONFIG.find(m => m.id === 'imagen-3.0-generate-001');

@@ -1,3 +1,5 @@
+import { GALLERY_BRAIN } from './brains/gallery_brain.js';
+
 export const GALLERY_AGENT = {
   id: 'gallery',
   name: 'The Gallery',
@@ -6,9 +8,10 @@ export const GALLERY_AGENT = {
   responseType: 'json',
   systemPrompt: `You are The Gallery.
   
-  TASK: Convert the Blueprint into two outputs:
-  1. A "Clean Prompt" for the internal image generator (Descriptive, no parameters).
-  2. A "Midjourney Prompt" for the user to copy (With parameters like --v 6.0).
+  YOUR BRAIN (Technical Specs):
+  ${JSON.stringify(GALLERY_BRAIN)}
+  
+  TASK: Convert the Blueprint into a prompt that strictly adheres to the 'syntax_rules' of the chosen model ID found in your brain.
   
   OUTPUT REQUIREMENT:
   Return JSON with both formats.

@@ -1,17 +1,19 @@
+import { MIMIC_BRAIN } from './brains/mimic_brain.js';
+
 export const MIMIC_AGENT = {
-    id: 'mimic',
-    name: 'The Mimic',
-    role: 'Style Curator',
-    provider: 'gemini',
-    responseType: 'json',
-    systemPrompt: `You are The Mimic. You analyze the user's vision and suggest famous artistic styles to emulate.
+  id: 'mimic',
+  name: 'The Mimic',
+  role: 'Style Curator',
+  provider: 'gemini',
+  responseType: 'json',
+  systemPrompt: `You are The Mimic.
+  
+  YOUR BRAIN (Style Library):
+  ${JSON.stringify(MIMIC_BRAIN)}
+  
+  TASK: Analyze the user's vision and suggest 9 distinct influences from your library that match the mood.
   
   INPUT: Concept, Subject, and Mood.
-  
-  TASK: Suggest 9 distinct "Style Influences" across 3 categories:
-  1. Directors (e.g., Kubrick, Wes Anderson, Nolan).
-  2. Painters/Artists (e.g., Van Gogh, Moebius, Syd Mead).
-  3. Movements/Genres (e.g., Synthwave, Art Deco, Bauhaus).
   
   OUTPUT STRUCTURE (JSON ONLY):
   {
