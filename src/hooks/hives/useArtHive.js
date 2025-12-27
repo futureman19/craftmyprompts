@@ -125,12 +125,16 @@ export const useArtHive = (initialKeys = {}) => {
             setStatusMessage('Igniting Google Imagen Engine...');
             const keys = getEffectiveKeys();
 
+            // DEBUG: Check if we actually have a key before sending
+            const googleKey = keys.gemini || keys.google; // Fallback check
+            if (!googleKey) throw new Error("No Gemini API Key found for Image Generation.");
+
             const imgRes = await fetch('/api/imagine', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     prompt: cleanPrompt,
-                    apiKey: keys.gemini, // Use Gemini Key for Imagen
+                    apiKey: googleKey, // Using the checked key
                     aspectRatio: "16:9" // Default to cinematic
                 })
             });
