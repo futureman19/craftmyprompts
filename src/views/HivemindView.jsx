@@ -57,6 +57,8 @@ const TextEngine = ({ prompt, apiKey }) => {
             actions={{
                 submitChoices: hive.submitChoices,
                 submitSpecs: hive.submitSpecs,
+                // Matched to Feed expectations
+                refineBlueprint: hive.generateBlueprint || hive.writeManuscript,
                 generateBlueprint: hive.generateBlueprint,
                 writeManuscript: hive.writeManuscript
             }}
@@ -68,7 +70,7 @@ const TextEngine = ({ prompt, apiKey }) => {
     );
 };
 
-// --- 3. ART ENGINE (Updated Wiring) ---
+// --- 3. ART ENGINE (FIXED: refineBlueprint) ---
 const ArtEngine = ({ prompt, apiKey }) => {
     const hive = useArtHive({ gemini: apiKey });
     useEffect(() => { if (prompt && hive.currentPhase === 'idle') hive.startMission(prompt); }, [prompt]);
@@ -82,7 +84,8 @@ const ArtEngine = ({ prompt, apiKey }) => {
             actions={{
                 submitChoices: hive.submitChoices,
                 submitSpecs: hive.submitSpecs,
-                composeBlueprint: hive.composeBlueprint,
+                // CRITICAL FIX: Mapping the hook's function to the name ArtFeed expects
+                refineBlueprint: hive.refineBlueprint,
                 renderFinal: hive.renderFinal
             }}
             managerMessages={hive.managerMessages}
@@ -107,6 +110,8 @@ const VideoEngine = ({ prompt, apiKey }) => {
             actions={{
                 submitChoices: hive.submitChoices,
                 submitSpecs: hive.submitSpecs,
+                // Matched to Feed expectations
+                refineBlueprint: hive.createStoryboard,
                 createStoryboard: hive.createStoryboard,
                 produceVideo: hive.produceVideo
             }}
