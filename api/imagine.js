@@ -12,8 +12,9 @@ export default async function handler(req, res) {
         if (!apiKey) return res.status(400).json({ error: "Missing API Key" });
         if (!prompt) return res.status(400).json({ error: "Missing Prompt" });
 
-        // TRY 1: Imagen 3 (Standard)
-        const modelVersion = 'imagen-3.0-generate-001';
+        // FIX: Using the verified model ID from your history
+        const modelVersion = 'imagen-4.0-generate-001';
+
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelVersion}:predict`;
 
         console.log(`[Imagine] Requesting ${modelVersion}...`);
@@ -22,7 +23,7 @@ export default async function handler(req, res) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'x-goog-api-key': apiKey // Try Header Auth
+                'x-goog-api-key': apiKey
             },
             body: JSON.stringify({
                 instances: [{ prompt: prompt }],
