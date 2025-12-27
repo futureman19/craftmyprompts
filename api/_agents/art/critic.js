@@ -1,4 +1,4 @@
-export const ART_CRITIC_AGENT = {
+export const CRITIC_AGENT = {
   id: 'art_critic', // Distinct ID to avoid conflict with Coding Critic
   name: 'The Critic',
   role: 'Visual Auditor',
