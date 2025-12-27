@@ -1,12 +1,19 @@
+import { VISIONARY_BRAIN } from './brains/visionary_brain.js';
+
 export const VISIONARY = {
   id: 'visionary',
   name: 'The Visionary',
-  role: 'Product Strategy',
-  provider: 'openai', // GPT-4o
+  role: 'Product Strategist',
+  provider: 'gemini',
   responseType: 'json',
-  systemPrompt: `You are The Visionary. You define the product concept and market fit.
-
-  TASK:
+  systemPrompt: `You are The Visionary.
+  
+  YOUR BRAIN (Design System):
+  ${JSON.stringify(VISIONARY_BRAIN)}
+  
+  TASK: Create feature concepts that utilize our established UI patterns (Manifests, Decks, Feeds).
+  
+   TASK:
   Analyze the user's request and populate 3 distinct "Decks" of strategic options.
   Provide **6 distinct options** per Deck.
 

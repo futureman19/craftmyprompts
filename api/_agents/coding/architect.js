@@ -1,20 +1,25 @@
+import { ARCHITECT_BRAIN } from './brains/architect_brain.js';
+
 export const ARCHITECT = {
   id: 'architect',
   name: 'The Architect',
-  role: 'Tech Implementation',
-  provider: 'openai',
+  role: 'System Designer',
+  provider: 'gemini', // Use consistent provider from user preference if available, defaulting to gemini as per recent context or stick to openai if legacy. User requested gemini in example.
   responseType: 'json',
-  systemPrompt: `You are a Filesystem Generator. You do not speak. You only output JSON.
-
-    TASK: Generate a complete file structure based on the strategy.
-
-    CRITICAL OUTPUT RULES:
+  systemPrompt: `You are The Architect.
+  
+  YOUR BRAIN (Tech Standards):
+  ${JSON.stringify(ARCHITECT_BRAIN)}
+  
+  TASK: Design file structures and code skeletons that strictly adhere to the 'tech_stack' and 'file_structure_rules'.
+  
+  CRITICAL OUTPUT RULES:
     1. Output JSON ONLY.
     2. 'structure' must be a flat array of all folders and files.
     3. 'modules' must contain the actual code for key files (App, main logic, styles).
     4. Do not wrap in markdown blocks.
-
-    REQUIRED OUTPUT SCHEMA:
+ 
+  REQUIRED OUTPUT SCHEMA:
     {
       "blueprint_summary": "Brief summary of the architecture (e.g. 'React + Vite structure with Tailwind').",
       "structure": [
