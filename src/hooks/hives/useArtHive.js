@@ -64,9 +64,9 @@ export const useArtHive = (initialKeys = {}) => {
         finally { setLoading(false); }
     };
 
-    // --- PHASE 3: CRITIC (The Critic) - NEW! ---
+    // --- PHASE 3: MAVERICK (Was Critic) ---
     const submitSpecs = async (specs) => {
-        setLoading(true); setCurrentPhase('critique'); setStatusMessage('The Critic is reviewing for conflicts...');
+        setLoading(true); setCurrentPhase('maverick'); setStatusMessage('The Maverick is looking for wildcards...');
         setContextData(prev => ({ ...prev, spec_choices: specs }));
 
         const contextStr = `
@@ -75,24 +75,26 @@ export const useArtHive = (initialKeys = {}) => {
         `;
 
         try {
-            // Call the NEW Art Critic agent
-            const data = await callAgent('art_critic', "Audit this visual plan.", contextStr);
-            setHistory(prev => [...prev, { ...data.swarm[0], role: 'The Critic', type: 'critique_options' }]);
+            // Call The Maverick
+            const data = await callAgent('maverick', "Suggest creative additions.", contextStr);
+            setHistory(prev => [...prev, { ...data.swarm[0], role: 'The Maverick', type: 'maverick_options' }]);
         } catch (e) { console.error(e); }
         finally { setLoading(false); }
     };
 
     // --- PHASE 4: BLUEPRINT (Stylist) ---
-    const refineBlueprint = async (critiqueChoices) => {
+    const refineBlueprint = async (maverickChoices) => {
         setLoading(true); setCurrentPhase('blueprint'); setStatusMessage('The Stylist is composing the image...');
 
-        // If empty (Auto-Pilot/Skipped), just proceed
-        const feedback = Object.keys(critiqueChoices).length > 0 ? JSON.stringify(critiqueChoices) : "No changes needed.";
+        // Format the "Chaos" for the Stylist to integrate
+        const chaos = maverickChoices.length > 0
+            ? `PLEASE INTEGRATE THESE WILDCARDS: ${JSON.stringify(maverickChoices)}`
+            : "No extra wildcards added.";
 
         const contextStr = `
         VISION: ${JSON.stringify(contextData.vision_choices)}
         SPECS: ${JSON.stringify(contextData.spec_choices)}
-        CRITIC FEEDBACK: ${feedback}
+        WILDCARDS: ${chaos}
         `;
 
         try {
