@@ -1,83 +1,101 @@
 import React, { useState } from 'react';
-import { AlertTriangle, CheckCircle, ArrowRight } from 'lucide-react';
+import { ShieldAlert, CheckCircle, FastForward, MessageSquareQuote, ArrowRight, AlertTriangle } from 'lucide-react';
 
 const ArtCriticDeck = ({ data, onConfirm }) => {
     const [selections, setSelections] = useState({});
 
-    if (!data) return null;
+    // Safety Check: If data is missing or malformed
+    if (!data || !data.risk_options) {
+        return (
+            <div className="w-full max-w-4xl mx-auto mt-8 p-6 bg-slate-900 border border-slate-800 rounded-xl text-center animate-in fade-in">
+                <p className="text-slate-500 mb-4">No critical risks detected.</p>
+                <button
+                    onClick={() => onConfirm({})}
+                    className="px-6 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-bold transition-colors"
+                >
+                    Proceed to Blueprint
+                </button>
+            </div>
+        );
+    }
 
-    const risks = data.risk_options || [];
-
-    const handleSelect = (category, optionLabel) => {
-        setSelections(prev => ({ ...prev, [category]: optionLabel }));
+    const handleSelect = (category, value) => {
+        setSelections(prev => ({ ...prev, [category]: value }));
     };
 
-    const isComplete = risks.every(r => selections[r.category]);
-
     return (
-        <div className="w-full max-w-5xl mx-auto p-6 animate-in fade-in slide-in-from-bottom-4">
-            {/* Header */}
-            <div className="mb-8 text-center space-y-2">
-                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-red-500/10 mb-4">
-                    <AlertTriangle className="w-6 h-6 text-red-400" />
+        <div className="w-full max-w-4xl mx-auto mt-8 animate-in slide-in-from-bottom-4">
+
+            {/* HEADER */}
+            <div className="bg-slate-900 border border-rose-500/30 rounded-2xl p-6 shadow-2xl mb-6 relative overflow-hidden">
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-rose-500"></div>
+                <div className="flex items-center gap-4 mb-4">
+                    <div className="p-3 bg-rose-500/10 rounded-xl text-rose-500">
+                        <ShieldAlert size={28} />
+                    </div>
+                    <div>
+                        <h3 className="text-xl font-bold text-white">Visual Audit</h3>
+                        <p className="text-sm text-slate-400">{data.critique_summary || "Reviewing composition logic..."}</p>
+                    </div>
                 </div>
-                <h2 className="text-3xl font-bold text-white tracking-tight">Visual Audit</h2>
-                <p className="text-slate-400 max-w-xl mx-auto text-lg">
-                    {data.critique_summary || "Reviewing potential visual conflicts..."}
-                </p>
             </div>
 
-            {/* Risk Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                {risks.map((risk, idx) => (
-                    <div key={idx} className="bg-slate-900/50 border border-red-500/20 rounded-xl overflow-hidden hover:border-red-500/40 transition-colors">
-                        <div className="p-4 bg-red-950/20 border-b border-red-500/10 flex justify-between items-center">
-                            <span className="font-mono text-xs text-red-400 uppercase tracking-wider">{risk.category}</span>
-                            <span className={`text-xs px-2 py-1 rounded-full ${risk.severity === 'high' ? 'bg-red-500/20 text-red-300' : 'bg-orange-500/20 text-orange-300'}`}>
-                                {risk.severity?.toUpperCase()}
+            {/* RISK CARDS */}
+            <div className="grid grid-cols-1 gap-6 mb-8">
+                {data.risk_options.map((risk, idx) => (
+                    <div key={idx} className="bg-slate-950/80 border border-slate-800 p-5 rounded-xl">
+                        <div className="flex justify-between mb-3">
+                            <span className="text-xs font-bold text-slate-500 uppercase">{risk.category}</span>
+                            <span className={`text-[10px] px-2 py-1 rounded font-bold uppercase flex items-center gap-1 ${risk.severity === 'high' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'
+                                }`}>
+                                <AlertTriangle size={10} /> {risk.severity} Risk
                             </span>
                         </div>
-                        <div className="p-6 space-y-4">
-                            <h3 className="text-lg font-medium text-white">{risk.question}</h3>
-                            <div className="space-y-2">
-                                {risk.options?.map((opt, oIdx) => (
+
+                        <h4 className="text-slate-200 font-medium text-lg mb-4">{risk.question}</h4>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {risk.options.map((opt) => {
+                                const active = selections[risk.category] === opt.label;
+                                return (
                                     <button
-                                        key={oIdx}
+                                        key={opt.label}
                                         onClick={() => handleSelect(risk.category, opt.label)}
-                                        className={`w-full text-left p-3 rounded-lg border transition-all flex justify-between items-center group
-                                            ${selections[risk.category] === opt.label
-                                                ? 'bg-red-500/20 border-red-500 text-white'
-                                                : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:bg-slate-800 hover:border-slate-600'
+                                        className={`p-4 rounded-lg text-left border transition-all flex flex-col gap-2 ${active
+                                                ? 'bg-rose-600 border-rose-500 text-white shadow-lg'
+                                                : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-rose-500/50 hover:bg-slate-800'
                                             }`}
                                     >
-                                        <div>
-                                            <div className="font-medium group-hover:text-red-300 transition-colors">{opt.label}</div>
-                                            <div className="text-xs opacity-70 mt-1">{opt.description}</div>
+                                        <div className="flex justify-between w-full">
+                                            <span className="text-sm font-bold">{opt.label}</span>
+                                            {active && <CheckCircle size={16} />}
                                         </div>
-                                        {selections[risk.category] === opt.label && <CheckCircle className="w-4 h-4 text-red-400" />}
+                                        <span className={`text-xs ${active ? 'text-rose-100' : 'text-slate-500'}`}>
+                                            {opt.description}
+                                        </span>
                                     </button>
-                                ))}
-                            </div>
+                                );
+                            })}
                         </div>
                     </div>
                 ))}
             </div>
 
-            {/* Actions */}
-            <div className="flex justify-center pt-6 border-t border-slate-800/50">
+            {/* ACTION BAR - FIXED: ENSURES onConfirm IS CALLED */}
+            <div className="flex justify-between items-center pt-6 border-t border-slate-800 pb-10">
                 <button
-                    onClick={() => onConfirm && onConfirm(selections)}
-                    disabled={!isComplete && risks.length > 0}
-                    className={`
-                        flex items-center gap-2 px-8 py-3 rounded-full font-bold transition-all transform hover:scale-105
-                        ${isComplete || risks.length === 0
-                            ? 'bg-gradient-to-r from-red-500 to-orange-500 text-white shadow-lg shadow-red-500/25'
-                            : 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                        }
-                    `}
+                    onClick={() => onConfirm({})} // Pass empty object = Skip/Ignore
+                    className="text-slate-500 hover:text-white text-sm font-medium flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-slate-800 transition-colors"
                 >
-                    <span>Proceed to Composition</span>
-                    <ArrowRight className="w-4 h-4" />
+                    <FastForward size={16} />
+                    Skip Critic
+                </button>
+
+                <button
+                    onClick={() => onConfirm(selections)} // Pass choices
+                    className="px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-sm shadow-lg flex items-center gap-2 transition-all transform active:scale-95"
+                >
+                    Apply Fixes & Continue <ArrowRight size={18} />
                 </button>
             </div>
         </div>

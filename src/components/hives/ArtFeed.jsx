@@ -27,9 +27,9 @@ const ArtFeed = ({ history, loading, statusMessage, actions, currentPhase, manag
             const start = raw.indexOf('{');
             const end = raw.lastIndexOf('}');
             if (start === -1 || end === -1) return null;
-            
+
             const json = JSON.parse(raw.substring(start, end + 1));
-            
+
             // NORMALIZATION: Fix inconsistent keys from AI
             let data = json.options ? { ...json, ...json.options } : json;
 
@@ -51,8 +51,8 @@ const ArtFeed = ({ history, loading, statusMessage, actions, currentPhase, manag
 
             return data;
 
-        } catch (e) { 
-            console.error(`[${context}] Parse Error:`, e); 
+        } catch (e) {
+            console.error(`[${context}] Parse Error:`, e);
         }
         return null;
     };
@@ -122,12 +122,18 @@ const ArtFeed = ({ history, loading, statusMessage, actions, currentPhase, manag
     // --- RENDERERS ---
     const renderVision = () => <MuseDeck data={parseAgentJson(strategyMsg, 'Muse')} selections={draftSelections} onSelect={handleDraftSelect} />;
     const renderSpecs = () => <CinemaDeck data={parseAgentJson(specsMsg, 'Cinema')} selections={draftSelections} onSelect={handleDraftSelect} />;
-    
+
     const renderCritique = () => {
         const data = parseAgentJson(criticMsg, 'Critic');
         return (
             <div className="space-y-8 animate-in slide-in-from-bottom-4">
-                <ArtCriticDeck data={data} onConfirm={actions.refineBlueprint} />
+                <ArtCriticDeck
+                    data={data}
+                    onConfirm={(selections) => {
+                        setManifest(prev => ({ ...prev, critic: "Updates Applied" })); // Visual update
+                        actions.refineBlueprint(selections); // Logic update
+                    }}
+                />
             </div>
         );
     };

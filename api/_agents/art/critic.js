@@ -1,5 +1,5 @@
 export const CRITIC_AGENT = {
-  id: 'art_critic', // Distinct ID to avoid conflict with Coding Critic
+  id: 'art_critic',
   name: 'The Critic',
   role: 'Visual Auditor',
   responseType: 'json',
