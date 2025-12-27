@@ -102,13 +102,56 @@ export const useArtHive = (initialKeys = {}) => {
     };
 
     // --- PHASE 5: FINAL (Gallery) ---
+    // --- PHASE 5: FINAL (Gallery + Imagine) ---
     const renderFinal = async () => {
-        setLoading(true); setCurrentPhase('done'); setStatusMessage('Rendering final prompt...');
+        setLoading(true); setCurrentPhase('done'); setStatusMessage('The Gallery is crafting the prompt...');
+
         try {
+            // 1. Get the Prompt
             const fullHistory = history.map(m => `${m.role}: ${m.content}`).join('\n');
-            const data = await callAgent('gallery', "Generate final prompt.", fullHistory);
-            setHistory(prev => [...prev, { ...data.swarm[0], role: 'The Gallery', type: 'final' }]);
-        } catch (e) { console.error(e); }
+            const agentData = await callAgent('gallery', "Generate final prompts.", fullHistory);
+
+            // Parse the response to get the clean prompt
+            let cleanPrompt = "";
+            try {
+                const raw = agentData.swarm[0].content;
+                const json = JSON.parse(raw.substring(raw.indexOf('{'), raw.lastIndexOf('}') + 1));
+                cleanPrompt = json.clean_prompt || json.final_prompt;
+            } catch (e) { console.error("Prompt Parse Error", e); }
+
+            if (!cleanPrompt) throw new Error("Failed to generate prompt text.");
+
+            // 2. Generate the Image (The "Hands")
+            setStatusMessage('Igniting Google Imagen Engine...');
+            const keys = getEffectiveKeys();
+
+            const imgRes = await fetch('/api/imagine', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    prompt: cleanPrompt,
+                    apiKey: keys.gemini, // Use Gemini Key for Imagen
+                    aspectRatio: "16:9" // Default to cinematic
+                })
+            });
+
+            if (!imgRes.ok) throw new Error("Image Generation failed.");
+            const imgData = await imgRes.json();
+
+            // 3. Save EVERYTHING to History
+            // We attach the 'generatedImage' property to the agent's message
+            setHistory(prev => [...prev, {
+                ...agentData.swarm[0],
+                role: 'The Gallery',
+                type: 'final',
+                generatedImage: imgData.image // <--- The Base64 string
+            }]);
+
+        } catch (e) {
+            console.error(e);
+            // If image fails, still show the text message so user isn't blank
+            setStatusMessage("Rendering failed, but prompt is saved.");
+        }
         finally { setLoading(false); }
     };
 

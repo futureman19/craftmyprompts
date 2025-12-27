@@ -8,14 +8,17 @@ export default async function handler(req, res) {
     if (!limitStatus.success) return res.status(429).json({ error: limitStatus.error });
 
     try {
-        // CTO NOTE: We now accept technical specs from the frontend
+        // CTO NOTE: We accept technical specs from the frontend
         const { prompt, apiKey, aspectRatio, personGeneration } = req.body;
 
         if (!apiKey) throw new Error("Missing Google API Key. Please add it in Settings.");
         if (!prompt) throw new Error("No prompt provided.");
 
-        // 2. Call Google Imagen 4 (via REST API)
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=${apiKey}`;
+        // 2. Call Google Imagen 3 (standard stable version) or 4 if available
+        // Note: Using imagen-3.0-generate-001 as it's widely available on Gemini keys right now.
+        // If you specifically have access to 4, keep it as 4.
+        const modelVersion = 'imagen-3.0-generate-001';
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelVersion}:predict?key=${apiKey}`;
 
         const response = await fetch(url, {
             method: 'POST',
@@ -30,8 +33,6 @@ export default async function handler(req, res) {
                     aspectRatio: aspectRatio || "1:1",
                     // Dynamic Person Filter (Default to allow_adult)
                     personGeneration: personGeneration || "allow_adult",
-                    // Note: imageSize is rarely supported in the generic API, 
-                    // defaulting to standard resolution usually works best.
                 }
             })
         });

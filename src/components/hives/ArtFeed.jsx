@@ -134,7 +134,12 @@ const ArtFeed = ({ history, loading, statusMessage, actions, currentPhase, manag
         return <CompositionDeck structure={structure} />;
     };
 
-    const renderFinal = () => <GalleryDeck finalData={parseAgentJson(finalMsg, 'Gallery')} />;
+    const renderFinal = () => {
+        const json = parseAgentJson(finalMsg, 'Gallery');
+        // MERGE the parsed JSON with the raw message properties (like generatedImage)
+        const finalData = { ...json, generatedImage: finalMsg?.generatedImage };
+        return <GalleryDeck finalData={finalData} />;
+    };
 
     return (
         <div className="flex h-full overflow-hidden bg-slate-950">
