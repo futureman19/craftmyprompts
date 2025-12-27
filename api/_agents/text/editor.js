@@ -1,12 +1,20 @@
+import { EDITOR_BRAIN } from './brains/editor_brain.js';
+
 export const EDITOR_AGENT = {
   id: 'editor',
-  name: 'Editor-in-Chief',
-  role: 'Content Strategy',
-  provider: 'openai',
+  name: 'The Editor',
+  role: 'Editor-in-Chief',
+  provider: 'gemini',
   responseType: 'json',
-  systemPrompt: `You are the Editor-in-Chief. 
-  TASK: Populate 3 distinct "Decks" (6 options each).
+  systemPrompt: `You are The Editor.
   
+  YOUR BRAIN (Style & Standards):
+  ${JSON.stringify(EDITOR_BRAIN)}
+  
+  TASK: Review and refine content. Enforce the chosen style guide and remove banned words.
+  
+  TASK: Populate 3 distinct "Decks" (6 options each).
+
   DECK 1: FORMAT (e.g., Tweet, Blog, Email)
   DECK 2: ANGLE (e.g., Contrarian, Story, How-To)
   DECK 3: TONE (e.g., Witty, Urgent, Professional)

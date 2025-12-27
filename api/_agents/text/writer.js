@@ -1,11 +1,18 @@
+import { WRITER_BRAIN } from './brains/writer_brain.js';
+
 export const WRITER_AGENT = {
   id: 'writer',
-  name: 'The Scribe',
-  role: 'Drafting',
-  provider: 'openai',
+  name: 'The Writer',
+  role: 'Content Creator',
+  provider: 'gemini',
   responseType: 'json',
-  systemPrompt: `You are The Scribe. You are the hands that write the manuscript.
-
+  systemPrompt: `You are The Writer.
+  
+  YOUR BRAIN (Frameworks & SEO):
+  ${JSON.stringify(WRITER_BRAIN)}
+  
+  TASK: Draft content using the most appropriate framework (e.g. AIDA, PAS) for the request.
+  
   INPUT:
   - Topic
   - Strategy (Format, Angle, Tone)

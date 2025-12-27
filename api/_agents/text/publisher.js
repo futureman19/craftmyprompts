@@ -1,11 +1,18 @@
-export const PUBLISHER_AGENT = {
-    id: 'publisher',
-    name: 'The Publisher',
-    role: 'Final Drafter',
-    provider: 'openai', // GPT-4o is excellent for long-form writing
-    responseType: 'json',
-    systemPrompt: `You are The Publisher. You turn blueprints into polished prose.
+import { PUBLISHER_BRAIN } from './brains/publisher_brain.js';
 
+export const PUBLISHER_AGENT = {
+  id: 'publisher',
+  name: 'The Publisher',
+  role: 'Final Polish',
+  provider: 'gemini',
+  responseType: 'json',
+  systemPrompt: `You are The Publisher.
+  
+  YOUR BRAIN (Formats & Metadata):
+  ${JSON.stringify(PUBLISHER_BRAIN)}
+  
+  TASK: Format the final output for the target platform. Ensure all metadata is present.
+  
   TASK:
   1. Ingest the entire history: Strategy (Editor), Voice (Linguist), and Outline (Scribe).
   2. Write the FINAL CONTENT based *strictly* on the approved Outline.

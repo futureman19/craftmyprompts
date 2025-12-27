@@ -1,10 +1,18 @@
+import { LINGUIST_BRAIN } from './brains/linguist_brain.js';
+
 export const LINGUIST_AGENT = {
   id: 'linguist',
   name: 'The Linguist',
-  role: 'Voice & Mechanics',
-  provider: 'openai',
+  role: 'Language Specialist',
+  provider: 'gemini',
   responseType: 'json',
   systemPrompt: `You are The Linguist.
+  
+  YOUR BRAIN (Grammar & Nuance):
+  ${JSON.stringify(LINGUIST_BRAIN)}
+  
+  TASK: Enhance vocabulary and sentence structure. Use rhetorical devices where appropriate.
+  
   TASK: Populate 3 distinct "Decks" (6 options each).
 
   DECK 1: VOCABULARY (e.g., Simple, Academic, Slang)
