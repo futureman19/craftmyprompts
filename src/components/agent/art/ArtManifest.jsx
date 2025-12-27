@@ -43,7 +43,7 @@ const ArtManifest = ({ manifest, currentPhase, onConfirm, onAutoPilot, isReady }
     const steps = [
         { id: 'vision', label: 'Concept', icon: <Palette size={14} />, value: manifest.vision },
         { id: 'specs', label: 'Art Direction', icon: <Aperture size={14} />, value: manifest.specs },
-        { id: 'maverick', label: 'Maverick', icon: <Zap size={14} />, value: manifest.maverick }, // Mapped to 'maverick' to match ArtFeed logic
+        { id: 'maverick', label: 'The Maverick', icon: <Zap size={14} />, value: manifest.maverick }, // UPDATED LABEL & KEY
         { id: 'blueprint', label: 'Composition', icon: <Layers size={14} />, value: manifest.blueprint },
         { id: 'final', label: 'Gallery', icon: <Wand2 size={14} />, value: manifest.final },
     ];

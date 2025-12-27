@@ -6,7 +6,7 @@ import AgentLoader from '../ui/AgentLoader';
 // --- IMPORTS ---
 import MuseDeck from '../agent/art/MuseDeck';
 import CinemaDeck from '../agent/art/CinemaDeck';
-import MaverickDeck from '../agent/art/MaverickDeck';
+import MaverickDeck from '../agent/art/MaverickDeck'; // <--- NEW DECK IMPORT
 import CompositionDeck from '../agent/art/CompositionDeck';
 import GalleryDeck from '../agent/art/GalleryDeck';
 
@@ -15,61 +15,44 @@ const ArtFeed = ({ history, loading, statusMessage, actions, currentPhase, manag
     const [draftSelections, setDraftSelections] = useState({});
     const bottomRef = useRef(null);
 
-    // --- 1. ROBUST PARSER & NORMALIZER ---
+    // --- PARSER ---
     const parseAgentJson = (msg, context) => {
         if (!msg) return null;
         try {
-            // FIX: Check 'content' (Swarm standard) OR 'text' (Legacy/Chat)
             const payload = msg.content || msg.text;
             if (!payload) return null;
-
             const raw = typeof payload === 'string' ? payload : JSON.stringify(payload);
             const start = raw.indexOf('{');
             const end = raw.lastIndexOf('}');
             if (start === -1 || end === -1) return null;
-
             const json = JSON.parse(raw.substring(start, end + 1));
 
-            // NORMALIZATION: Fix inconsistent keys from AI
+            // Normalize Options
             let data = json.options ? { ...json, ...json.options } : json;
-
-            // Map Vision Keys
-            if (data.concept && Array.isArray(data.concept)) data.concept_options = data.concept;
+            // Map common keys if needed (Muse/Cinema logic handled in decks mostly)
             if (data.conceptOptions) data.concept_options = data.conceptOptions;
-            if (data.subject && Array.isArray(data.subject)) data.subject_options = data.subject;
-            if (data.subjectOptions) data.subject_options = data.subjectOptions;
-            if (data.mood && Array.isArray(data.mood)) data.mood_options = data.mood;
-            if (data.moodOptions) data.mood_options = data.moodOptions;
-
-            // Map Specs Keys
-            if (data.style && Array.isArray(data.style)) data.style_options = data.style;
             if (data.styleOptions) data.style_options = data.styleOptions;
-            if (data.lighting && Array.isArray(data.lighting)) data.lighting_options = data.lighting;
-            if (data.lightingOptions) data.lighting_options = data.lightingOptions;
-            if (data.camera && Array.isArray(data.camera)) data.camera_options = data.camera;
-            if (data.cameraOptions) data.camera_options = data.cameraOptions;
 
             return data;
-
-        } catch (e) {
-            console.error(`[${context}] Parse Error:`, e);
-        }
+        } catch (e) { console.error(`[${context}] Parse Error:`, e); }
         return null;
     };
 
-    // --- 2. FUZZY ROLE MATCHING ---
+    // --- ROLE MATCHING ---
     const strategyMsg = history.findLast(m => m.role && (m.role.includes('Muse') || m.role.includes('Visionary')));
     const specsMsg = history.findLast(m => m.role && (m.role.includes('Cinematographer') || m.role.includes('Tech')));
+    // MAVERICK MATCHER
     const maverickMsg = history.findLast(m => m.role && (m.role.includes('Maverick') || m.role.includes('Chaos')));
+
     const buildMsg = history.findLast(m => m.role && (m.role.includes('Stylist') || m.role.includes('Architect')));
     const finalMsg = history.findLast(m => m.role && (m.role.includes('Gallery') || m.role.includes('Executive')));
 
     useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [history, loading]);
     useEffect(() => { setDraftSelections({}); }, [currentPhase]);
 
-    // AUTO-PROGRESS TRACKING
+    // --- PROGRESS TRACKING ---
     useEffect(() => {
-        if (maverickMsg) setManifest(prev => ({ ...prev, maverick: "Chaos Injected" }));
+        if (maverickMsg) setManifest(prev => ({ ...prev, maverick: "Wildcards Generated" }));
         if (buildMsg) setManifest(prev => ({ ...prev, blueprint: "Composition Locked" }));
         if (finalMsg) setManifest(prev => ({ ...prev, final: "Masterpiece Rendered" }));
     }, [maverickMsg, buildMsg, finalMsg]);
@@ -95,7 +78,7 @@ const ArtFeed = ({ history, loading, statusMessage, actions, currentPhase, manag
 
     const handleAutoPilot = () => {
         if (currentPhase === 'vision') {
-            const data = parseAgentJson(strategyMsg, 'AutoPilot-Vision');
+            const data = parseAgentJson(strategyMsg, 'Auto');
             if (data) {
                 const auto = {
                     concept: data.concept_options?.[0]?.label || "Default",
@@ -103,10 +86,10 @@ const ArtFeed = ({ history, loading, statusMessage, actions, currentPhase, manag
                     mood: data.mood_options?.[0]?.label || "Default"
                 };
                 setManifest(prev => ({ ...prev, vision: auto }));
-                actions.submitChoices(`Concept: ${auto.concept}, Subject: ${auto.subject}, Mood: ${auto.mood}`);
+                actions.submitChoices(auto);
             }
         } else if (currentPhase === 'specs') {
-            const data = parseAgentJson(specsMsg, 'AutoPilot-Specs');
+            const data = parseAgentJson(specsMsg, 'Auto');
             if (data) {
                 const auto = {
                     style: data.style_options?.[0]?.label || "Default",
@@ -114,7 +97,7 @@ const ArtFeed = ({ history, loading, statusMessage, actions, currentPhase, manag
                     camera: data.camera_options?.[0]?.label || "Default"
                 };
                 setManifest(prev => ({ ...prev, specs: auto }));
-                actions.submitSpecs(`Style: ${auto.style}, Lighting: ${auto.lighting}, Camera: ${auto.camera}`);
+                actions.submitSpecs(auto);
             }
         }
     };
@@ -125,13 +108,16 @@ const ArtFeed = ({ history, loading, statusMessage, actions, currentPhase, manag
 
     const renderMaverick = () => {
         const data = parseAgentJson(maverickMsg, 'Maverick');
-        return <MaverickDeck data={data} onConfirm={actions.refineBlueprint} />;
+        return (
+            <div className="space-y-8 animate-in slide-in-from-bottom-4">
+                <MaverickDeck data={data} onConfirm={actions.refineBlueprint} />
+            </div>
+        );
     };
 
     const renderBlueprint = () => {
         const raw = parseAgentJson(buildMsg, 'Composition');
-        // Handle variations in agent output structure
-        const structure = raw?.composition || raw?.structure || raw?.layers || { note: "Processing..." };
+        const structure = raw?.composition || raw?.structure || { note: "Processing..." };
         return <CompositionDeck structure={structure} />;
     };
 
@@ -144,7 +130,7 @@ const ArtFeed = ({ history, loading, statusMessage, actions, currentPhase, manag
                     <div className="flex-1 p-4">
                         {currentPhase === 'vision' && strategyMsg && renderVision()}
                         {currentPhase === 'specs' && specsMsg && renderSpecs()}
-                        {currentPhase === 'maverick' && maverickMsg && renderMaverick()}
+                        {currentPhase === 'maverick' && renderMaverick()}
                         {currentPhase === 'blueprint' && buildMsg && renderBlueprint()}
                         {currentPhase === 'done' && renderFinal()}
                         {loading && <AgentLoader message={statusMessage} />}
