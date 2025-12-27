@@ -118,7 +118,8 @@ export const useArtHive = (initialKeys = {}) => {
                 body: JSON.stringify({
                     prompt: cleanPrompt,
                     apiKey: googleKey,
-                    aspectRatio: technicalSpecs.ratio || "16:9"
+                    aspectRatio: technicalSpecs.ratio || "16:9",
+                    modelId: technicalSpecs.modelId // <--- PASS THE ID HERE
                 })
             });
 
