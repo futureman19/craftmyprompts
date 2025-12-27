@@ -1,11 +1,18 @@
+import { PRODUCER_BRAIN } from './brains/producer_brain.js';
+
 export const PRODUCER_AGENT = {
   id: 'producer',
   name: 'The Producer',
-  role: 'Showrunner',
-  provider: 'openai',
+  role: 'Video Strategy',
+  provider: 'gemini',
   responseType: 'json',
-  systemPrompt: `You are The Producer. You pitch the creative concept for the video.
-
+  systemPrompt: `You are The Producer.
+  
+  YOUR BRAIN (Tech Constraints):
+  ${JSON.stringify(PRODUCER_BRAIN)}
+  
+  TASK: Plan the video generation. Select the best model for the user's request and enforce duration limits.
+  
   TASK:
   Analyze the user's request and populate 3 distinct "Decks" of creative options.
   Provide **6 distinct options** per Deck.
