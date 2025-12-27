@@ -111,6 +111,11 @@ const ArtFeed = ({ history, loading, statusMessage, actions, currentPhase, manag
         }
     };
 
+    const handleRender = () => {
+        // Trigger the final step (Gallery Agent)
+        actions.renderFinal();
+    };
+
     // --- RENDERERS ---
     const renderVision = () => <MuseDeck data={parseAgentJson(strategyMsg, 'Muse')} selections={draftSelections} onSelect={handleDraftSelect} />;
     const renderSpecs = () => <CinemaDeck data={parseAgentJson(specsMsg, 'Cinema')} selections={draftSelections} onSelect={handleDraftSelect} />;
@@ -147,7 +152,14 @@ const ArtFeed = ({ history, loading, statusMessage, actions, currentPhase, manag
                 </div>
                 <ManagerDrawer isOpen={isDrawerOpen} setIsOpen={setIsDrawerOpen} messages={managerMessages} onSendMessage={handleManagerFeedback} loading={loading} />
             </div>
-            <ArtManifest manifest={manifest} currentPhase={currentPhase} onConfirm={handleSidebarConfirm} onAutoPilot={handleAutoPilot} isReady={checkIsReady()} />
+            <ArtManifest
+                manifest={manifest}
+                currentPhase={currentPhase}
+                onConfirm={handleSidebarConfirm}
+                onAutoPilot={handleAutoPilot}
+                onRender={handleRender}
+                isReady={checkIsReady()}
+            />
         </div>
     );
 };

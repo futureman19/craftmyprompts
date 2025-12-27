@@ -1,10 +1,11 @@
 import React from 'react';
-import { Palette, Aperture, Layers, Wand2, FastForward, ArrowRight, Check, Zap, Circle } from 'lucide-react';
+import { Palette, Aperture, Layers, Wand2, FastForward, ArrowRight, Check, Zap, Circle, Sparkles } from 'lucide-react';
 
-const ArtManifest = ({ manifest, currentPhase, onConfirm, onAutoPilot, isReady }) => {
+const ArtManifest = ({ manifest, currentPhase, onConfirm, onAutoPilot, onRender, isReady }) => {
 
-    // UPDATED: Added 'maverick' to allowed phases
-    const showControls = ['vision', 'specs', 'maverick'].includes(currentPhase);
+    // Logic to toggle between "Setup Mode" and "Build Mode"
+    const isSetupPhase = ['vision', 'specs', 'maverick'].includes(currentPhase);
+    const isBlueprintPhase = currentPhase === 'blueprint';
 
     // Smart Renderer for Bullet Lists
     const renderValue = (val, type) => {
@@ -13,18 +14,13 @@ const ArtManifest = ({ manifest, currentPhase, onConfirm, onAutoPilot, isReady }
 
         if (typeof val === 'object') {
             const listItems = [];
-            // ... (Existing mapping logic for vision/specs) ...
             if (type === 'vision') {
                 if (val.concept) listItems.push({ label: 'Concept', val: val.concept });
                 if (val.subject) listItems.push({ label: 'Subject', val: val.subject });
-                if (val.mood) listItems.push({ label: 'Mood', val: val.mood });
             } else if (type === 'specs') {
                 if (val.style) listItems.push({ label: 'Style', val: val.style });
                 if (val.lighting) listItems.push({ label: 'Lighting', val: val.lighting });
-                if (val.camera) listItems.push({ label: 'Camera', val: val.camera });
-            }
-            // NEW: Render Maverick choices
-            else if (type === 'maverick') {
+            } else if (type === 'maverick') {
                 if (Array.isArray(val)) {
                     val.forEach(v => listItems.push({ label: v.category || 'Wildcard', val: v.label }));
                 }
@@ -51,7 +47,7 @@ const ArtManifest = ({ manifest, currentPhase, onConfirm, onAutoPilot, isReady }
     const steps = [
         { id: 'vision', label: 'Concept', icon: <Palette size={14} />, value: manifest.vision },
         { id: 'specs', label: 'Art Direction', icon: <Aperture size={14} />, value: manifest.specs },
-        { id: 'maverick', label: 'Maverick', icon: <Zap size={14} />, value: manifest.maverick },
+        { id: 'maverick', label: 'The Maverick', icon: <Zap size={14} />, value: manifest.maverick },
         { id: 'blueprint', label: 'Composition', icon: <Layers size={14} />, value: manifest.blueprint },
         { id: 'final', label: 'Gallery', icon: <Wand2 size={14} />, value: manifest.final },
     ];
@@ -73,10 +69,10 @@ const ArtManifest = ({ manifest, currentPhase, onConfirm, onAutoPilot, isReady }
                     const isPending = !isActive && !isDone;
 
                     return (
-                        <div key={step.id} className={`relative flex gap-3 ${isPending ? 'opacity-40' : 'opacity-100'} transition-opacity`}>
+                        <div key={step.id} className={`relative flex gap-3 ${isPending ? 'opacity-40' : 'opacity-100'} transition-opacity duration-500`}>
                             {/* Connecting Line */}
                             {idx !== steps.length - 1 && (
-                                <div className={`absolute left-[11px] top-6 bottom-[-24px] w-px ${isDone ? 'bg-fuchsia-900' : 'bg-slate-800'}`} />
+                                <div className={`absolute left-[11px] top-6 bottom-[-24px] w-px transition-colors duration-500 ${isDone ? 'bg-fuchsia-900' : 'bg-slate-800'}`} />
                             )}
 
                             {/* Icon */}
@@ -108,28 +104,41 @@ const ArtManifest = ({ manifest, currentPhase, onConfirm, onAutoPilot, isReady }
             </div>
 
             {/* Footer Controls */}
-            {showControls && (
-                <div className="p-4 border-t border-slate-800 bg-slate-900/30 space-y-3">
-                    <button
-                        onClick={onAutoPilot}
-                        className="w-full py-3 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-400 hover:text-white text-xs font-bold flex items-center justify-center gap-2 transition-all"
-                    >
-                        <FastForward size={14} /> Auto-Pilot
-                    </button>
+            <div className="p-4 border-t border-slate-800 bg-slate-900/30 space-y-3">
 
+                {/* 1. SETUP PHASE (Vision -> Maverick) */}
+                {isSetupPhase && (
+                    <>
+                        <button
+                            onClick={onAutoPilot}
+                            className="w-full py-3 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-400 hover:text-white text-xs font-bold flex items-center justify-center gap-2 transition-all"
+                        >
+                            <FastForward size={14} /> Auto-Pilot
+                        </button>
+
+                        <button
+                            onClick={onConfirm}
+                            disabled={!isReady && currentPhase !== 'maverick'}
+                            className={`w-full py-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all transform active:scale-95 shadow-lg ${(isReady || currentPhase === 'maverick')
+                                    ? 'bg-fuchsia-600 hover:bg-fuchsia-500 text-white shadow-fuchsia-900/20'
+                                    : 'bg-slate-800 text-slate-600 cursor-not-allowed'
+                                }`}
+                        >
+                            Continue <ArrowRight size={14} />
+                        </button>
+                    </>
+                )}
+
+                {/* 2. BLUEPRINT PHASE (Ready to Render) */}
+                {isBlueprintPhase && (
                     <button
-                        onClick={onConfirm}
-                        // Maverick is optional, so it's always ready even if selection is empty
-                        disabled={!isReady && currentPhase !== 'maverick'}
-                        className={`w-full py-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all transform active:scale-95 shadow-lg ${(isReady || currentPhase === 'maverick')
-                                ? 'bg-fuchsia-600 hover:bg-fuchsia-500 text-white shadow-fuchsia-900/20'
-                                : 'bg-slate-800 text-slate-600 cursor-not-allowed'
-                            }`}
+                        onClick={onRender}
+                        className="w-full py-4 bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 hover:to-purple-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-fuchsia-900/20 transition-all transform active:scale-95"
                     >
-                        Continue <ArrowRight size={14} />
+                        <Sparkles size={14} className="fill-white" /> Generate Masterpiece
                     </button>
-                </div>
-            )}
+                )}
+            </div>
         </div>
     );
 };
