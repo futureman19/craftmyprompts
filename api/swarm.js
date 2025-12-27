@@ -15,17 +15,17 @@ import { MANAGER_AGENT } from './_agents/manager.js';
 // 3. ART SQUAD
 import { MUSE_AGENT } from './_agents/art/muse.js';
 import { CINEMATOGRAPHER_AGENT } from './_agents/art/cinematographer.js';
-import { STYLIST_AGENT } from './_agents/art/stylist.js';
 import { GALLERY_AGENT } from './_agents/art/gallery.js';
-import { MAVERICK_AGENT } from './_agents/art/maverick.js'; // <--- NEW HIRE
+import { MIMIC_AGENT } from './_agents/art/mimic.js';
+import { MAVERICK_AGENT } from './_agents/art/maverick.js';
 
-// 4. TEXT SQUAD
+// 2. TEXT SQUAD
 import { EDITOR_AGENT } from './_agents/text/editor.js';
 import { LINGUIST_AGENT } from './_agents/text/linguist.js';
 import { WRITER_AGENT } from './_agents/text/writer.js';
 import { PUBLISHER_AGENT } from './_agents/text/publisher.js';
 
-// 5. VIDEO SQUAD
+// 3. VIDEO SQUAD
 import { PRODUCER_AGENT } from './_agents/video/producer.js';
 import { DIRECTOR_AGENT } from './_agents/video/director.js';
 import { VFX_AGENT } from './_agents/video/vfx.js';
@@ -36,8 +36,8 @@ export const config = {
 
 // --- MODEL REGISTRY ---
 const MODELS = {
-    gemini: 'gemini-2.5-flash-lite',
-    claude: 'claude-haiku-4-5',
+    gemini: 'gemini-2.0-flash-exp', // Fast/Cheap
+    claude: 'claude-3-5-sonnet-20241022',
     openai: 'gpt-4o',
     groq: 'llama-3.1-8b-instant'
 };
@@ -67,8 +67,8 @@ export default async function handler(req, res) {
             VISIONARY, ARCHITECT, CRITIC, TECH_LEAD, EXECUTIVE_AGENT,
             // Management
             MANAGER_AGENT,
-            // Art (Note: CRITIC removed, MAVERICK added)
-            MUSE_AGENT, CINEMATOGRAPHER_AGENT, STYLIST_AGENT, GALLERY_AGENT, MAVERICK_AGENT,
+            // Art (Updated Order)
+            MUSE_AGENT, CINEMATOGRAPHER_AGENT, MIMIC_AGENT, MAVERICK_AGENT, GALLERY_AGENT,
             // Text
             EDITOR_AGENT, LINGUIST_AGENT, WRITER_AGENT, PUBLISHER_AGENT,
             // Video

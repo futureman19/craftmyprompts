@@ -71,6 +71,7 @@ const TextEngine = ({ prompt, apiKey }) => {
 };
 
 // --- 3. ART ENGINE (FIXED: refineBlueprint) ---
+// --- 3. ART ENGINE (Platinum Standard Wiring) ---
 const ArtEngine = ({ prompt, apiKey }) => {
     const hive = useArtHive({ gemini: apiKey });
     useEffect(() => { if (prompt && hive.currentPhase === 'idle') hive.startMission(prompt); }, [prompt]);
@@ -82,10 +83,15 @@ const ArtEngine = ({ prompt, apiKey }) => {
             statusMessage={hive.statusMessage}
             currentPhase={hive.currentPhase}
             actions={{
+                // Phase 1: Vision
                 submitChoices: hive.submitChoices,
+                // Phase 2: Specs
                 submitSpecs: hive.submitSpecs,
-                // CRITICAL FIX: Mapping the hook's function to the name ArtFeed expects
-                refineBlueprint: hive.refineBlueprint,
+                // Phase 3: Mimic (NEW)
+                submitMimic: hive.submitMimic,
+                // Phase 4: Maverick (NEW)
+                submitMaverick: hive.submitMaverick,
+                // Phase 5: Technical (Manual -> Render)
                 renderFinal: hive.renderFinal
             }}
             managerMessages={hive.managerMessages}
