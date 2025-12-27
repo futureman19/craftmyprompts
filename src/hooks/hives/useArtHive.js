@@ -111,7 +111,7 @@ export const useArtHive = (initialKeys = {}) => {
             const fullHistory = history.map(m => `${m.role}: ${m.content}`).join('\n');
             const agentData = await callAgent('gallery', "Generate final prompts.", fullHistory);
 
-            // Parse the response to get the clean prompt
+            // Parse the response
             let cleanPrompt = "";
             try {
                 const raw = agentData.swarm[0].content;
@@ -121,40 +121,49 @@ export const useArtHive = (initialKeys = {}) => {
 
             if (!cleanPrompt) throw new Error("Failed to generate prompt text.");
 
-            // 2. Generate the Image (The "Hands")
+            // 2. Generate the Image
             setStatusMessage('Igniting Google Imagen Engine...');
             const keys = getEffectiveKeys();
+            const googleKey = keys.gemini || keys.google;
 
-            // DEBUG: Check if we actually have a key before sending
-            const googleKey = keys.gemini || keys.google; // Fallback check
-            if (!googleKey) throw new Error("No Gemini API Key found for Image Generation.");
+            if (!googleKey) throw new Error("No Gemini API Key found. Please add one in Settings.");
 
             const imgRes = await fetch('/api/imagine', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     prompt: cleanPrompt,
-                    apiKey: googleKey, // Using the checked key
-                    aspectRatio: "16:9" // Default to cinematic
+                    apiKey: googleKey,
+                    aspectRatio: "16:9"
                 })
             });
 
-            if (!imgRes.ok) throw new Error("Image Generation failed.");
+            // CRITICAL FIX: Read the error body before throwing
+            if (!imgRes.ok) {
+                const errData = await imgRes.json().catch(() => ({})); // Safe parse
+                const errMsg = errData.error || errData.details || "Unknown Server Error";
+                console.error("Imagen Server Error:", errMsg);
+                throw new Error(`Image Gen Failed: ${errMsg}`);
+            }
+
             const imgData = await imgRes.json();
 
-            // 3. Save EVERYTHING to History
-            // We attach the 'generatedImage' property to the agent's message
+            // 3. Save to History
             setHistory(prev => [...prev, {
                 ...agentData.swarm[0],
                 role: 'The Gallery',
                 type: 'final',
-                generatedImage: imgData.image // <--- The Base64 string
+                generatedImage: imgData.image
             }]);
 
         } catch (e) {
             console.error(e);
-            // If image fails, still show the text message so user isn't blank
-            setStatusMessage("Rendering failed, but prompt is saved.");
+            // Show the ACTUAL error in the status message so you can see it on screen
+            setStatusMessage(`Error: ${e.message}`);
+
+            // Still add the text card so the UI doesn't look broken
+            const fallbackData = await callAgent('gallery', "Generate final prompts.", "RETRY");
+            setHistory(prev => [...prev, { ...fallbackData.swarm[0], role: 'The Gallery', type: 'final' }]);
         }
         finally { setLoading(false); }
     };
