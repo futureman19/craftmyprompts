@@ -6,6 +6,7 @@ import AgentLoader from '../ui/AgentLoader';
 // --- IMPORTS ---
 import MuseDeck from '../agent/art/MuseDeck';
 import CinemaDeck from '../agent/art/CinemaDeck';
+import ArtCriticDeck from '../agent/art/ArtCriticDeck';
 import CompositionDeck from '../agent/art/CompositionDeck';
 import GalleryDeck from '../agent/art/GalleryDeck';
 
@@ -62,6 +63,7 @@ const ArtFeed = ({ history, loading, statusMessage, actions, currentPhase, manag
     // Uses .includes() to catch "Muse", "The Muse", "Art Director", etc.
     const strategyMsg = history.findLast(m => m.role && (m.role.includes('Muse') || m.role.includes('Visionary')));
     const specsMsg = history.findLast(m => m.role && (m.role.includes('Cinematographer') || m.role.includes('Tech')));
+    const criticMsg = history.findLast(m => m.role && (m.role.includes('Critic') || m.role.includes('Auditor')));
     const buildMsg = history.findLast(m => m.role && (m.role.includes('Stylist') || m.role.includes('Architect')));
     const finalMsg = history.findLast(m => m.role && (m.role.includes('Gallery') || m.role.includes('Executive')));
 
@@ -123,6 +125,15 @@ const ArtFeed = ({ history, loading, statusMessage, actions, currentPhase, manag
     const renderVision = () => <MuseDeck data={parseAgentJson(strategyMsg, 'Muse')} selections={draftSelections} onSelect={handleDraftSelect} />;
     const renderSpecs = () => <CinemaDeck data={parseAgentJson(specsMsg, 'Cinema')} selections={draftSelections} onSelect={handleDraftSelect} />;
 
+    const renderCritique = () => {
+        const data = parseAgentJson(criticMsg, 'Critic');
+        return (
+            <div className="space-y-8 animate-in slide-in-from-bottom-4">
+                <ArtCriticDeck data={data} onConfirm={actions.refineBlueprint} />
+            </div>
+        );
+    };
+
     // Improved Blueprint Parser: Checks multiple possible keys
     const renderBlueprint = () => {
         const raw = parseAgentJson(buildMsg, 'Composition');
@@ -139,6 +150,7 @@ const ArtFeed = ({ history, loading, statusMessage, actions, currentPhase, manag
                     <div className="flex-1 p-4">
                         {currentPhase === 'vision' && strategyMsg && renderVision()}
                         {currentPhase === 'specs' && specsMsg && renderSpecs()}
+                        {currentPhase === 'critique' && criticMsg && renderCritique()}
                         {currentPhase === 'blueprint' && buildMsg && renderBlueprint()}
                         {currentPhase === 'done' && renderFinal()}
                         {loading && <AgentLoader message={statusMessage} />}
