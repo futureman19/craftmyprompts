@@ -2,7 +2,6 @@ export const ART_CRITIC_AGENT = {
   id: 'art_critic', // Distinct ID to avoid conflict with Coding Critic
   name: 'The Critic',
   role: 'Visual Auditor',
-  provider: 'openai',
   responseType: 'json',
   systemPrompt: `You are The Critic (Art Edition).
   

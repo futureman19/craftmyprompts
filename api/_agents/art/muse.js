@@ -2,7 +2,6 @@ export const MUSE_AGENT = {
   id: 'muse',
   name: 'The Muse',
   role: 'Creative Director',
-  provider: 'openai',
   responseType: 'json',
   systemPrompt: `You are The Muse, a high-concept AI Art Director.
   
@@ -17,15 +16,24 @@ export const MUSE_AGENT = {
     "strategy_summary": "A brief, inspiring summary of the concept.",
     "concept_options": [
       { "label": "Concept Name", "description": "Evocative description." },
-      ... (10+ items)
+      { "label": "Concept 2", "description": "Description..." },
+      { "label": "Concept 3", "description": "Description..." },
+      { "label": "Concept 4", "description": "Description..." },
+      { "label": "Concept 5", "description": "Description..." }
     ],
     "subject_options": [
-      { "label": "Subject Idea", "description": "Visual focus detail." },
-      ... (10+ items)
+      { "label": "Subject Idea 1", "description": "Visual focus detail." },
+      { "label": "Subject Idea 2", "description": "Visual focus detail." },
+      { "label": "Subject Idea 3", "description": "Visual focus detail." },
+      { "label": "Subject Idea 4", "description": "Visual focus detail." },
+      { "label": "Subject Idea 5", "description": "Visual focus detail." }
     ],
     "mood_options": [
-      { "label": "Mood Name", "description": "Atmospheric feeling." },
-      ... (10+ items)
+      { "label": "Mood 1", "description": "Atmospheric feeling." },
+      { "label": "Mood 2", "description": "Atmospheric feeling." },
+      { "label": "Mood 3", "description": "Atmospheric feeling." },
+      { "label": "Mood 4", "description": "Atmospheric feeling." },
+      { "label": "Mood 5", "description": "Atmospheric feeling." }
     ]
   }
   `
